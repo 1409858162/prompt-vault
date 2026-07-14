@@ -1,0 +1,2239 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#0a0a0d" />
+<title>Prompt Vault — 全部提示词</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%237c3aed'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-family='Inter,sans-serif' font-size='34' font-weight='800' fill='%23fff'%3EPV%3C/text%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="/static/security-client.js" defer></script>
+<style>
+  /* === security-client.js additions === */
+  .pv-watermark-host { position: fixed; inset: 0; pointer-events: none; z-index: 9999; }
+  /* disable text selection on prompt body unless explicitly allowed (anti-copy bulk) */
+  pre.prompt { user-select: text; }
+  .pv-locked { opacity: .55; filter: blur(.3px); }
+</style>
+<style>
+  :root {
+    --bg: #0a0a0d;
+    --panel: #131318;
+    --panel-2: #1a1a22;
+    --border: #2a2a35;
+    --text: #f3f3f7;
+    --text-dim: #9a9aa8;
+    --accent: #6366f1;
+    --accent-hover: #818cf8;
+    --pink: #f472b6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); color: var(--text); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  header.topbar {
+    position: sticky; top: 0; z-index: 30;
+    background: rgba(10,10,13,.85);
+    backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 28px;
+  }
+  .topbar-inner {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 16px;
+    max-width: 1600px; margin: 0 auto;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    font-weight: 700; font-size: 16px;
+  }
+  .brand .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--pink));
+    box-shadow: 0 0 10px rgba(99,102,241,.5);
+  }
+  .brand small { color: var(--text-dim); font-weight: 400; font-size: 12px; margin-left: 4px; }
+  /* Top nav tabs: "全部" vs "盲盒 UI" */
+  .nav-tabs {
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(255,255,255,.04);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 3px;
+  }
+  .nav-tab {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 7px 14px;
+    background: transparent; border: 0;
+    color: var(--text-dim);
+    font-size: 14px; font-weight: 600;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background .12s, color .12s;
+    position: relative;
+  }
+  .nav-tab:hover { color: var(--text); background: rgba(255,255,255,.05); }
+  .nav-tab.active {
+    background: var(--panel-2);
+    color: var(--text);
+    box-shadow: inset 0 0 0 1px var(--border);
+  }
+  .nav-tab.active.blindbox {
+    background: rgba(245,158,11,.12);
+    color: #fde68a;
+    box-shadow: inset 0 0 0 1px rgba(245,158,11,.45);
+  }
+  .nav-tab.active.favorites {
+    background: rgba(244,114,182,.12);
+    color: #fbcfe8;
+    box-shadow: inset 0 0 0 1px rgba(244,114,182,.45);
+  }
+  .nav-tab .count {
+    font-size: 11px; font-weight: 500;
+    padding: 1px 7px; border-radius: 999px;
+    background: rgba(0,0,0,.3); color: var(--text-dim);
+  }
+  .nav-tab.active .count {
+    background: rgba(99,102,241,.18); color: var(--text);
+  }
+  .nav-tab.active.blindbox .count {
+    background: rgba(245,158,11,.25); color: #fde68a;
+  }
+  .nav-tab.active.favorites .count {
+    background: rgba(244,114,182,.22); color: #fbcfe8;
+  }
+  /* === Shiny attention ring on the blindbox tab === */
+  /* Slowly-rotating conic gradient border + soft halo pulse + emoji glow.
+     Designed to draw the eye from a distance so users notice it.
+     When active, the ring locks to a warm amber so the tab feels "claimed". */
+  .nav-tab.blindbox { isolation: isolate; }
+  .nav-tab.blindbox::before {
+    content: '';
+    position: absolute;
+    inset: -1.5px;
+    border-radius: 8px;
+    padding: 1.5px;
+    background: conic-gradient(
+      from 0deg,
+      #fde68a 0deg,
+      #fbbf24 60deg,
+      #f472b6 140deg,
+      #818cf8 200deg,
+      #6ee7b7 280deg,
+      #fde68a 360deg
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    z-index: -2;
+    opacity: .9;
+  }
+  .nav-tab.blindbox::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 11px;
+    background: radial-gradient(circle at center, rgba(253,230,138,.35), transparent 70%);
+    z-index: -3;
+    filter: blur(6px);
+    animation: blindbox-pulse 2.4s ease-in-out infinite;
+  }
+  .nav-tab.blindbox .bb-emoji {
+    display: inline-block;
+    filter: drop-shadow(0 0 5px rgba(253,230,138,.7));
+  }
+  .nav-tab.blindbox:hover {
+    background: rgba(253,230,138,.08);
+    color: #fde68a;
+  }
+  /* Active: settle to a warm amber ring (was rotating when idle) */
+  .nav-tab.blindbox.active::before {
+    background: linear-gradient(135deg, #fde68a, #fbbf24 50%, #f472b6);
+    opacity: 1;
+  }
+  .nav-tab.blindbox.active::after {
+    background: radial-gradient(circle at center, rgba(251,191,36,.45), transparent 70%);
+    opacity: 1;
+  }
+  @keyframes blindbox-pulse {
+    0%, 100% { opacity: .55; }
+    50%      { opacity: 1; }
+  }
+  /* Respect reduced motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    .nav-tab.blindbox::after { animation: none; }
+  }
+  .stat-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pill {
+    font-size: 12px;
+    padding: 4px 10px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--text-dim);
+  }
+  .pill b { color: var(--text); }
+
+  /* ----- Announcement marquee (right-to-left horizontal scroll) ----- */
+  #announcementHost { max-width: 1600px; margin: 12px auto 0; padding: 0 20px; }
+  #announcementHost:empty { display: none; }
+
+  .ann-marquee {
+    position: relative;
+    overflow: hidden;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 0;
+    /* Fade edges so announcements don't pop in/out harshly */
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 60px, #000 calc(100% - 60px), transparent 100%);
+            mask-image: linear-gradient(90deg, transparent 0, #000 60px, #000 calc(100% - 60px), transparent 100%);
+  }
+  /* The track holds two copies of the announcement list, animated continuously
+     from right (translateX(0)) to left (translateX(-50%)). When the first copy
+     scrolls fully off-screen, the second copy is now in view, and the loop
+     restarts seamlessly. */
+  .ann-track {
+    display: inline-flex;
+    align-items: center;
+    gap: 80px;
+    padding-left: 80px; /* start off-screen on the right */
+    white-space: nowrap;
+    animation: ann-scroll 40s linear infinite;
+    will-change: transform;
+  }
+  .ann-marquee:hover .ann-track { animation-play-state: paused; }
+  .ann-marquee.paused .ann-track { animation-play-state: paused; }
+
+  .ann-item {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 13px; line-height: 1.4;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .ann-item .ann-icon { font-size: 15px; line-height: 1; }
+  .ann-item .ann-title { font-weight: 700; color: var(--text); }
+  .ann-item .ann-text { color: var(--text-dim); }
+  .ann-item .ann-sep { color: var(--text-faint); }
+  .ann-item .ann-close {
+    background: transparent; border: 0; cursor: pointer;
+    color: var(--text-dim); font-size: 14px; line-height: 1;
+    padding: 0 2px; margin-left: 4px;
+  }
+  .ann-item .ann-close:hover { color: var(--text); }
+
+  /* Per-kind accent on the icon — keeps background neutral for readability */
+  .ann-item.info    .ann-icon { color: var(--accent); }
+  .ann-item.warn    .ann-icon { color: #f59e0b; }
+  .ann-item.downtime .ann-icon { color: #ef4444; }
+  .ann-item.promo   .ann-icon { color: #a855f7; }
+  .ann-item.pinned  { box-shadow: 0 0 0 1px var(--accent) inset; }
+
+  @keyframes ann-scroll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(-50%); }
+  }
+  /* Respect reduced-motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    .ann-track { animation: none; transform: none; flex-wrap: wrap; gap: 12px; padding: 8px 16px; white-space: normal; }
+    .ann-marquee { -webkit-mask-image: none; mask-image: none; }
+  }
+
+  .toolbar .search {
+    position: relative;
+    display: flex; align-items: center;
+    flex: 1; min-width: 240px;
+  }
+  .toolbar .search svg { position: absolute; left: 12px; color: var(--text-dim); pointer-events: none; }
+  .toolbar .search input {
+    padding: 9px 36px 9px 34px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 14px;
+    width: 100%;
+  }
+  .toolbar .search input:focus { outline: none; border-color: var(--accent); }
+  .toolbar .search .clear {
+    position: absolute; right: 8px;
+    background: transparent; border: 0; color: var(--text-dim);
+    width: 22px; height: 22px; border-radius: 6px; cursor: pointer; font-size: 16px;
+    display: none; align-items: center; justify-content: center;
+  }
+  .toolbar .search .clear:hover { color: var(--text); background: var(--panel-2); }
+  .toolbar .search.has-value .clear { display: flex; }
+  .toolbar select {
+    padding: 9px 12px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text); font-size: 13px;
+    cursor: pointer; min-width: 130px;
+  }
+  .toolbar select:focus { outline: none; border-color: var(--accent); }
+  .toolbar .reset {
+    padding: 9px 14px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    color: var(--text-dim); border-radius: 8px;
+    font-size: 13px; cursor: pointer;
+  }
+  .toolbar .reset:hover { color: var(--text); border-color: var(--accent); }
+  .toolbar .result-count {
+    margin-left: auto;
+    font-size: 12px; color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .toolbar .result-count b { color: var(--text); font-weight: 600; }
+  .toolbar .result-count.filtered b { color: var(--accent-hover); }
+
+  /* Active-filter chips (clickable to remove) */
+  .active-filters {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin: -8px 0 16px;
+    min-height: 0;
+  }
+  .active-filters:empty { display: none; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 6px 4px 10px;
+    background: rgba(99,102,241,.12);
+    border: 1px solid rgba(99,102,241,.35);
+    color: #c7d2fe;
+    border-radius: 999px;
+    font-size: 12px;
+  }
+  .chip button {
+    background: transparent; border: 0; color: inherit;
+    width: 18px; height: 18px; border-radius: 50%;
+    cursor: pointer; font-size: 13px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .chip button:hover { background: rgba(255,255,255,.1); }
+  .me {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: var(--text-dim);
+    padding: 6px 12px; background: var(--panel-2);
+    border-radius: 8px; border: 1px solid var(--border);
+  }
+  .topbar-right {
+    margin-left: auto;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .me b { color: var(--text); font-weight: 600; }
+  .me-expiry {
+    font-size: 11px;
+    color: var(--text-faint);
+    font-weight: 400;
+    white-space: nowrap;
+  }
+  .me-expiry.expired { color: #f87171; }
+  .logout {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    padding: 7px 12px; border-radius: 8px;
+    font-size: 13px; cursor: pointer;
+  }
+  .logout:hover { background: var(--panel-2); color: var(--text); }
+
+  /* PM hero removed */
+
+  main { max-width: 1600px; margin: 24px auto 60px; padding: 0 28px; }
+  .toolbar {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    margin-bottom: 18px;
+    padding: 12px 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform .12s, border-color .12s, box-shadow .12s;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+    box-shadow: 0 12px 28px -16px rgba(99,102,241,.5);
+  }
+  .card .preview {
+    position: relative;
+    aspect-ratio: 16 / 10;
+    background: #0c0c10;
+    overflow: hidden;
+  }
+  .card .preview img, .card .preview video {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    transition: transform .3s;
+  }
+  .card:hover .preview img { transform: scale(1.05); }
+  .card .preview .badges {
+    position: absolute; top: 8px; left: 8px; right: 8px;
+    display: flex; justify-content: space-between; gap: 6px; pointer-events: none;
+  }
+  .badges-left { display: flex; gap: 4px; flex-wrap: wrap; max-width: 80%; }
+  .badge { font-size: 10px; padding: 3px 7px; border-radius: 999px; font-weight: 600; letter-spacing: .02em;
+    background: rgba(0,0,0,.55); color: #fff; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,.08);
+  }
+  .badge.cat { color: #e5e7eb; }
+  .badge.meta { color: #93c5fd; border-color: rgba(147,197,253,.35); background: rgba(15,30,55,.7); }
+  .badge.orig { color: #a78bfa; border-color: rgba(167,139,250,.35); background: rgba(25,18,55,.7); font-weight: 500; }
+  .card .body { padding: 12px 14px; }
+  .card h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card .snippet { font-size: 12px; color: var(--text-dim); line-height: 1.45;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 34px; }
+  .card .footer { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 11px; color: var(--text-dim); }
+  .card .arrow { color: var(--accent-hover); font-weight: 600; }
+  .card .favorite-btn {
+    position: absolute; right: 8px; bottom: 8px;
+    min-width: 34px; height: 34px; border-radius: 999px;
+    padding: 0 10px;
+    display: flex; align-items: center; justify-content: center;
+    gap: 5px;
+    border: 1px solid rgba(255,255,255,.14);
+    background: rgba(0,0,0,.55);
+    color: #fff;
+    font-size: 18px; line-height: 1;
+    cursor: pointer;
+    z-index: 4;
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    transition: transform .12s, border-color .12s, background .12s, color .12s;
+  }
+  .card .favorite-btn .favorite-count {
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,.9);
+  }
+  .card .favorite-btn:hover { transform: scale(1.06); border-color: rgba(244,114,182,.75); }
+  .card .favorite-btn.active { color: #f9a8d4; background: rgba(83,20,52,.82); border-color: rgba(244,114,182,.7); }
+  .row-span-2 { grid-row: span 2; min-height: 280px; }
+  .row-span-2 .preview { aspect-ratio: 4 / 5; }
+
+  /* Blind-box placeholder: real photo, soft zoom on hover */
+  .card .preview .ph {
+    width: 100%; height: 100%;
+    display: block; position: relative; overflow: hidden;
+    background: #0a0a0d;
+  }
+  .card .preview .ph-img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+    transition: transform .3s;
+  }
+  .card:hover .preview .ph-img { transform: scale(1.05); }
+  .card .preview .ph-tag {
+    position: absolute; bottom: 6px; right: 6px;
+    font-size: 10px; padding: 3px 7px; border-radius: 999px;
+    background: rgba(0,0,0,.6); color: #fde68a;
+    border: 1px solid rgba(245,158,11,.45);
+    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    font-weight: 600; letter-spacing: .03em;
+  }
+
+  /* Modal preview also uses manghe.png as fallback */
+  .modal .preview-big .ph-img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+  }
+
+  /* Blind-box badge on cards (in addition to category) */
+  .badge.blindbox {
+    color: #fde68a; border-color: rgba(245,158,11,.45);
+    background: rgba(60,40,10,.7);
+  }
+
+  .empty { text-align: center; padding: 80px 20px; color: var(--text-dim); }
+  .empty h2 { font-size: 18px; color: var(--text); margin-bottom: 6px; }
+
+  /* Pager: bottom-of-grid page navigation. Hidden when there's nothing to page
+     (empty state owns the screen, or only one page of results). Numbers are
+     compact buttons; the active page is highlighted; prev/next are larger
+     arrow buttons flanking the page-number run. */
+  .pager-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 24px 16px 8px;
+  }
+  .pager {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .pager button {
+    appearance: none;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    min-width: 32px;
+    height: 32px;
+    padding: 0 8px;
+    transition: background .15s, border-color .15s, color .15s;
+  }
+  .pager button:hover:not(:disabled) { background: rgba(255,255,255,.04); border-color: rgba(255,255,255,.18); }
+  .pager button:disabled { opacity: .4; cursor: not-allowed; }
+  .pager button.active {
+    background: var(--accent, #4f8cff);
+    color: #fff;
+    border-color: var(--accent, #4f8cff);
+    cursor: default;
+  }
+  .pager .nav { padding: 0 12px; font-weight: 500; }
+  .pager .ellipsis {
+    color: var(--text-dim);
+    padding: 0 4px;
+    user-select: none;
+  }
+  .pager-hint { font-size: 12px; color: var(--text-dim); }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,.78); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    display: none; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: 100%; max-width: 900px;
+    max-height: min(820px, 90vh);
+    height: min(820px, 90vh);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .modal header {
+    padding: 16px 22px;
+    display: flex; align-items: flex-start; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .modal header h2 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
+  .modal header .meta-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  #modalClose {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text-dim); width: 32px; height: 32px;
+    border-radius: 8px; cursor: pointer; font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  #modalClose:hover { color: var(--text); border-color: var(--accent); }
+  .modal .preview-big {
+    background: #0a0c0d;
+    flex-shrink: 0;
+    width: 100%;
+    height: 50vh;
+    max-height: 50vh;
+    overflow: hidden;
+  }
+  .modal .preview-big video, .modal .preview-big img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .modal .preview-big .ph { width: 100%; height: 100%; }
+  .modal .prompt {
+    padding: 22px;
+    font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+    font-size: 13px; line-height: 1.65;
+    white-space: pre-wrap;
+    background: var(--bg);
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .modal .actions { padding: 12px 22px; border-top: 1px solid var(--border);
+    display: flex; justify-content: flex-end; gap: 10px; flex-shrink: 0; }
+  .modal .actions button { padding: 9px 16px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--panel-2); color: var(--text); font-size: 13px; font-weight: 500; cursor: pointer; }
+  .modal .actions button.favorite-active { color: #fbcfe8; border-color: rgba(244,114,182,.55); background: rgba(83,20,52,.55); }
+  .modal .actions button.primary { background: linear-gradient(135deg, var(--accent), var(--pink)); border: none; color: white; }
+
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+    padding: 10px 16px; border-radius: 10px; font-size: 13px; z-index: 200;
+    opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #2a2a31; border-radius: 5px; border: 2px solid var(--bg); }
+  ::-webkit-scrollbar-thumb:hover { background: #3a3a44; }
+
+  @media (max-width: 600px) {
+    header.topbar { padding: 12px 14px; }
+    main { padding: 14px; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+    .card .preview { aspect-ratio: 4 / 3; }
+    .row-span-2 { grid-row: span 1; min-height: 240px; }
+    .row-span-2 .preview { aspect-ratio: 4 / 3; }
+    .modal-backdrop { padding: 0; }
+    .modal { border-radius: 0; max-height: 100vh; height: 100vh; max-width: none; }
+    .modal .preview-big { height: 36vh; max-height: 36vh; }
+    .modal header h2 { font-size: 18px; }
+    .topbar-inner .search input { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="dot"></span>
+      <span>Prompt Vault<small>· 全部提示词</small></span>
+    </div>
+    <nav class="nav-tabs" role="tablist" aria-label="视图切换">
+      <button class="nav-tab" id="tabAll" type="button" role="tab" aria-selected="true">
+        <span>全部</span>
+        <span class="count" id="tabAllCount">–</span>
+      </button>
+      <button class="nav-tab blindbox" id="tabBlindbox" type="button" role="tab" aria-selected="false" title="盲盒 UI 提示词专题 · 好奇就点一下">
+        <span class="bb-emoji">📦</span>
+        <span>盲盒 UI</span>
+        <span class="count" id="blindboxCount">0</span>
+      </button>
+      <button class="nav-tab favorites" id="tabFavorites" type="button" role="tab" aria-selected="false" title="个人收藏 UI 库">
+        <span>♡</span>
+        <span>收藏库</span>
+        <span class="count" id="favoritesCount">0</span>
+      </button>
+    </nav>
+    <div class="stat-pills">
+      <span class="pill" id="pillTotal"><b>–</b> total</span>
+      <span class="pill" id="pillCover"><b>–</b> with cover</span>
+    </div>
+    <div class="topbar-right">
+      <a class="me" id="mePill" href="/me" title="个人中心" style="text-decoration:none;color:inherit;">
+        <span>👤</span>
+        <b id="meLabel">载入中…</b>
+        <span class="me-expiry" id="meExpiry"></span>
+      </a>
+      <button class="logout" id="logoutBtn">退出</button>
+    </div>
+  </div>
+</header>
+
+<!-- Announcements banner. Populated by loadAnnouncements(). Pinned items render
+     inline; non-pinned items collapse into a "公告" pill on the right. -->
+<div id="announcementHost"></div>
+
+<div class="toolbar">
+  <div class="search" id="searchWrap">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <input id="searchInput" type="search" placeholder="搜索标题、提示词、分类、ID…" autocomplete="off" />
+    <button class="clear" id="searchClear" type="button" aria-label="清空搜索">×</button>
+  </div>
+  <select id="categorySelect" aria-label="筛选分类">
+    <option value="">所有分类</option>
+  </select>
+  <select id="textSelect" aria-label="筛选有/无提示词正文">
+    <option value="">全部</option>
+    <option value="yes">有提示词正文</option>
+    <option value="no">仅元数据</option>
+  </select>
+  <select id="sortSelect" aria-label="排序方式">
+    <option value="">默认排序</option>
+    <option value="favorite_count">收藏数量</option>
+    <option value="favorite_recent">最近收藏</option>
+  </select>
+  <button class="reset" id="resetBtn" type="button" title="清空所有筛选">清空</button>
+  <div class="result-count" id="resultCount"></div>
+</div>
+<div class="active-filters" id="activeFilters"></div>
+
+<main>
+  <div id="grid" class="grid"></div>
+  <div id="empty" class="empty" style="display:none">
+    <h2>没有匹配的提示词</h2>
+    <p>试试其他搜索词或清除筛选条件。</p>
+  </div>
+  <div id="pagerWrap" class="pager-wrap" style="display:none">
+    <nav id="pager" class="pager" aria-label="分页"></nav>
+    <span id="pagerHint" class="pager-hint"></span>
+  </div>
+</main>
+
+<!-- Modal -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <header>
+      <div>
+        <h2 id="modalTitle">标题</h2>
+        <div class="meta-pills" id="modalMeta"></div>
+      </div>
+      <button id="modalClose" aria-label="关闭">×</button>
+    </header>
+    <div id="modalPreview"></div>
+    <pre class="prompt" id="modalPrompt"></pre>
+    <div class="actions">
+      <button id="favoriteModalBtn" type="button">♡ 收藏</button>
+      <button id="copyBtn">复制提示词</button>
+      <button class="primary" id="useBtn">在 AI 中使用 →</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">已复制</div>
+
+<script>
+let DATA = [];
+// Pagination state.
+// We fetch the catalog page-by-page from /api/prompts. The user-visible page
+// is `currentPage`; we maintain a 1-based `nextPageToFetch` (the next page of
+// server data we still need to materialise, for any reason — usually because
+// the user clicked further into the pager or because a filter narrowed the
+// window). DATA accumulates items across all fetched pages; we dedupe by id
+// in case the server ever changes sort stability across pages.
+// `currentPage` is *derived* from filters+sort and `DATA.length`: it is the
+// page that the grid is currently showing.
+let TOTAL = 0;
+let currentPage = 1;
+let nextPageToFetch = 1;
+let hasMore = false;
+let catalogFullyLoaded = false;
+let loadingMore = false;
+let isFatalError = false;
+let backgroundCatalogLoading = false;
+// In-memory cache of raw server page responses. Key = server page number (1-based).
+// Never holds prompt_text bodies — server already strips them before caching.
+// Used to avoid re-fetching when switching tabs (all ↔ blindbox) or reloading.
+const pageCache = new Map(); // pageNum -> { total, has_more, items }
+const PAGE_CACHE_MAX = 32;
+// Tracks which page numbers the user has *rendered* (visited in the pager)
+// so we only auto-fetch the server pages needed to satisfy the current view.
+// Without this, changing a filter and landing on page 5 would silently fetch
+// pages 2-5 even when the user never paginated past page 1.
+const visitedPages = new Set([1]);
+const PAGE_SIZE = 20;
+const SERVER_PAGE_SIZE = 96;
+const CATALOG_CACHE_KEY = 'prompt-vault:catalog:v2';
+const CATALOG_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+const FAVORITES_KEY = 'prompt-vault:favorites:v1';
+let FAVORITES = {};
+
+function loadFavorites() {
+  try {
+    const raw = localStorage.getItem(FAVORITES_KEY);
+    const parsed = raw ? JSON.parse(raw) : {};
+    FAVORITES = parsed && typeof parsed === 'object' ? parsed : {};
+    for (const [id, meta] of Object.entries(FAVORITES)) {
+      if (!meta || typeof meta !== 'object') {
+        delete FAVORITES[id];
+        continue;
+      }
+      if (meta.active === undefined) meta.active = true;
+      if (!Number.isFinite(meta.count)) meta.count = meta.active ? 1 : 0;
+    }
+  } catch {
+    FAVORITES = {};
+  }
+}
+
+function saveFavorites() {
+  try {
+    localStorage.setItem(FAVORITES_KEY, JSON.stringify(FAVORITES));
+  } catch (e) {
+    console.warn('[Prompt Vault] favorites save failed:', e && e.message ? e.message : e);
+  }
+}
+
+function isFavorite(id) {
+  const meta = FAVORITES[id];
+  return !!meta && meta.active !== false;
+}
+
+function favoriteMeta(id) {
+  return FAVORITES[id] || null;
+}
+
+function favoriteCount(id) {
+  return favoriteMeta(id)?.count || 0;
+}
+
+function favoriteTotal() {
+  return Object.values(FAVORITES).filter(meta => meta && meta.active !== false).length;
+}
+
+function toggleFavorite(id) {
+  if (!id) return;
+  const now = Date.now();
+  const meta = FAVORITES[id];
+  if (meta && meta.active !== false) {
+    meta.active = false;
+    meta.last_at = now;
+    showToast('已从收藏库移除');
+  } else {
+    FAVORITES[id] = {
+      ...(meta || {}),
+      id,
+      active: true,
+      count: (Number.isFinite(meta?.count) ? meta.count : 0) + 1,
+      first_at: meta?.first_at || now,
+      last_at: now,
+    };
+    showToast('已加入收藏库');
+  }
+  saveFavorites();
+  syncTopBarStats();
+  render();
+  syncModalFavoriteButton();
+}
+
+// Update the top-of-page pills. Boot loads the full metadata catalog, so these
+// counts are exact after the first successful load.
+function syncTopBarStats() {
+  document.getElementById('pillTotal').innerHTML = `<b>${TOTAL}</b> total`;
+  // Cover = any non-null preview image or video URL (including playable_video_url).
+  document.getElementById('pillCover').innerHTML =
+    `<b>${DATA.filter(x => !!(x.preview_image_url || x.preview_video_url || x.playable_video_url)).length}</b> with cover`;
+  const blindCount = DATA.filter(usesManghePlaceholder).length;
+  document.getElementById('blindboxCount').textContent = blindCount;
+  document.getElementById('tabAllCount').textContent = Math.max(0, TOTAL - blindCount);
+  document.getElementById('favoritesCount').textContent = favoriteTotal();
+}
+
+function saveCatalogCache() {
+  if (!catalogFullyLoaded || !DATA.length) return;
+  try {
+    localStorage.setItem(CATALOG_CACHE_KEY, JSON.stringify({
+      saved_at: Date.now(),
+      total: TOTAL,
+      items: DATA.map(p => ({ ...p, prompt_text: null })),
+    }));
+  } catch (e) {
+    console.warn('[Prompt Vault] catalog cache save failed:', e && e.message ? e.message : e);
+  }
+}
+
+function hydrateCatalogFromCache() {
+  try {
+    const raw = localStorage.getItem(CATALOG_CACHE_KEY);
+    if (!raw) return false;
+    const cached = JSON.parse(raw);
+    if (!cached || !Array.isArray(cached.items) || !cached.items.length) return false;
+    if (Date.now() - (cached.saved_at || 0) > CATALOG_CACHE_MAX_AGE_MS) return false;
+    DATA = cached.items.map(p => ({ ...p, prompt_text: null }));
+    TOTAL = cached.total || DATA.length;
+    hasMore = false;
+    catalogFullyLoaded = true;
+    nextPageToFetch = Math.ceil(DATA.length / SERVER_PAGE_SIZE) + 1;
+    syncTopBarStats();
+    render();
+    return true;
+  } catch (e) {
+    console.warn('[Prompt Vault] catalog cache read failed:', e && e.message ? e.message : e);
+    try { localStorage.removeItem(CATALOG_CACHE_KEY); } catch {}
+    return false;
+  }
+}
+
+// ---- Auth UI ----
+let MEMBERSHIP = { is_member: true, expires_label: '' };
+
+async function loadMe() {
+  try {
+    const r = await fetch('/api/me');
+    if (r.status === 401) { location.href = '/login'; return; }
+    const data = await r.json();
+    document.getElementById('meLabel').textContent = data.code.label || ('码 #' + data.code.id.slice(-6));
+    MEMBERSHIP = data.membership || { is_member: true, expires_label: data.code.expires_label || '' };
+    const expiryEl = document.getElementById('meExpiry');
+    const label = MEMBERSHIP.expires_label || data.code.expires_label || '';
+    if (label) {
+      expiryEl.textContent = label;
+      expiryEl.classList.toggle('expired', !MEMBERSHIP.is_member);
+      expiryEl.style.display = '';
+    } else {
+      expiryEl.textContent = '';
+      expiryEl.style.display = 'none';
+    }
+  } catch (e) {
+    document.getElementById('meLabel').textContent = '已登录';
+  }
+}
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await fetch('/api/logout', { method: 'POST' });
+  location.href = '/login';
+});
+
+// ---- Announcements ----
+// Pull active announcements from /api/announcements and render them above the
+// toolbar. Pinned items expand inline; non-pinned items collapse into a small
+// "公告" pill that expands on click. Dismissed IDs are remembered in
+// localStorage for the session so the user isn't pestered.
+const ANNOUNCEMENT_DISMISS_KEY = 'pv_ann_dismissed_v1';
+function getDismissed() {
+  try { return new Set(JSON.parse(localStorage.getItem(ANNOUNCEMENT_DISMISS_KEY) || '[]')); }
+  catch { return new Set(); }
+}
+function markDismissed(id) {
+  const s = getDismissed();
+  s.add(id);
+  localStorage.setItem(ANNOUNCEMENT_DISMISS_KEY, JSON.stringify([...s]));
+}
+function clearDismissed() {
+  localStorage.removeItem(ANNOUNCEMENT_DISMISS_KEY);
+}
+const ANNOUNCEMENT_ICONS = {
+  info: 'ℹ️',
+  warn: '⚠️',
+  downtime: '🛠',
+  promo: '🎁',
+};
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+function formatAnnDate(iso) {
+  try {
+    const d = new Date(iso);
+    const now = Date.now();
+    const diff = now - d.getTime();
+    if (diff < 60_000) return '刚刚';
+    if (diff < 3_600_000) return Math.floor(diff / 60_000) + ' 分钟前';
+    if (diff < 86_400_000) return Math.floor(diff / 3_600_000) + ' 小时前';
+    return d.toLocaleDateString('zh-CN') + ' ' + d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false });
+  } catch { return ''; }
+}
+function renderAnnouncements(list) {
+  const host = document.getElementById('announcementHost');
+  if (!host) return;
+  host.innerHTML = '';
+  if (!list || !list.length) return;
+  const dismissed = getDismissed();
+  const visible = list.filter(a => !dismissed.has(a.id));
+  if (!visible.length) return;
+
+  // Single-track marquee: render two copies of the items so the loop is seamless.
+  // The CSS animates translateX(0) -> translateX(-50%) forever.
+  const marquee = document.createElement('div');
+  marquee.className = 'ann-marquee';
+  const track = document.createElement('div');
+  track.className = 'ann-track';
+  for (const a of visible) track.appendChild(buildAnnouncementItem(a));
+  // Duplicate for seamless loop (CSS animates by exactly -50%).
+  for (const a of visible) track.appendChild(buildAnnouncementItem(a));
+  marquee.appendChild(track);
+  host.appendChild(marquee);
+  // Pause scrolling on touch so mobile users can read at their own pace.
+  marquee.addEventListener('touchstart', () => marquee.classList.add('paused'), { passive: true });
+  marquee.addEventListener('touchend', () => marquee.classList.remove('paused'), { passive: true });
+
+  // After the items are in the DOM, measure one copy's width and set a
+  // duration that gives roughly the same horizontal speed regardless of how
+  // many announcements there are. ~60 px/sec feels like a calm ticker.
+  requestAnimationFrame(() => {
+    const halfWidth = track.scrollWidth / 2; // one full copy
+    if (halfWidth <= 0) return;
+    const pxPerSec = 60;
+    const seconds = Math.max(15, halfWidth / pxPerSec);
+    track.style.animationDuration = seconds + 's';
+  });
+}
+
+// Inline pill used inside the scrolling track. Title + body on one line so the
+// marquee stays compact and horizontally scrollable.
+function buildAnnouncementItem(a) {
+  const el = document.createElement('span');
+  const icon = ANNOUNCEMENT_ICONS[a.kind] || 'ℹ️';
+  const klass = `ann-item ${a.kind || 'info'} ${a.pinned ? 'pinned' : ''}`;
+  el.className = klass;
+  el.innerHTML = `
+    <span class="ann-icon">${icon}</span>
+    <span class="ann-title">${escapeHtml(a.title)}</span>
+    <span class="ann-sep">·</span>
+    <span class="ann-text">${escapeHtml(a.body)}</span>
+    <button class="ann-close" aria-label="关闭" type="button">×</button>
+  `;
+  el.querySelector('.ann-close').addEventListener('click', (e) => {
+    e.stopPropagation();
+    markDismissed(a.id);
+    // Easiest correct path: re-render so both copies disappear together.
+    loadAnnouncements();
+  });
+  return el;
+}
+async function loadAnnouncements() {
+  try {
+    const r = await fetch('/api/announcements');
+    if (!r.ok) return;
+    const data = await r.json();
+    renderAnnouncements(data.announcements || []);
+  } catch {}
+}
+// Dev helper: type `pvClearAnn()` in console to re-show dismissed items.
+window.pvClearAnn = clearDismissed;
+
+// ---- Data load ----
+// /api/prompts now returns METADATA ONLY (no prompt_text). Body content is
+// fetched per-chapter via /api/prompts/:id/access + /api/prompts/:id with a
+// 5-minute single-use content token. This is the anti-leak primitive.
+//
+// The list is paginated. `loadPrompts({ reset: true })` re-pulls everything
+// from page 1; `loadPrompts({ reset: false })` ensures the requested server
+// `pages` are present in DATA, fetching any missing ranges one by one. This
+// keeps the network cost proportional to what the user actually visits,
+// instead of paying for 12 pages of cold data on first paint.
+// Module-level: tracks which server pages are currently being fetched. If
+// `render()` fires a second `loadPrompts()` while the first is mid-flight,
+// the second loop will *skip* pages that are already in flight — this keeps
+// us from doubling the request count when typing in the search box triggers
+// a render storm.
+const inflightPages = new Set();
+let loadPromptsChain = Promise.resolve();
+async function loadPrompts(opts = {}) {
+  // Serialise all loadPrompts calls so concurrent callers (a render storm
+  // from search-box typing, or a pager click while page 1 is still loading)
+  // share a single ordered queue. This is the second line of defence after
+  // serverPage-deduping: even if N callers want page N, we fetch it once.
+  const next = loadPromptsChain.then(() => doLoadPrompts(opts));
+  // Keep the chain alive even if this call rejects; otherwise one error
+  // would poison every future caller.
+  loadPromptsChain = next.catch((e) => {
+    console.warn('[Prompt Vault] loadPrompts failed:', e && e.message ? e.message : e);
+  });
+  return next;
+}
+async function doLoadPrompts(opts = {}) {
+  isFatalError = false; // clear any lingering error overlay before trying again
+  // Bare `loadPrompts()` is the boot signal — treat it as a full reset and
+  // make sure page 1 is loaded so the user sees *something* immediately.
+  if (opts.reset === undefined) opts.reset = true;
+  if (opts.reset) {
+    DATA = [];
+    TOTAL = 0;
+    nextPageToFetch = 1;
+    hasMore = false;
+    catalogFullyLoaded = false;
+    currentPage = 1;
+    visitedPages.clear();
+    visitedPages.add(1);
+  }
+  // Determine which server pages we still need. Caller passes a set via
+  // opts.pages; missing/null means "just ensure the next contiguous range
+  // up to `pageN` is loaded". We pull pages in order, batching through a
+  // single `await` loop so a flaky network aborts the whole tour cleanly.
+  const pagesWanted = collectNeededPages(opts);
+  for (const serverPage of pagesWanted) {
+    const ok = await fetchServerPageOnce(serverPage);
+    if (!ok) return; // error path already surfaced
+  }
+  if (opts.fetchAll) {
+    while (!catalogFullyLoaded) {
+      const ok = await fetchServerPageOnce(nextPageToFetch);
+      if (!ok) return;
+    }
+  } else if (opts.fillCurrentView) {
+    const neededRows = Math.max(1, currentPage) * PAGE_SIZE;
+    let totalServerPages = Math.ceil(TOTAL / SERVER_PAGE_SIZE) || 1;
+    while (currentViewLoadedRows() < neededRows && nextPageToFetch <= totalServerPages) {
+      const ok = await fetchServerPageOnce(nextPageToFetch);
+      if (!ok) return;
+      totalServerPages = Math.ceil(TOTAL / SERVER_PAGE_SIZE) || 1;
+      if (catalogFullyLoaded) break;
+    }
+  }
+  // After all needed server pages are present, sync top-bar stats that
+  // depend on what we've loaded so far (cover/free pills).
+  syncTopBarStats();
+  render();
+  saveCatalogCache();
+  setPagerBusy(false);
+}
+
+function yieldToBrowser() {
+  return new Promise(resolve => {
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(resolve, { timeout: 250 });
+    } else {
+      setTimeout(resolve, 0);
+    }
+  });
+}
+
+async function loadCatalogInBackground() {
+  if (backgroundCatalogLoading) return;
+  backgroundCatalogLoading = true;
+  try {
+    while (!catalogFullyLoaded && !isFatalError) {
+      await yieldToBrowser();
+      const ok = await fetchServerPageOnce(nextPageToFetch);
+      if (!ok) break;
+      syncTopBarStats();
+      render();
+    }
+    saveCatalogCache();
+  } finally {
+    backgroundCatalogLoading = false;
+    setPagerBusy(false);
+  }
+}
+
+async function fetchFreshCatalogSnapshot() {
+  const fresh = [];
+  let freshTotal = 0;
+  let page = 1;
+  let more = true;
+  const seen = new Set();
+  while (more) {
+    const r = await fetch(`/api/prompts?limit=${SERVER_PAGE_SIZE}&page=${page}`, { cache: 'no-store' });
+    if (r.status === 401) { location.href = '/login'; return null; }
+    if (!r.ok) throw new Error('refresh catalog failed: ' + r.status);
+    const data = await r.json();
+    if (!data || !Array.isArray(data.items)) throw new Error('refresh catalog returned invalid data');
+    freshTotal = data.total || freshTotal;
+    for (const p of data.items) {
+      if (seen.has(p.id)) continue;
+      seen.add(p.id);
+      fresh.push({ ...p, prompt_text: null });
+    }
+    more = !!data.has_more;
+    page++;
+    await yieldToBrowser();
+  }
+  return { items: fresh, total: freshTotal || fresh.length };
+}
+
+async function refreshCatalogFromNetwork() {
+  if (backgroundCatalogLoading) return;
+  backgroundCatalogLoading = true;
+  try {
+    const fresh = await fetchFreshCatalogSnapshot();
+    if (!fresh) return;
+    DATA = fresh.items;
+    TOTAL = fresh.total;
+    hasMore = false;
+    catalogFullyLoaded = true;
+    nextPageToFetch = Math.ceil(DATA.length / SERVER_PAGE_SIZE) + 1;
+    pageCache.clear();
+    syncTopBarStats();
+    render();
+    saveCatalogCache();
+  } catch (e) {
+    console.warn('[Prompt Vault] catalog background refresh failed:', e && e.message ? e.message : e);
+  } finally {
+    backgroundCatalogLoading = false;
+    setPagerBusy(false);
+  }
+}
+
+async function bootCatalog() {
+  if (hydrateCatalogFromCache()) {
+    refreshCatalogFromNetwork();
+    return;
+  }
+  await loadPrompts({ reset: true });
+  loadCatalogInBackground();
+}
+
+async function fetchServerPageOnce(serverPage) {
+  // Pages already present in DATA need no fetch.
+  if (serverPage < nextPageToFetch) return true;
+  // Pages already in flight are owned by a sibling loadPrompts(); skip
+  // them rather than re-issuing the GET (which would burn the IP rate limit).
+  if (inflightPages.has(serverPage)) return true;
+  inflightPages.add(serverPage);
+  loadingMore = true;
+  try {
+    return await fetchOneServerPage(serverPage);
+  } finally {
+    inflightPages.delete(serverPage);
+    loadingMore = false;
+  }
+}
+
+// Decide which server-side pages must be materialised for the current view.
+// - opts.targetServerPage: explicitly reach this far (e.g. user clicked page 8).
+// - opts.reset: pull at least server page 1 so the first paint has data.
+// - otherwise: no extra pages required (we already have whatever was needed
+//   for the previously-rendered page).
+function collectNeededPages(opts) {
+  const out = [];
+  if (opts.reset) out.push(1);
+  const target = opts.targetServerPage;
+  if (target) {
+    const targetServerPage = Math.ceil((target * PAGE_SIZE) / SERVER_PAGE_SIZE) || 1;
+    const totalPages = Math.ceil(TOTAL / SERVER_PAGE_SIZE) || 1;
+    const cap = Math.min(targetServerPage, totalPages);
+    for (let p = nextPageToFetch; p <= cap; p++) out.push(p);
+  } else if (!opts.reset && out.length === 0) {
+    // Recovery path (429 auto-retry, or any reset=false with no explicit target):
+    // pull at least page 1 so the grid isn't left permanently empty.
+    out.push(nextPageToFetch);
+  }
+  return out;
+}
+
+// Pull one server page, append it to DATA, update meta. Returns false if the
+// request failed (the caller should propagate that to renderFatalError / toast).
+async function fetchOneServerPage(serverPage) {
+  // --- Cache hit: replay without touching the network ---
+  if (pageCache.has(serverPage)) {
+    const cached = pageCache.get(serverPage);
+    // Merge cached items into DATA (dedup by id)
+    const seen = new Set(DATA.map(p => p.id));
+    const newItems = [];
+    for (const p of cached.items) {
+      if (seen.has(p.id)) continue;
+      seen.add(p.id);
+      newItems.push({ ...p, prompt_text: null });
+    }
+    DATA = DATA.concat(newItems);
+    TOTAL = cached.total;
+    hasMore = cached.has_more;
+    nextPageToFetch = serverPage + 1;
+    catalogFullyLoaded = !hasMore || DATA.length >= TOTAL;
+    return true;
+  }
+
+  const url = `/api/prompts?limit=${SERVER_PAGE_SIZE}&page=${serverPage}`;
+  let r;
+  try {
+    r = await fetch(url);
+  } catch (e) {
+    if (serverPage === 1) {
+      renderFatalError('无法连接到服务器：' + (e && e.message ? e.message : '网络错误') + '。请检查网络后重试。', true);
+      render();
+      fatalErrorCleanup();
+    } else {
+      toast('加载第 ' + serverPage + ' 页失败：' + (e && e.message ? e.message : '网络错误'));
+    }
+    return false;
+  }
+  // 304 Not Modified — treat as a fatal error (server sent no body, r.json() will throw).
+  if (r.status === 304) {
+    if (serverPage === 1) {
+      renderFatalError('服务器返回空数据，请稍后重试。', true);
+      render();
+      fatalErrorCleanup();
+    } else {
+      toast('加载第 ' + serverPage + ' 页失败：服务器返回空数据。');
+    }
+    return false;
+  }
+  if (r.status === 401) { location.href = '/login'; loadingMore = false; inflightPages.delete(serverPage); return false; }
+  if (r.status === 429) {
+    if (serverPage === 1) {
+      renderRateLimited(r, () => {
+        loadingMore = false;
+        inflightPages.delete(serverPage);
+        loadPrompts({ reset: false });
+      });
+      render();
+    } else {
+      toast('请求太频繁，请稍后再试。');
+    }
+    return false;
+  }
+  if (!r.ok) {
+    if (serverPage === 1) {
+      renderFatalError('服务器返回 ' + r.status + ' (' + (r.statusText || 'error') + ')。请稍后重试。', true);
+      render();
+      fatalErrorCleanup();
+    } else {
+      toast('加载第 ' + serverPage + ' 页失败（' + r.status + '）');
+    }
+    return false;
+  }
+  let data;
+  try {
+    data = await r.json();
+  } catch (e) {
+    if (serverPage === 1) { renderFatalError('服务器返回了无效的数据格式。请稍后重试。', true); render(); fatalErrorCleanup(); }
+    else toast('加载第 ' + serverPage + ' 页失败：返回数据格式无效');
+    return false;
+  }
+  if (!data || !Array.isArray(data.items)) {
+    if (serverPage === 1) { renderFatalError('服务器返回的数据缺少 items 字段。请稍后重试。', true); render(); fatalErrorCleanup(); }
+    else toast('加载第 ' + serverPage + ' 页失败：缺少 items 字段');
+    return false;
+  }
+
+  // --- Cache the raw response (never contains prompt_text) ---
+  pageCache.set(serverPage, { total: data.total, has_more: data.has_more, items: data.items });
+  if (pageCache.size > PAGE_CACHE_MAX) {
+    // Evict oldest entries to stay bounded
+    const oldest = [...pageCache.keys()].slice(0, pageCache.size - PAGE_CACHE_MAX);
+    oldest.forEach(k => pageCache.delete(k));
+  }
+
+  // Append, deduping by id so a duplicated page can't double-count cards.
+  const seen = new Set(DATA.map(p => p.id));
+  const newItems = [];
+  for (const p of data.items) {
+    if (seen.has(p.id)) continue;
+    seen.add(p.id);
+    newItems.push({ ...p, prompt_text: null }); // never hold bodies at rest
+  }
+  DATA = DATA.concat(newItems);
+  TOTAL = data.total;
+  hasMore = !!data.has_more;
+  nextPageToFetch = serverPage + 1;
+  catalogFullyLoaded = !hasMore || DATA.length >= TOTAL;
+  return true;
+}
+
+function renderRateLimited(r, onRetry) {
+  r.json().then(data => {
+    const retryMs = data?.retry_after_ms || 60_000;
+    const retrySec = Math.ceil(retryMs / 1000);
+    const empty = document.getElementById('empty');
+    empty.style.display = 'flex';
+    empty.style.flexDirection = 'column';
+    empty.style.alignItems = 'center';
+    empty.style.justifyContent = 'center';
+    empty.style.gap = '16px';
+    empty.querySelector('h2').textContent = '请求过于频繁';
+    const countdownEl = empty.querySelector('p');
+    let remaining = retrySec;
+    countdownEl.textContent = `请 ${remaining} 秒后自动重试…`;
+    // Inject a simple CSS spinner via a transient style tag (no .spinner class needed)
+    let spinnerEl = document.getElementById('rateSpinner');
+    if (!spinnerEl) {
+      spinnerEl = document.createElement('style');
+      spinnerEl.id = 'rateSpinner';
+      spinnerEl.textContent = `
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .rate-spinner { width:32px; height:32px; border:3px solid var(--border,rgba(255,255,255,.1)); border-top-color:var(--accent,#5b4ef8); border-radius:50%; animation:spin .8s linear infinite; margin:0 auto; }
+      `;
+      document.head.appendChild(spinnerEl);
+    }
+    // Replace the h2 with a spinner + countdown layout
+    empty.innerHTML = `
+      <div class="rate-spinner"></div>
+      <h2 style="margin:0">请求过于频繁</h2>
+      <p id="rateCountdown" style="margin:0">请 ${remaining} 秒后自动重试…</p>
+    `;
+    const countdownEl2 = document.getElementById('rateCountdown');
+    const tick = setInterval(() => {
+      remaining--;
+      if (remaining <= 0) {
+        clearInterval(tick);
+        // Restore empty div to its default hidden state
+        empty.style.display = 'none';
+        empty.style.flexDirection = '';
+        empty.style.alignItems = '';
+        empty.style.justifyContent = '';
+        empty.style.gap = '';
+        empty.innerHTML = '<h2>没有匹配的提示词</h2><p>试试其他搜索词或清除筛选条件。</p>';
+        if (onRetry) onRetry();
+      } else {
+        countdownEl2.textContent = `请 ${remaining} 秒后自动重试…`;
+      }
+    }, 1000);
+  }).catch(() => {
+    const empty = document.getElementById('empty');
+    empty.style.display = 'block';
+    empty.querySelector('h2').textContent = '请求过于频繁';
+    empty.querySelector('p').textContent = '请 60 秒后刷新页面重试。';
+  });
+}
+
+// Generic fatal-error state for /api/prompts: server down, 5xx, CORS,
+// HTML error page returned where JSON was expected, network drop, etc.
+// Any of these would otherwise fall through as an unhandled rejection and
+// leave the grid silently empty.
+function renderFatalError(message, retryable) {
+  isFatalError = true;
+  const grid = document.getElementById('grid');
+  const empty = document.getElementById('empty');
+  grid.innerHTML = '';
+  empty.style.display = 'block';
+  empty.querySelector('h2').textContent = '加载失败';
+  empty.querySelector('p').textContent = message;
+  renderErrorActions(empty, retryable);
+}
+
+// Shared fatal-error cleanup so any error path leaves the UI in a retryable state.
+function fatalErrorCleanup() {
+  setPagerBusy(false);
+  loadingMore = false;
+  inflightPages.clear(); // clear all so retry can refetch any page
+  visitedPages.clear();  // clear so collectNeededPages will pull page 1 again
+  nextPageToFetch = 1;
+}
+
+// Show/hide the "重试" button inside the empty-state card. The button is
+// part of the existing #empty block in the markup; we just toggle visibility
+// and wire the click.
+function renderErrorActions(emptyEl, showRetry) {
+  let btn = document.getElementById('errorRetryBtn');
+  if (!showRetry) {
+    if (btn) btn.style.display = 'none';
+    return;
+  }
+  if (!btn) {
+    btn = document.createElement('button');
+    btn.id = 'errorRetryBtn';
+    btn.className = 'btn';
+    btn.style.marginTop = '12px';
+    btn.textContent = '重新加载';
+    btn.addEventListener('click', () => loadPrompts());
+    emptyEl.appendChild(btn);
+  }
+  btn.style.display = '';
+}
+
+// LRU cache of fetched chapter bodies (TTL = 5 minutes = the token TTL).
+// Keyed by id; never used after expiry because each token is single-use anyway.
+const _bodyCache = new Map();
+const _BODY_CACHE_MAX = 24;
+const _BODY_CACHE_TTL_MS = 5 * 60 * 1000;
+
+async function fetchPromptBody(id) {
+  const cached = _bodyCache.get(id);
+  if (cached && Date.now() - cached.ts < _BODY_CACHE_TTL_MS) return cached.body;
+  const body = await window.PVS.pullContent(id);
+  // Evict oldest if over capacity
+  if (_bodyCache.size >= _BODY_CACHE_MAX) {
+    const oldestKey = _bodyCache.keys().next().value;
+    _bodyCache.delete(oldestKey);
+  }
+  _bodyCache.set(id, { body, ts: Date.now() });
+  return body;
+}
+
+function snippet(text, max=220) {
+  const t = (text || '').replace(/\s+/g, ' ').trim();
+  return t.length > max ? t.slice(0, max).trimEnd() + '…' : t;
+}
+
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function hasPreviewCover(p) {
+  return !!(p.preview_image_url || p.preview_video_url || p.playable_video_url);
+}
+
+// Single source of truth for the blind-box fallback. "盲盒 UI" is no longer a
+// content category; it is the bucket for cards that truly have no cover URL.
+function usesManghePlaceholder(p) {
+  return !hasPreviewCover(p);
+}
+
+function previewHtml(item) {
+  if (item.preview_image_url) {
+    return `<img src="${escapeHtml(item.preview_image_url)}" alt="${escapeHtml(item.title)}" loading="lazy" decoding="async" />`;
+  }
+  // playable_video_url is the canonical field; preview_video_url is a legacy alias.
+  const videoUrl = item.preview_video_url || item.playable_video_url;
+  if (videoUrl) {
+    // Don't put `src` here: 80+ videos would all start a metadata fetch on
+    // page load and saturate the connection. LazyHydrateVideos() walks the
+    // grid and attaches `src` only when each <video> enters the viewport.
+    // Hover-to-play is wired through event delegation on #grid (one handler
+    // for the whole page) so we don't pay for 80+ inline event listeners.
+    return `<video data-src="${escapeHtml(videoUrl)}" muted loop playsinline preload="none"></video>`;
+  }
+  // No preview → placeholder. Reuse the shared predicate so the cover decision
+  // never drifts from the view / count / filter logic.
+  const isManghe = usesManghePlaceholder(item);
+  return `<div class="ph">
+    <img class="ph-img" src="/static/manghe.png" alt="${isManghe ? '盲盒占位图' : '占位图'}" loading="lazy" decoding="async" />
+    ${isManghe ? '<span class="ph-tag">盲盒</span>' : ''}
+  </div>`;
+}
+
+function cardHtml(item) {
+  const cls = item.row_span === 2 ? 'card row-span-2' : 'card';
+  const favActive = isFavorite(item.id);
+  const favCount = favoriteCount(item.id);
+  // "📦 盲盒" badge is reserved for cards that still render manghe.png.
+  const isMangheFallback = usesManghePlaceholder(item);
+  const blindBadge = isMangheFallback ? '<span class="badge blindbox" title="无预览图 · 盲盒 UI 提示词">📦 盲盒</span>' : '';
+  // Subtle hint for blind-box cards whose current category is "盲盒 UI 提示词"
+  // but whose original_category (e.g. "Landing Page") is preserved on the
+  // server — without this, the 全部 tab silently hides 115 cards behind a
+  // generic label and users can't tell what they actually got.
+  const showOrig = item.original_category && item.original_category !== item.category;
+  const origBadge = showOrig
+    ? `<span class="badge orig" title="原分类 · 在「盲盒 UI」专题中被归集">原 ${escapeHtml(item.original_category)}</span>`
+    : '';
+  const metaBadge = item.has_prompt_text ? '' : '<span class="badge meta" title="只有元数据，没有提示词正文">meta only</span>';
+  const badges = `
+    <div class="badges">
+      <div class="badges-left">
+        <span class="badge cat">${escapeHtml(item.category || '')}</span>
+        ${origBadge}
+        ${blindBadge}
+        ${metaBadge}
+      </div>
+    </div>`;
+  return `
+    <article class="${cls}" data-id="${escapeHtml(item.id)}" tabindex="0">
+      <div class="preview">
+        ${badges}
+        ${previewHtml(item)}
+        <button class="favorite-btn ${favActive ? 'active' : ''}" type="button" data-favorite-id="${escapeHtml(item.id)}" aria-label="${favActive ? '取消收藏' : '收藏'}" title="${favActive ? '取消收藏' : '收藏到个人 UI 库'}">
+          <span>${favActive ? '♥' : '♡'}</span>
+          ${favCount > 0 ? `<span class="favorite-count">${favCount}</span>` : ''}
+        </button>
+      </div>
+      <div class="body">
+        <h3>${escapeHtml(item.title)}</h3>
+        <div class="snippet">${escapeHtml(snippet(item.prompt_text || (item.has_prompt_text ? `点击查看完整提示词（${item.prompt_text_length || 0} 字符 · 需验证）` : '')))}</div>
+        <div class="footer">
+          <span>#${escapeHtml(item.id)} · order ${item.sort_order}</span>
+          <span class="arrow">查看 →</span>
+        </div>
+      </div>
+    </article>`;
+}
+
+// ---- View state (mirrored to URL) ----
+//   view: 'all' (default, blind-box hidden) | 'blindbox' | 'favorites'
+//   filters: q / cat / text / sort — apply on top of the active view
+let VIEW = 'all';
+const FILTERS = { q: '', cat: '', text: '', sort: '' };
+
+function readFiltersFromUI() {
+  FILTERS.q    = document.getElementById('searchInput').value.trim();
+  FILTERS.cat  = document.getElementById('categorySelect').value;
+  FILTERS.text = document.getElementById('textSelect').value;
+  FILTERS.sort = document.getElementById('sortSelect').value;
+}
+
+function applyViewAndFiltersToUI() {
+  document.getElementById('searchInput').value     = FILTERS.q;
+  document.getElementById('categorySelect').value  = FILTERS.cat;
+  document.getElementById('textSelect').value      = FILTERS.text;
+  document.getElementById('sortSelect').value      = FILTERS.sort;
+  document.getElementById('searchWrap').classList.toggle('has-value', !!FILTERS.q);
+
+  // Sync the top-nav tabs
+  const allBtn = document.getElementById('tabAll');
+  const bbBtn  = document.getElementById('tabBlindbox');
+  const favBtn = document.getElementById('tabFavorites');
+  allBtn.classList.toggle('active', VIEW === 'all');
+  bbBtn.classList.toggle('active',  VIEW === 'blindbox');
+  favBtn.classList.toggle('active', VIEW === 'favorites');
+  allBtn.setAttribute('aria-selected', VIEW === 'all' ? 'true' : 'false');
+  bbBtn.setAttribute('aria-selected',  VIEW === 'blindbox' ? 'true' : 'false');
+  favBtn.setAttribute('aria-selected', VIEW === 'favorites' ? 'true' : 'false');
+
+  // Blind-box is meaningless in default view — hide its category from the dropdown
+  document.getElementById('categorySelect').disabled = (VIEW === 'blindbox');
+  // Cross-view compatibility for FILTERS.cat is enforced inside render()
+  // (it checks DATA, not a hard-coded string), so we don't repeat the check here.
+}
+
+function toQuery() {
+  const p = new URLSearchParams();
+  if (VIEW === 'blindbox') p.set('view', 'blindbox');
+  if (VIEW === 'favorites') p.set('view', 'favorites');
+  if (FILTERS.q)        p.set('q', FILTERS.q);
+  if (FILTERS.cat)      p.set('cat', FILTERS.cat);
+  if (FILTERS.text)     p.set('text', FILTERS.text);
+  if (FILTERS.sort)     p.set('sort', FILTERS.sort);
+  return p.toString();
+}
+
+function readViewAndFiltersFromQuery() {
+  const p = new URLSearchParams(location.search);
+  VIEW = p.get('view') === 'blindbox' ? 'blindbox' : (p.get('view') === 'favorites' ? 'favorites' : 'all');
+  FILTERS.q    = p.get('q')    || '';
+  FILTERS.cat  = p.get('cat')  || '';
+  FILTERS.text = p.get('text') || '';
+  FILTERS.sort = p.get('sort') || '';
+}
+
+function syncQueryString() {
+  const qs = toQuery();
+  const desired = qs ? '?' + qs : '';
+  if (location.search !== desired) {
+    const url = qs ? '?' + qs : location.pathname;
+    history.replaceState(null, '', url);
+  }
+}
+
+function isAnyFilterActive() {
+  return !!(FILTERS.q || FILTERS.cat || FILTERS.text || FILTERS.sort);
+}
+
+function estimatedCurrentViewTotal(filteredCount) {
+  if (isAnyFilterActive()) return filteredCount;
+  if (catalogFullyLoaded) return filteredCount;
+  if (VIEW === 'all') {
+    return Math.max(filteredCount, TOTAL - DATA.filter(usesManghePlaceholder).length);
+  }
+  if (VIEW === 'favorites') return filteredCount;
+  return Math.max(filteredCount, DATA.filter(usesManghePlaceholder).length);
+}
+
+function currentViewLoadedRows() {
+  return getRows().length;
+}
+
+function clearAllFilters() {
+  FILTERS.q = FILTERS.cat = FILTERS.text = FILTERS.sort = '';
+  currentPage = 1;
+  applyViewAndFiltersToUI();
+  syncQueryString();
+  render();
+}
+
+function switchView(v) {
+  if (v !== 'all' && v !== 'blindbox' && v !== 'favorites') v = 'all';
+  if (VIEW === v) return;
+  VIEW = v;
+  currentPage = 1;
+  applyViewAndFiltersToUI();
+  syncQueryString();
+  render();
+}
+
+function getRows() {
+  const q = FILTERS.q.toLowerCase();
+  const tokens = q ? q.split(/\s+/).filter(Boolean) : [];
+  return DATA.filter(p => {
+    if (VIEW === 'all' && usesManghePlaceholder(p)) return false;
+    if (VIEW === 'blindbox' && !usesManghePlaceholder(p)) return false;
+    if (VIEW === 'favorites' && !isFavorite(p.id)) return false;
+    if (FILTERS.cat && p.category !== FILTERS.cat) return false;
+    if (FILTERS.text === 'yes' && !p.has_prompt_text) return false;
+    if (FILTERS.text === 'no'  && p.has_prompt_text)  return false;
+    if (tokens.length) {
+      const hay = (p.title + ' ' + (p.prompt_text || '') + ' ' +
+                   (p.category || '') + ' ' + (p.id || '')).toLowerCase();
+      for (const t of tokens) if (!hay.includes(t)) return false;
+    }
+    return true;
+  }).sort((a, b) => {
+    if (FILTERS.sort === 'favorite_count') {
+      const fa = favoriteCount(a.id), fb = favoriteCount(b.id);
+      if (fa !== fb) return fb - fa;
+    }
+    if (FILTERS.sort === 'favorite_recent') {
+      const fa = favoriteMeta(a.id)?.last_at || 0;
+      const fb = favoriteMeta(b.id)?.last_at || 0;
+      if (fa !== fb) return fb - fa;
+    }
+    const sa = a.sort_order || 9999, sb = b.sort_order || 9999;
+    if (sa !== sb) return sa - sb;
+    // Stable tie-break: title (locale-aware) then id, so duplicates of the same sort_order
+    // (e.g. velorah-hero vs reveal-hero both at 40) still get a deterministic order.
+    const t = (a.title || '').localeCompare(b.title || '');
+    return t !== 0 ? t : (a.id || '').localeCompare(b.id || '');
+  });
+}
+
+function renderActiveFilterChips() {
+  const box = document.getElementById('activeFilters');
+  const items = [];
+  if (FILTERS.q)    items.push({ key: 'q',    label: '搜索 "' + FILTERS.q + '"' });
+  if (FILTERS.cat)  items.push({ key: 'cat',  label: '分类: ' + FILTERS.cat });
+  if (FILTERS.text === 'yes')  items.push({ key: 'text', label: '有提示词正文' });
+  if (FILTERS.text === 'no')   items.push({ key: 'text', label: '仅元数据' });
+  if (FILTERS.sort === 'favorite_count')  items.push({ key: 'sort', label: '按收藏数量' });
+  if (FILTERS.sort === 'favorite_recent') items.push({ key: 'sort', label: '按最近收藏' });
+  if (!items.length) { box.innerHTML = ''; return; }
+  box.innerHTML = items.map(it =>
+    `<span class="chip">${escapeHtml(it.label)}<button data-clear="${it.key}" aria-label="移除">×</button></span>`
+  ).join('');
+  box.querySelectorAll('[data-clear]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const k = btn.dataset.clear;
+      if (k === 'q')    FILTERS.q = '';
+      if (k === 'cat')  FILTERS.cat = '';
+      if (k === 'text') FILTERS.text = '';
+      if (k === 'sort') FILTERS.sort = '';
+      currentPage = 1;
+      applyViewAndFiltersToUI();
+      syncQueryString();
+      render();
+      if (k === 'q') document.getElementById('searchInput').focus();
+    });
+  });
+}
+
+function renderResultCount(filteredCount, pageStart, pageEnd) {
+  // The toolbar pill shows the global filter results count: "X / Y 条" when
+  // a filter is active, "共 Y 条" otherwise. The per-page window
+  // (pageStart..pageEnd) is shown in the pager hint below, so we don't
+  // duplicate it here.
+  const el = document.getElementById('resultCount');
+  const totalInView = (VIEW === 'blindbox')
+    ? DATA.filter(usesManghePlaceholder).length
+    : (VIEW === 'favorites')
+      ? DATA.filter(p => isFavorite(p.id)).length
+    : DATA.filter(p => !usesManghePlaceholder(p)).length;
+  // If the user is mid-pagination and hasn't fetched every server page yet,
+  // the in-views estimate undercounts. Prefer the server's TOTAL when it
+  // matches the current VIEW (i.e. no view-specific manghe adjustment).
+  const denominator = estimatedCurrentViewTotal(totalInView);
+  if (isAnyFilterActive()) {
+    el.classList.add('filtered');
+    el.innerHTML = `显示 <b>${filteredCount}</b> / ${denominator} 条`;
+  } else {
+    el.classList.remove('filtered');
+    el.innerHTML = `共 <b>${denominator}</b> 条`;
+  }
+  // Argument deliberately unused — kept as a hook in case future UI
+  // (e.g. a floating "rows 1-20" pill) wants the slice bounds.
+  void pageStart; void pageEnd;
+}
+
+function renderGrid(rows) {
+  const grid = document.getElementById('grid');
+  const emptyEl = document.getElementById('empty');
+  if (!rows.length) {
+    grid.innerHTML = '';
+    emptyEl.style.display = 'block';
+    const emptyH = emptyEl.querySelector('h2');
+    const emptyP = emptyEl.querySelector('p');
+    if (VIEW === 'favorites') {
+      emptyH.textContent = '收藏库还是空的';
+      emptyP.textContent = '点卡片上的心形按钮，把常用 UI 提示词收进来。';
+    } else if (VIEW === 'blindbox') {
+      emptyH.textContent = '盲盒里没找到匹配的提示词';
+      emptyP.textContent = '试试不同的搜索词或在「全部」视图浏览所有提示词。';
+    } else {
+      emptyH.textContent = '没有匹配的提示词';
+      emptyP.textContent = '试试其他搜索词或清除筛选条件。';
+    }
+    return;
+  }
+  emptyEl.style.display = 'none';
+  grid.innerHTML = rows.map(cardHtml).join('');
+  grid.querySelectorAll('[data-favorite-id]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      toggleFavorite(btn.dataset.favoriteId);
+    });
+  });
+  grid.querySelectorAll('.card').forEach(el => {
+    el.addEventListener('click', () => { openModal(el.dataset.id); });
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(el.dataset.id); }
+    });
+  });
+  lazyHydrateVideos(grid);
+}
+
+// --- Video lazy hydration ----------------------------------------------
+// One IntersectionObserver per grid mount. Once a <video data-src> scrolls
+// within ~200px of the viewport, we promote data-src → src (the browser
+// actually fetches bytes) and unobserve it so we don't keep retrying.
+// Hover-to-play is delegated on #grid — see attachVideoHoverDelegate().
+// We re-create the observer on every render because the previous grid's
+// <video> nodes are gone and IntersectionObserver would hold dangling
+// references otherwise.
+let _videoObserver = null;
+function lazyHydrateVideos(grid) {
+  if (_videoObserver) { _videoObserver.disconnect(); _videoObserver = null; }
+  let hydratedThisRender = 0;
+  const hydrate = (v) => {
+    const url = v.dataset.src;
+    if (!url || v.src) return false;
+    v.src = url;
+    v.removeAttribute('data-src');
+    return true;
+  };
+  if (!('IntersectionObserver' in window)) {
+    // Fallback: hydrate everything synchronously. Old browser, but at least
+    // we still show the videos instead of a black grid.
+    grid.querySelectorAll('video[data-src]').forEach(v => hydrate(v));
+    return;
+  }
+  _videoObserver = new IntersectionObserver((entries, obs) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      const v = entry.target;
+      // Keep the first paint responsive: hydrating every visible remote video
+      // at once can saturate the browser process. Later videos hydrate on hover.
+      if (hydratedThisRender >= 6) continue;
+      if (hydrate(v)) {
+        hydratedThisRender++;
+        obs.unobserve(v);
+      }
+    }
+  }, { rootMargin: '200px 0px', threshold: 0.01 });
+  grid.querySelectorAll('video[data-src]').forEach(v => _videoObserver.observe(v));
+}
+
+function populateCategorySelect() {
+  // Build categories based on what the current view can actually select.
+  const pool = (VIEW === 'blindbox')
+    ? DATA.filter(usesManghePlaceholder)
+    : (VIEW === 'favorites')
+      ? DATA.filter(p => isFavorite(p.id))
+      : DATA.filter(p => !usesManghePlaceholder(p));
+  // Cache key changes when view changes — recompute every time in blindbox mode
+  // (in all mode the blind-box category is impossible anyway, so cheaper to skip)
+  const cats = [...new Set(pool.map(d => d.category).filter(Boolean))].sort();
+  const sel = document.getElementById('categorySelect');
+  const opts = ['<option value="">所有分类</option>']
+    .concat(cats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`));
+  const newHtml = opts.join('');
+  if (sel.innerHTML !== newHtml) sel.innerHTML = newHtml;
+}
+
+function render() {
+  // Don't overwrite an error overlay — let it persist until the next successful load.
+  if (isFatalError) return;
+  readFiltersFromUI();
+  // Drop FILTERS.cat if it's not valid in the current view.
+  // The naïve rule used to be "clear iff cat === '盲盒 UI 提示词'", but that
+  // missed every other invalid combo: e.g. ?view=blindbox&cat=Hero would
+  // land the user on an empty grid with no hint that cat was the cause.
+  // Now we ask the data: is this category reachable in this view?
+  if (FILTERS.cat) {
+    const pool = (VIEW === 'blindbox')
+      ? DATA.filter(usesManghePlaceholder)
+      : (VIEW === 'favorites')
+        ? DATA.filter(p => isFavorite(p.id))
+        : DATA.filter(p => !usesManghePlaceholder(p));
+    const validCats = new Set(
+      pool.map(p => p.category).filter(Boolean)
+    );
+    if (!validCats.has(FILTERS.cat)) FILTERS.cat = '';
+  }
+  syncQueryString();
+  document.getElementById('searchWrap').classList.toggle('has-value', !!FILTERS.q);
+  // Brand subtitle reflects the current view
+  document.querySelector('.brand small').textContent =
+    VIEW === 'blindbox' ? '· 盲盒 UI 提示词专题'
+      : (VIEW === 'favorites' ? '· 个人收藏 UI 库' : '· 全部提示词');
+  populateCategorySelect();
+  document.getElementById('categorySelect').value = FILTERS.cat;
+  // Filter + sort the dataset the user *currently has loaded*. Once the
+  // pager decides which page to show, we'll slice this for the grid.
+  const allRows = getRows();
+  const totalPages = Math.max(1, Math.ceil(estimatedCurrentViewTotal(allRows.length) / PAGE_SIZE));
+  // Clamp the requested page when filters shrank the result set, otherwise
+  // we'd render an empty grid even though the user was on page 5 last click.
+  if (currentPage < 1) currentPage = 1;
+  if (currentPage > totalPages) currentPage = totalPages;
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const end = Math.min(start + PAGE_SIZE, allRows.length);
+  const pageRows = allRows.slice(start, end);
+  renderResultCount(allRows.length, start + 1, end);
+  renderActiveFilterChips();
+  renderGrid(pageRows);
+  renderPager(allRows.length);
+}
+
+// ---- Pager UI ----
+// `setPagerBusy` disables every pager button during in-flight fetches so the
+// user can't spam-click and create parallel requests.
+function setPagerBusy(busy) {
+  const wrap = document.getElementById('pagerWrap');
+  if (!wrap) return;
+  wrap.querySelectorAll('button').forEach(b => {
+    if (b.classList.contains('active')) return; // active page is always non-interactive
+    b.disabled = busy;
+  });
+}
+
+// `renderPager` rebuilds the bottom pager.
+// `filteredTotal` = number of *currently filtered* rows (after sort) across
+// every page of DATA. The server-reported TOTAL is a fallback when no filter
+// is active, in case the user is mid-fetch and DATA is incomplete.
+//
+// Layout (with gaps rendered as `…`): [«] [1] [2] [3] [4] [5] [»]
+function renderPager(filteredTotal) {
+  const wrap = document.getElementById('pagerWrap');
+  const pager = document.getElementById('pager');
+  const hint = document.getElementById('pagerHint');
+  if (!wrap || !pager) return;
+  // When no filter is active and we've fully fetched, the pager mirrors the
+  // server TOTAL exactly. Otherwise paginate over whatever rows match the
+  // current filter — this matters because free-text search narrows the
+  // visible set on the client (server doesn't filter by `q`).
+  const denominator = estimatedCurrentViewTotal(filteredTotal);
+  const totalPages = Math.max(1, Math.ceil(denominator / PAGE_SIZE));
+  if (denominator <= 0 || totalPages <= 1) {
+    wrap.style.display = 'none';
+    pager.innerHTML = '';
+    return;
+  }
+  if (currentPage < 1) currentPage = 1;
+  if (currentPage > totalPages) currentPage = totalPages;
+  wrap.style.display = 'flex';
+  pager.innerHTML = '';
+  const buttons = buildPagerButtons(currentPage, totalPages);
+  pager.append(...buttons);
+  if (hint) {
+    const start = (currentPage - 1) * PAGE_SIZE + 1;
+    const end = Math.min(currentPage * PAGE_SIZE, denominator);
+    hint.textContent = `第 ${currentPage} / ${totalPages} 页 · 第 ${start}-${end} 条 / 共 ${denominator} 条`;
+  }
+  // Render only. Fetching is triggered explicitly by boot and pager clicks so
+  // render() can never recursively schedule loadPrompts().
+}
+
+// Decide the canonical window of page numbers to render as buttons, with
+// `…` collapses for big totals. Returns an array of HTM button nodes or
+// span("…").
+function buildPagerButtons(cur, total) {
+  const out = [];
+  const nav = (label, page, opts = {}) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'nav' + (opts.cls ? ' ' + opts.cls : '');
+    b.textContent = label;
+    if (page !== null) {
+      b.dataset.page = String(page);
+      if (page === cur) {
+        b.classList.add('active');
+        b.disabled = true;
+      }
+    } else {
+      b.disabled = true;
+    }
+    return b;
+  };
+  const num = (page) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = String(page);
+    b.dataset.page = String(page);
+    if (page === cur) {
+      b.classList.add('active');
+      b.disabled = true;
+    }
+    return b;
+  };
+  const dots = () => {
+    const s = document.createElement('span');
+    s.className = 'ellipsis';
+    s.textContent = '…';
+    return s;
+  };
+  // Prev / next chevrons always present.
+  out.push(nav('‹ 上一页', Math.max(1, cur - 1)));
+  // Windowed numbers: always show 1, last, and cur ± 1.
+  const pageSet = new Set([1, total, cur, cur - 1, cur + 1]);
+  const pages = [...pageSet].filter(p => p >= 1 && p <= total).sort((a, b) => a - b);
+  // Insert ellipsis between non-consecutive ints.
+  let prev = null;
+  for (const p of pages) {
+    if (prev !== null && p - prev > 1) out.push(dots());
+    out.push(num(p));
+    prev = p;
+  }
+  out.push(nav('下一页 ›', Math.min(total, cur + 1)));
+  return out;
+}
+
+// Wire the pager: delegated click → page jump. One listener handles every
+// page number AND the prev/next nav buttons (they all carry data-page).
+function bindPagerClicks() {
+  const pager = document.getElementById('pager');
+  if (!pager) return;
+  pager.addEventListener('click', (e) => {
+    const t = e.target.closest('button[data-page]');
+    if (!t || t.disabled) return;
+    const p = parseInt(t.dataset.page, 10);
+    if (!Number.isFinite(p) || p === currentPage) return;
+    currentPage = p;
+    setPagerBusy(true);
+    if (catalogFullyLoaded) {
+      render();
+      setPagerBusy(false);
+    } else {
+      loadPrompts({ reset: false, targetServerPage: p, fillCurrentView: true });
+    }
+  });
+}
+bindPagerClicks();
+
+let searchDebounce = null;
+function onSearchInput() {
+  clearTimeout(searchDebounce);
+  currentPage = 1;
+  searchDebounce = setTimeout(render, 120);
+}
+
+document.getElementById('searchInput').addEventListener('input', onSearchInput);
+document.getElementById('categorySelect').addEventListener('change', () => { currentPage = 1; render(); });
+document.getElementById('textSelect').addEventListener('change', () => { currentPage = 1; render(); });
+document.getElementById('sortSelect').addEventListener('change', () => { currentPage = 1; render(); });
+document.getElementById('resetBtn').addEventListener('click', () => {
+  clearAllFilters();
+  document.getElementById('searchInput').focus();
+});
+document.getElementById('searchClear').addEventListener('click', () => {
+  FILTERS.q = '';
+  currentPage = 1;
+  applyViewAndFiltersToUI();
+  syncQueryString();
+  render();
+  document.getElementById('searchInput').focus();
+});
+
+// Top-nav tabs
+document.getElementById('tabAll').addEventListener('click', () => switchView('all'));
+document.getElementById('tabBlindbox').addEventListener('click', () => switchView('blindbox'));
+document.getElementById('tabFavorites').addEventListener('click', () => switchView('favorites'));
+
+// ---- Modal ----
+const modal = document.getElementById('modal');
+const modalTitle = document.getElementById('modalTitle');
+const modalMeta = document.getElementById('modalMeta');
+const modalPreview = document.getElementById('modalPreview');
+const modalPrompt = document.getElementById('modalPrompt');
+const favoriteModalBtn = document.getElementById('favoriteModalBtn');
+let currentItem = null;
+
+function syncModalFavoriteButton() {
+  if (!favoriteModalBtn || !currentItem) return;
+  const active = isFavorite(currentItem.id);
+  const count = favoriteCount(currentItem.id);
+  favoriteModalBtn.classList.toggle('favorite-active', active);
+  favoriteModalBtn.textContent = active
+    ? `♥ 已收藏${count ? ' · ' + count : ''}`
+    : `♡ 收藏${count ? ' · ' + count : ''}`;
+}
+
+async function openModal(id) {
+  const item = DATA.find(x => x.id === id);
+  if (!item) return;
+  currentItem = item;
+  syncModalFavoriteButton();
+  modalTitle.textContent = item.title;
+  modalMeta.innerHTML = '';
+  const isMangheFallback = usesManghePlaceholder(item);
+  const pills = [['分类', item.category]];
+  if (isMangheFallback && item.special_collection === 'blind_box' && item.original_category) {
+    pills.push(['原分类', item.original_category]);
+  }
+  pills.push(['类型', item.type], ['页面', item.page_type], ['顺序', String(item.sort_order)], ['免费', item.is_free ? '是' : '否'], ['ID', item.id]);
+  for (const [k, v] of pills) {
+    if (!v && v !== 0) continue;
+    const p = document.createElement('span'); p.className = 'pill';
+    p.innerHTML = `${escapeHtml(k)}: <b>${escapeHtml(String(v))}</b>`;
+    modalMeta.appendChild(p);
+  }
+  if (isMangheFallback && item.special_collection === 'blind_box') {
+    const p = document.createElement('span'); p.className = 'pill';
+    p.style.background = 'rgba(245,158,11,.15)';
+    p.style.borderColor = 'rgba(245,158,11,.4)';
+    p.style.color = '#fde68a';
+    p.innerHTML = '<b>📦 盲盒 UI 提示词</b>';
+    modalMeta.appendChild(p);
+  }
+  const playUrl = item.playable_video_url || item.preview_video_url;
+  if (item.preview_image_url) {
+    modalPreview.innerHTML = `<div class="preview-big"><img src="${escapeHtml(item.preview_image_url)}" alt="${escapeHtml(item.title)}" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>`;
+  } else if (playUrl) {
+    modalPreview.innerHTML = `<div class="preview-big"><video src="${escapeHtml(playUrl)}" controls muted playsinline></video></div>`;
+  } else {
+    modalPreview.innerHTML = `<div class="preview-big"><img class="ph-img" src="/static/manghe.png" alt="盲盒占位图" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>`;
+  }
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  const copyBtn = document.getElementById('copyBtn');
+  const useBtn = document.getElementById('useBtn');
+  const memberActive = MEMBERSHIP.is_member !== false;
+
+  if (!memberActive) {
+    modalPrompt.classList.remove('pv-locked');
+    modalPrompt.textContent = MEMBERSHIP.reason === 'revoked'
+      ? '账户或邀请码已吊销，无法查看提示词正文。如有疑问请联系卖家。'
+      : '会员已到期，无法查看提示词正文。如需续费请联系卖家（闲鱼）。';
+    if (copyBtn) copyBtn.disabled = true;
+    if (useBtn) useBtn.disabled = true;
+    return;
+  }
+  if (copyBtn) copyBtn.disabled = false;
+  if (useBtn) useBtn.disabled = false;
+
+  // Lazily fetch prompt body via single-use content token. Until it arrives,
+  // we show a locked/loading state so the body is never bulk-cached in memory.
+  modalPrompt.classList.add('pv-locked');
+  modalPrompt.textContent = item.has_prompt_text
+    ? `正在安全加载 ${item.prompt_text_length || ''} 字符的提示词…`
+    : (item.prompt_text || '');
+  try {
+    const body = await fetchPromptBody(id);
+    // Watermark-injected by server (ts/ip/jti). Render on the modal.
+    const wm = body.watermark || {};
+    item.prompt_text = body.prompt_text || '';
+    if (currentItem !== item || !modal.classList.contains('open')) return;
+    modalPrompt.classList.remove('pv-locked');
+    modalPrompt.textContent = body.prompt_text || '';
+    // Append watermark footer (visible only in DOM; survives screenshots)
+    if (wm.masked_id) {
+      const footer = document.createElement('div');
+      footer.setAttribute('data-pv-watermark-footer', '');
+      footer.style.cssText = 'margin-top:12px;font-size:11px;color:#6a6a78;text-align:right;user-select:none;';
+      footer.textContent = `🔒 仅限 ${wm.masked_id} 查看 · ${new Date(wm.ts||Date.now()).toISOString().slice(0,16).replace('T',' ')}`;
+      modalPrompt.parentNode.insertBefore(footer, modalPrompt.nextSibling);
+    }
+  } catch (e) {
+    item.prompt_text = '';
+    if (currentItem !== item || !modal.classList.contains('open')) return;
+    modalPrompt.classList.remove('pv-locked');
+    if (e.message === 'membership_required') {
+      modalPrompt.textContent = MEMBERSHIP.reason === 'revoked'
+        ? '账户或邀请码已吊销，无法查看提示词正文。如有疑问请联系卖家。'
+        : '会员已到期，无法查看提示词正文。如需续费请联系卖家（闲鱼）。';
+      if (copyBtn) copyBtn.disabled = true;
+      if (useBtn) useBtn.disabled = true;
+    } else if (/^token_(replay|device_mismatch|ip_mismatch)/.test(e.message)) {
+      modalPrompt.textContent = '安全令牌失效（可能在另一台设备或网络下打开）。请关闭此弹窗后重新点击。';
+    } else {
+      modalPrompt.textContent = '加载失败：' + e.message;
+    }
+  }
+}
+
+function closeModal() {
+  modal.classList.remove('open');
+  document.body.style.overflow = '';
+  modalPreview.querySelectorAll('video').forEach(v => v.pause());
+  // Remove the per-chapter watermark footer injected on body load.
+  modal.querySelectorAll('[data-pv-watermark-footer]').forEach(n => n.remove());
+  // Force-clear prompt body so it doesn't linger in DOM after close.
+  if (modalPrompt) {
+    modalPrompt.textContent = '';
+    modalPrompt.classList.remove('pv-locked');
+  }
+  currentItem = null;
+}
+document.getElementById('modalClose').addEventListener('click', closeModal);
+modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && modal.classList.contains('open')) closeModal(); });
+
+document.getElementById('copyBtn').addEventListener('click', async () => {
+  if (!currentItem) return;
+  await copyText(currentItem.prompt_text, '已复制提示词');
+});
+
+favoriteModalBtn.addEventListener('click', () => {
+  if (!currentItem) return;
+  toggleFavorite(currentItem.id);
+});
+
+document.getElementById('useBtn').addEventListener('click', async () => {
+  if (!currentItem) return;
+  await copyText(currentItem.prompt_text, '已复制，请粘贴到 AI 对话框');
+  setTimeout(() => {
+    const url = pickAIUrl(currentItem.prompt_text);
+    window.open(url, '_blank', 'noopener');
+  }, 400);
+});
+
+function pickAIUrl(prompt) {
+  // Try ChatGPT first; users can change. Falls back to a Google search for popular AIs.
+  return 'https://chatgpt.com/';
+}
+
+async function copyText(text, msg) {
+  try {
+    await navigator.clipboard.writeText(text || '');
+    showToast(msg || '已复制');
+  } catch {
+    // Fallback for non-secure-context
+    const ta = document.createElement('textarea');
+    ta.value = text || '';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast(msg || '已复制');
+  }
+}
+
+function showToast(text) {
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.classList.add('show');
+  clearTimeout(showToast._tid);
+  showToast._tid = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+// ---- Security bootstrap (runs once after DOM ready) ----
+let _watermark = null;
+let _wmTimer = null;
+async function bootstrapSecurity() {
+  if (!window.PVS) return; // script tag missing — fail closed on the next request anyway
+  const me = await window.PVS.loadMe();
+  // loadMe() returns null for both 401 (handled via redirect) and network
+  // errors. We bail silently in either case — there's nothing meaningful to
+  // watermark without a confirmed user id, and visibilitychange below will
+  // re-arm once the server is reachable again.
+  if (!me) return;
+  // Defensive: the API may legitimately return a session object that lacks
+  // `code` (e.g. just-unauthenticated edge case). Without this guard, accessing
+  // `me.code.label` would throw `Cannot read properties of undefined` and
+  // break the whole bootstrap chain.
+  if (!me.code || !me.session || !me.session.device_id) return;
+  if (me.membership) MEMBERSHIP = me.membership;
+  // Bot detection — if score>=2, force captcha; user can still browse, but
+  // content fetches will be captcha-gated.
+  try { await window.PVS.ensureHuman(); } catch {}
+  // Watermark — drawn in a canvas overlay so the user-id is bound to every frame.
+  // The server ALSO watermarks every chapter body, but this catches screenshots
+  // taken from the card grid view too.
+  _watermark = window.PVS.watermark({
+    userLabel: me.code.label ? me.code.label : me.code.masked,
+    deviceId: me.session.device_id,
+  });
+}
+bootstrapSecurity();
+
+// Re-arm watermark visibility when the user comes back to the tab.
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && !_watermark) bootstrapSecurity();
+});
+
+// Cleanup when leaving page (single-page apps need this on route change).
+window.addEventListener('pagehide', () => { if (_watermark) _watermark.stop(); });
+
+// Video hover-to-play delegated on #grid: one listener for the whole page
+// instead of 80+ inline onmouseenter/onmouseleave attributes on every <video>.
+(function attachVideoHoverDelegate() {
+  const grid = document.getElementById('grid');
+  if (!grid) return;
+  grid.addEventListener('mouseover', e => {
+    const v = e.target.closest('video');
+    if (!v) return;
+    if (!v.src && v.dataset.src) {
+      v.src = v.dataset.src;
+      v.removeAttribute('data-src');
+    }
+    if (!v.src) return; // not hydrated yet — let IO do its job
+    const p = v.play(); if (p && p.catch) p.catch(() => {});
+  });
+  grid.addEventListener('mouseout', e => {
+    const v = e.target.closest('video');
+    if (!v) return;
+    if (!v.src) return;
+    v.pause(); v.currentTime = 0;
+  });
+})();
+
+// ---- Init ----
+loadFavorites();
+loadMe();
+loadAnnouncements();
+readViewAndFiltersFromQuery();
+applyViewAndFiltersToUI();
+bootCatalog().catch((e) => {
+  console.warn('[Prompt Vault] bootCatalog failed:', e && e.message ? e.message : e);
+  fatalErrorCleanup();
+});
+</script>
+</body>
+</html>

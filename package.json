@@ -1,0 +1,27 @@
+{
+  "name": "prompt-vault",
+  "version": "1.0.0",
+  "description": "Invite-code-gated browser for curated AI prompts",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "admin": "node admin.js",
+    "db:init": "node scripts/init-mysql.mjs",
+    "db:migrate": "node scripts/migrate-json-to-mysql.mjs"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.22.6"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "devDependencies": {
+    "playwright": "^1.61.1"
+  }
+}

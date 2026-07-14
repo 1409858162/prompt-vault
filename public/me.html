@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0a0a0d" />
+  <title>个人中心 · Prompt Vault</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%237c3aed'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-family='Inter,sans-serif' font-size='34' font-weight='800' fill='%23fff'%3EPV%3C/text%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="/static/security-client.js" defer></script>
+<style>
+  /* === device list (me page) === */
+  .dev-list { display: flex; flex-direction: column; gap: 10px; }
+  .dev-row {
+    display: grid; grid-template-columns: 1fr auto;
+    align-items: center; gap: 12px;
+    padding: 12px 14px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .dev-row.current { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(99,102,241,.25); }
+  .dev-row .meta { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .dev-row .meta b { font-size: 13px; color: var(--text); }
+  .dev-row .meta small { font-size: 12px; color: var(--text-dim); }
+  .dev-row .badge-current {
+    display: inline-block; font-size: 11px; padding: 1px 7px;
+    background: rgba(99,102,241,.18); color: #c7d2fe;
+    border-radius: 999px; margin-left: 6px;
+  }
+  .dev-row button {
+    padding: 6px 10px; font-size: 12px;
+    background: transparent; border: 1px solid var(--border);
+    color: var(--text-dim); border-radius: 6px; cursor: pointer;
+  }
+  .dev-row button:hover { color: #fca5a5; border-color: #ef4444; }
+  .dev-row button:disabled { opacity: .4; cursor: not-allowed; }
+  .dev-empty { font-size: 13px; color: var(--text-dim); padding: 12px 0; }
+  .risk-banner {
+    display:none; padding: 10px 14px; margin-bottom: 16px;
+    background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.35);
+    color: #fecaca; border-radius: 10px; font-size: 13px;
+  }
+  .risk-banner.show { display:block; }
+</style>
+<style>
+    :root {
+      --bg: #0a0a0d;
+      --panel: #131318;
+      --panel-2: #1a1a22;
+      --border: #2a2a35;
+      --border-soft: #1f1f29;
+      --text: #f3f3f7;
+      --text-dim: #9a9aa8;
+      --text-faint: #6a6a78;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --pink: #f472b6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--bg); color: var(--text); }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* ===== Top bar (matches /app) ===== */
+    header.topbar {
+      position: sticky; top: 0; z-index: 30;
+      background: rgba(10,10,13,.85);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 28px;
+    }
+    .topbar-inner {
+      display: flex; align-items: center; flex-wrap: wrap; gap: 16px;
+      max-width: 1100px; margin: 0 auto;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 16px; text-decoration: none; color: inherit;
+    }
+    .brand .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--pink));
+      box-shadow: 0 0 10px rgba(99,102,241,.5);
+    }
+    .brand small { color: var(--text-dim); font-weight: 400; font-size: 12px; margin-left: 4px; }
+    .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .back {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 13px; color: var(--text-dim);
+      padding: 7px 12px; border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent; text-decoration: none;
+      transition: color .12s, background .12s, border-color .12s;
+    }
+    .back:hover { color: var(--text); background: rgba(255,255,255,.05); border-color: #3a3a44; }
+    .logout {
+      background: transparent;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      padding: 7px 12px; border-radius: 8px; cursor: pointer;
+      font-size: 13px; font-weight: 500;
+      transition: color .12s, background .12s, border-color .12s;
+    }
+    .logout:hover { color: var(--text); background: rgba(255,255,255,.05); border-color: #3a3a44; }
+
+    /* ===== Page body ===== */
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 28px 80px;
+    }
+    .page-head {
+      display: flex; align-items: end; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px;
+      margin-bottom: 28px;
+    }
+    .page-head h1 {
+      font-size: clamp(24px, 4vw, 30px);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .page-head h1 .accent {
+      background: linear-gradient(135deg, #818cf8, #f472b6);
+      -webkit-background-clip: text; background-clip: text;
+      color: transparent;
+    }
+    .page-head .sub {
+      color: var(--text-dim);
+      font-size: 13px;
+      margin-top: 6px;
+    }
+    .page-head .crumbs {
+      font-size: 12px; color: var(--text-faint);
+    }
+    .page-head .crumbs a { color: var(--text-dim); text-decoration: none; }
+    .page-head .crumbs a:hover { color: var(--text); }
+
+    /* ===== Profile card ===== */
+    .grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 22px;
+    }
+    @media (max-width: 820px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .card.soft { background: var(--panel-2); }
+
+    .profile {
+      text-align: center;
+    }
+    .avatar {
+      width: 84px; height: 84px;
+      border-radius: 50%;
+      margin: 6px auto 16px;
+      background: linear-gradient(135deg, #6366f1, #f472b6);
+      box-shadow: 0 14px 40px -10px rgba(99,102,241,.55);
+      overflow: hidden;
+    }
+    .avatar.initial {
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px; font-weight: 700; color: #fff;
+      letter-spacing: -0.02em;
+      user-select: none;
+    }
+    .avatar img {
+      width: 100%; height: 100%; object-fit: cover;
+    }
+    .profile .label {
+      font-size: 18px; font-weight: 700; letter-spacing: -0.01em;
+      word-break: break-all;
+    }
+    .profile .handle {
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      color: var(--text-faint);
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    .profile .divider {
+      height: 1px; background: var(--border-soft);
+      margin: 20px 0;
+    }
+    .profile .tier {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 600;
+      color: #fde68a;
+      background: rgba(245,158,11,.12);
+      border: 1px solid rgba(245,158,11,.4);
+      padding: 4px 10px; border-radius: 999px;
+    }
+    .profile .tier.expired {
+      color: #fca5a5;
+      background: rgba(239,68,68,.12);
+      border-color: rgba(239,68,68,.4);
+    }
+    .profile .tier.expired .dot {
+      background: #fca5a5;
+      box-shadow: 0 0 8px #fca5a5;
+    }
+    .profile .tier .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #fde68a;
+      box-shadow: 0 0 8px #fde68a;
+    }
+    .profile .expiry-line.expired { color: #f87171; }
+    .profile .stat-row {
+      display: flex; justify-content: space-around;
+      margin-top: 18px;
+    }
+    .profile .stat-row .cell {
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+    }
+    .profile .stat-row .cell .n {
+      font-size: 18px; font-weight: 700;
+    }
+    .profile .stat-row .cell .k {
+      font-size: 11px; color: var(--text-faint);
+      letter-spacing: 0.06em; text-transform: uppercase;
+    }
+
+    /* ===== Info rows ===== */
+    .info-h {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    .info-h h2 {
+      font-size: 14px; font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.02em;
+    }
+    .info-h .pill {
+      font-size: 11px; padding: 3px 8px; border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--text-dim);
+      background: rgba(255,255,255,.03);
+    }
+    .row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 0;
+      border-bottom: 1px dashed var(--border-soft);
+      gap: 14px;
+    }
+    .row:last-child { border-bottom: 0; }
+    .row .k {
+      color: var(--text-dim);
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+    .row .v {
+      font-size: 13px; color: var(--text);
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      text-align: right;
+      word-break: break-all;
+    }
+    .row .v.mono { letter-spacing: 0.02em; }
+    .row .v.dim { color: var(--text-dim); }
+    .row .v .copy {
+      margin-left: 8px;
+      font-size: 11px;
+      padding: 3px 7px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all .12s;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    }
+    .row .v .copy:hover { color: var(--text); border-color: #3a3a44; }
+    .row .v .copy.ok { color: #86efac; border-color: rgba(134,239,172,.4); }
+
+    /* ===== Actions ===== */
+    .actions {
+      display: flex; gap: 10px; flex-wrap: wrap;
+      margin-top: 18px;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 14px;
+      font-size: 13px; font-weight: 600;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--panel-2);
+      color: var(--text);
+      cursor: pointer;
+      text-decoration: none;
+      transition: background .12s, border-color .12s, transform .05s;
+    }
+    .btn:hover { background: #20202a; border-color: #3a3a44; }
+    .btn:active { transform: translateY(1px); }
+    .btn.primary {
+      background: linear-gradient(135deg, #6366f1, #f472b6);
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 8px 24px -10px rgba(99,102,241,.6);
+    }
+    .btn.primary:hover { filter: brightness(1.08); background: linear-gradient(135deg, #6366f1, #f472b6); }
+    .btn.danger { color: #fca5a5; border-color: rgba(252,165,165,.3); }
+    .btn.danger:hover { background: rgba(252,165,165,.08); border-color: rgba(252,165,165,.5); }
+
+    /* ===== Toast ===== */
+    #toast {
+      position: fixed; left: 50%; bottom: 32px;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(20,20,28,.95);
+      color: #fff; font-size: 13px; font-weight: 500;
+      padding: 10px 16px; border-radius: 10px;
+      border: 1px solid var(--border);
+      box-shadow: 0 14px 40px rgba(0,0,0,.5);
+      opacity: 0; pointer-events: none;
+      transition: opacity .18s, transform .18s;
+      z-index: 999;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ===== Skeleton ===== */
+    .skel {
+      background: linear-gradient(90deg, #1a1a22 0%, #232330 50%, #1a1a22 100%);
+      background-size: 200% 100%;
+      animation: skel 1.4s ease-in-out infinite;
+      border-radius: 6px;
+      color: transparent !important;
+    }
+    @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    @media (max-width: 600px) {
+      header.topbar { padding: 12px 14px; }
+      main { padding: 22px 14px 60px; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/app">
+      <span class="dot"></span>
+      <span>Prompt Vault<small>· 个人中心</small></span>
+    </a>
+    <div class="topbar-right">
+      <a class="back" href="/app">← 返回提示词库</a>
+      <button class="logout" id="logoutBtn">退出登录</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="page-head">
+    <div>
+      <div class="crumbs"><a href="/app">提示词库</a> / 个人中心</div>
+      <h1>欢迎回来，<span class="accent" id="helloName">亲爱的用户</span></h1>
+      <div class="sub" id="helloSub">正在加载账户信息…</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- LEFT: profile card -->
+    <section class="card profile" id="profileCard">
+      <div class="avatar skel" id="avatar">U</div>
+      <div class="label skel" id="labelText" style="min-height:22px">&nbsp;</div>
+      <div class="handle skel" id="handleText" style="min-height:14px;width:60%;margin:6px auto 0">&nbsp;</div>
+      <div class="divider"></div>
+      <span class="tier" id="tierBadge"><span class="dot"></span> PRO 会员</span>
+      <div class="expiry-line" id="expiryLine" style="display:none;margin-top:10px;font-size:13px;color:var(--text-dim);"></div>
+      <div class="stat-row">
+        <div class="cell">
+          <div class="n" id="statDays">–</div>
+          <div class="k">加入天数</div>
+        </div>
+        <div class="cell">
+          <div class="n" id="statUses">–</div>
+          <div class="k">登录次数</div>
+        </div>
+        <div class="cell">
+          <div class="n" id="statLast">–</div>
+          <div class="k">最近登录</div>
+        </div>
+      </div>
+      <div class="actions" style="justify-content:center">
+        <button class="btn danger" id="logoutBtn2">退出登录</button>
+      </div>
+    </section>
+
+    <!-- RIGHT: info cards -->
+    <section>
+      <div class="card soft">
+        <div class="info-h">
+          <h2>账户信息</h2>
+          <span class="pill">只读</span>
+        </div>
+        <div class="row">
+          <div class="k">账户标识</div>
+          <div class="v mono" id="rowMasked">–</div>
+        </div>
+        <div class="row">
+          <div class="k">账户备注</div>
+          <div class="v dim" id="rowNote">–</div>
+        </div>
+        <div class="row">
+          <div class="k">会员状态</div>
+          <div class="v" id="rowMembership">–</div>
+        </div>
+        <div class="row">
+          <div class="k">会员到期</div>
+          <div class="v" id="rowExpires">–</div>
+        </div>
+        <div class="row">
+          <div class="k">注册时间</div>
+          <div class="v" id="rowCreated">–</div>
+        </div>
+        <div class="row">
+          <div class="k">最近登录</div>
+          <div class="v" id="rowLastUsed">–</div>
+        </div>
+        <div class="row">
+          <div class="k">登录设备</div>
+          <div class="v dim" id="rowDevice">–</div>
+        </div>
+      </div>
+
+      <div class="risk-banner" id="riskBanner"></div>
+
+      <div class="card soft">
+        <div class="info-h">
+          <h2>登录设备</h2>
+          <span class="pill" id="devCount">0 台</span>
+        </div>
+        <div class="dev-list" id="devList"></div>
+        <p style="font-size:12px;color:var(--text-faint);margin-top:10px;line-height:1.6">
+          · 同一邀请码最多绑定 <b>2 台设备</b>，超过后将拒绝新设备登录<br />
+          · 如发现陌生设备，请立即「踢出」并修改密码 / 重新生成邀请码
+        </p>
+      </div>
+
+      <div class="card soft" style="margin-top:16px">
+        <div class="info-h">
+          <h2>账户安全</h2>
+          <span class="pill">建议</span>
+        </div>
+        <p style="font-size:13px;color:var(--text-dim);line-height:1.7">
+          · 请勿在公共设备勾选「记住我」或保存邀请码<br />
+          · 离开电脑时点击右上角「退出登录」以清除会话<br />
+          · 如发现账户异常，请第一时间联系作者并申请吊销旧码
+        </p>
+        <div class="actions">
+          <button class="btn" id="copyIdBtn">复制账户 ID</button>
+          <button class="btn" id="copyLinkBtn">复制当前页面链接</button>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+  // ----- utils -----
+  function $(s) { return document.querySelector(s); }
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function formatDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '—';
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${y}-${m}-${day} ${hh}:${mm}`;
+  }
+  function relativeTime(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '—';
+    const diff = Date.now() - d.getTime();
+    const min = Math.floor(diff / 60000);
+    if (min < 1) return '刚刚';
+    if (min < 60) return min + ' 分钟前';
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return hr + ' 小时前';
+    const day = Math.floor(hr / 24);
+    if (day < 30) return day + ' 天前';
+    return formatDate(iso);
+  }
+  // ----- device list -----
+  function renderDevices(devices, currentDeviceId) {
+    const list = $('#devList');
+    list.innerHTML = '';
+    if (!devices || !devices.length) {
+      list.innerHTML = '<div class="dev-empty">暂无登录设备</div>';
+      $('#devCount').textContent = '0 台';
+      return;
+    }
+    $('#devCount').textContent = devices.length + ' 台';
+    for (const d of devices) {
+      const row = document.createElement('div');
+      row.className = 'dev-row' + (d.is_current ? ' current' : '');
+      const meta = document.createElement('div'); meta.className = 'meta';
+      const osBrowser = [d.os || '?', d.browser || '?', d.device_type || ''].filter(Boolean).join(' · ');
+      const lastSeen = relativeTime(d.last_active_time);
+      const ipLoc = [d.ip || '?', d.country || ''].filter(Boolean).join(' · ');
+      meta.innerHTML = `
+        <b>${escapeHtml(osBrowser)}${d.is_current ? '<span class="badge-current">当前设备</span>' : ''}</b>
+        <small>${escapeHtml(ipLoc)} · 上次活跃 ${escapeHtml(lastSeen)}</small>
+      `;
+      row.appendChild(meta);
+      const btn = document.createElement('button');
+      btn.textContent = d.is_current ? '当前' : '踢出';
+      btn.disabled = !!d.is_current;
+      btn.addEventListener('click', async () => {
+        if (!confirm(`确认踢出此设备 (${osBrowser})？该设备的会话将立即失效。`)) return;
+        const r = await fetch('/api/devices/kick', {
+          method: 'POST', credentials: 'same-origin',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ device_id: d.device_id }),
+        });
+        const j = await r.json();
+        if (j.ok) {
+          showToast('已踢出设备');
+          row.remove();
+        } else {
+          showToast('操作失败：' + (j.error || ''));
+        }
+      });
+      row.appendChild(btn);
+      list.appendChild(row);
+    }
+  }
+
+  // Patch loadMe() to also render the device list. We re-fetch /api/me so the
+  // server-rendered device list reflects the freshest snapshot.
+  async function loadDevices() {
+    const r = await fetch('/api/me', { credentials: 'same-origin' });
+    if (r.status === 401) { location.href = '/login'; return; }
+    const data = await r.json();
+    renderDevices(data.devices, data.session && data.session.device_id);
+    if (data.session) {
+      const banner = $('#riskBanner');
+      // If your current country differs from any other recent device, warn.
+      const foreign = (data.devices || []).filter(d => !d.is_current && d.country && data.session.country && d.country !== data.session.country);
+      if (foreign.length) {
+        banner.classList.add('show');
+        banner.textContent = `⚠️ 当前 IP 来自 ${data.session.country || '未知地区'}, 但检测到曾在 ${foreign.map(d=>d.country).filter(Boolean).join(', ')} 登录过此账号。如非本人操作, 请立即踢出陌生设备并联系客服。`;
+      }
+    }
+  }
+  loadDevices();
+  function showToast(text) {
+    const t = $('#toast');
+    t.textContent = text;
+    t.classList.add('show');
+    clearTimeout(showToast._tid);
+    showToast._tid = setTimeout(() => t.classList.remove('show'), 1800);
+  }
+  function deviceHint() {
+    const ua = navigator.userAgent;
+    let os = '未知系统', browser = '未知浏览器';
+    if (/Windows NT/.test(ua)) os = 'Windows';
+    else if (/Mac OS X/.test(ua)) os = 'macOS';
+    else if (/iPhone|iPad|iPod/.test(ua)) os = 'iOS';
+    else if (/Android/.test(ua)) os = 'Android';
+    else if (/Linux/.test(ua)) os = 'Linux';
+    if (/Edg\//.test(ua)) browser = 'Edge';
+    else if (/Chrome\//.test(ua)) browser = 'Chrome';
+    else if (/Safari\//.test(ua) && !/Chrome/.test(ua)) browser = 'Safari';
+    else if (/Firefox\//.test(ua)) browser = 'Firefox';
+    return `${os} · ${browser}`;
+  }
+  function initialOf(label) {
+    if (!label) return 'U';
+    // CJK first char, or first ASCII letter uppercased
+    const first = [...label][0];
+    return first ? first.toUpperCase() : 'U';
+  }
+
+  // ----- load me -----
+  async function loadMe() {
+    let r;
+    try { r = await fetch('/api/me'); }
+    catch { location.href = '/login'; return; }
+    if (r.status === 401) { location.href = '/login'; return; }
+    const data = await r.json();
+    const c = data.code || {};
+    const m = data.membership || {};
+
+    // Greeting
+    const label = c.label || ('码 #' + (c.id || '').slice(-6));
+    $('#helloName').textContent = label;
+    const expiryLabel = m.expires_label || c.expires_label || '永久有效';
+    if (m.is_member === false) {
+      $('#helloSub').textContent = m.reason === 'revoked'
+        ? '账户或邀请码已吊销 · 无法查看提示词正文。'
+        : `会员已于 ${expiryLabel.replace('会员至 ', '')} 到期 · 可浏览卡片但无法查看提示词。`;
+    } else {
+      $('#helloSub').textContent =
+        `${expiryLabel} · 已为您保留 ${c.member_days || 0} 天灵感。`;
+    }
+
+    // Profile card — tier badge
+    const tier = $('#tierBadge');
+    if (m.is_member === false) {
+      tier.innerHTML = '<span class="dot"></span> 会员已失效';
+      tier.classList.add('expired');
+    } else if (m.is_permanent) {
+      tier.innerHTML = '<span class="dot"></span> PRO 会员 · 永久';
+      tier.classList.remove('expired');
+    } else {
+      tier.innerHTML = '<span class="dot"></span> PRO 会员';
+      tier.classList.remove('expired');
+    }
+    const expiryLine = $('#expiryLine');
+    if (expiryLabel && expiryLabel !== '—') {
+      expiryLine.textContent = expiryLabel;
+      expiryLine.style.display = '';
+      expiryLine.classList.toggle('expired', m.is_member === false);
+    } else {
+      expiryLine.style.display = 'none';
+    }
+
+    // Profile card — default to avatar image; fall back to initial on error
+    const avatar = $('#avatar');
+    avatar.classList.remove('skel');
+    avatar.classList.add('initial');
+    avatar.innerHTML = `<img src="/static/default-avatar.png" alt="avatar" onerror="this.parentElement.classList.remove('initial'); this.parentElement.textContent='${initialOf(label)}'">`;
+    const lbl = $('#labelText');
+    lbl.textContent = label;
+    lbl.classList.remove('skel');
+    const hdl = $('#handleText');
+    hdl.textContent = c.masked || c.id || '';
+    hdl.classList.remove('skel');
+
+    $('#statDays').textContent = c.member_days != null ? c.member_days : '0';
+    $('#statUses').textContent = c.use_count != null ? c.use_count : '0';
+    $('#statLast').textContent = relativeTime(c.last_used_at);
+
+    // Info rows
+    $('#rowMasked').innerHTML = `${escapeHtml(c.masked || c.id || '—')}<button class="copy" data-copy="${escapeHtml(c.id || '')}">复制</button>`;
+    $('#rowNote').textContent = c.note || '— 无备注 —';
+    const memberStatus = m.is_member === false
+      ? (m.reason === 'revoked' ? '已吊销' : '已到期')
+      : (m.is_permanent ? '有效 · 永久' : '有效');
+    $('#rowMembership').textContent = memberStatus;
+    $('#rowExpires').textContent = expiryLabel;
+    $('#rowExpires').classList.toggle('dim', m.is_member !== false);
+    if (m.is_member === false) $('#rowExpires').style.color = '#f87171';
+    $('#rowCreated').textContent = formatDate(c.created_at);
+    $('#rowLastUsed').textContent = formatDate(c.last_used_at);
+    $('#rowDevice').textContent = deviceHint();
+
+    // Bind copy buttons
+    document.querySelectorAll('.copy').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const text = btn.getAttribute('data-copy') || '';
+        try {
+          await navigator.clipboard.writeText(text);
+        } catch {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          document.body.appendChild(ta); ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+        }
+        const orig = btn.textContent;
+        btn.textContent = '已复制';
+        btn.classList.add('ok');
+        setTimeout(() => { btn.textContent = orig; btn.classList.remove('ok'); }, 1200);
+        showToast('已复制到剪贴板');
+      });
+    });
+
+    // Quick action: copy id
+    $('#copyIdBtn').addEventListener('click', async () => {
+      const text = c.id || '';
+      try { await navigator.clipboard.writeText(text); } catch {}
+      showToast('账户 ID 已复制');
+    });
+    // Quick action: copy current URL
+    $('#copyLinkBtn').addEventListener('click', async () => {
+      const text = location.href;
+      try { await navigator.clipboard.writeText(text); } catch {}
+      showToast('页面链接已复制');
+    });
+  }
+
+  async function doLogout() {
+    try { await fetch('/api/logout', { method: 'POST' }); } catch {}
+    location.href = '/login';
+  }
+
+  document.getElementById('logoutBtn').addEventListener('click', doLogout);
+  document.getElementById('logoutBtn2').addEventListener('click', doLogout);
+
+  loadMe();
+</script>
+</body>
+</html>

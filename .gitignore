@@ -1,0 +1,25 @@
+node_modules/
+data/
+.env
+.env.local
+*.log
+.DS_Store
+*.bak
+*.bak2
+*.bak3
+work/
+
+# Ignore dev/test screenshots and duplicate root files
+/[0-9]*.png
+/form-check-*.png
+/login-page*.png
+/manghe.png
+/prompts-viewer.html
+/prompts-full.json.bak*
+/merged-prompts.json.bak*
+
+# Don't ignore the prompts data, since the viewer needs them
+!merged-prompts.json
+!prompts-full.json
+!public/static/
+!portal/dist/

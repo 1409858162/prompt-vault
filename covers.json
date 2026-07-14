@@ -1,0 +1,2205 @@
+{
+  "source": "https://xgdzyqfalbibzelpdpvr.supabase.co/rest/v1/prompts",
+  "fetched_at": "2026-07-07T11:13:18.327Z",
+  "note": "Cover image URLs fetched live from motionsites.ai Supabase. For entries where the live API returned an R2 .webp cover, we treat it as preview_image_url (static cover) and keep the original Mux stream in playable_video_url.",
+  "covers": {
+    "0": {
+      "title": "Wealth Video Hero",
+      "category": "Fintech",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "1": {
+      "title": "New Era Bold Hero",
+      "category": "Agency",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "2": {
+      "title": "Taskora SaaS Hero",
+      "category": "SaaS",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "3": {
+      "title": "ClearInvoice SaaS Hero",
+      "category": "SaaS",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "4": {
+      "title": "Datacore SaaS Hero",
+      "category": "SaaS",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "5": {
+      "title": "Glassmorphism Agency Hero",
+      "category": "Agency",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "6": {
+      "title": "Bold Portfolio Hero",
+      "category": "Portfolio",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "7": {
+      "title": "Synapse Dark Hero",
+      "category": "SaaS",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "8": {
+      "title": "New Era Automotive Hero",
+      "category": "Automotive",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "9": {
+      "title": "Web3 EOS Hero",
+      "category": "Web3",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "10": {
+      "title": "AI Automation Hero",
+      "category": "AI / SaaS",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "11": {
+      "title": "Weblex Dark Hero",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "12": {
+      "title": "Targo Logistics Hero",
+      "category": "SaaS",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "13": {
+      "title": "Framelix 3D Studios",
+      "category": "Agency",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "14": {
+      "title": "Logoisum Video Agency",
+      "category": "Agency",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "15": {
+      "title": "Dark Portfolio Hero",
+      "category": "Portfolio",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "16": {
+      "title": "HR SaaS Hero",
+      "category": "SaaS",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "18": {
+      "title": "Loader Animation",
+      "category": "Component",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "19": {
+      "title": "Viktor Portfolio",
+      "category": "Portfolio",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "20": {
+      "title": "Space Voyage",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "21": {
+      "title": "Buzzentic Agency",
+      "category": "Agency",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "404": {
+      "title": "Nexto 404",
+      "category": "404",
+      "is_free": true,
+      "image_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/CleanShot_2026-05-15_at_15.46.24_2x_i163nd.png",
+      "video_preview_url": null
+    },
+    "interactive-discovery": {
+      "title": "Interactive Discovery",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(7).webp"
+    },
+    "dreamcore-landing": {
+      "title": "Dreamcore Landing",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(22).webp"
+    },
+    "bold-studio": {
+      "title": "Bold Studio",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(10).webp"
+    },
+    "prisma-landing": {
+      "title": "Prisma Creative Studio",
+      "category": "Landing Page",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "3d-jack-portfolio-hero": {
+      "title": "3D Jack Portfolio",
+      "category": "Portfolio",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/hero-3d-jack-portfolio-preview-BS06Nx21.gif"
+    },
+    "art-landing": {
+      "title": "Art Landing",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://stream.mux.com/oyGPQ8mbNvS01JLrDUGJiQCd00HUn41EGTMIa601k767IE.m3u8"
+    },
+    "velorah-hero": {
+      "title": "Velorah",
+      "category": "Agency",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "aetheris-voyage-hero": {
+      "title": "Aetheris Voyage",
+      "category": "Hero Section",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "codercrest-hero": {
+      "title": "CoderCrest",
+      "category": "SaaS",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/codercrest-hero-CoycO52t.gif"
+    },
+    "vex-ventures-hero": {
+      "title": "VEX Ventures",
+      "category": "Hero Section",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "skyelite-hero": {
+      "title": "SkyElite Private Jets",
+      "category": "Landing Page",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "urban-jungle-hero": {
+      "title": "Urban Jungle",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "reveal-hero": {
+      "title": "Reveal Hero",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(26).webp"
+    },
+    "modern-agency": {
+      "title": "Modern Agency",
+      "category": "Agency",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(27).webp"
+    },
+    "liquid-glass-agency": {
+      "title": "Liquid Glass Agency",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "luxury-editorial-ecommerce-design": {
+      "title": "Luxury Ecommerce Design",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(77).webp"
+    },
+    "grow-ai-hero": {
+      "title": "Grow AI Talent Platform",
+      "category": "SaaS",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "aethera-hero": {
+      "title": "Aethera Studio",
+      "category": "Hero Section",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "asme-hero": {
+      "title": "Asme",
+      "category": "Hero Section",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "innovation-landing": {
+      "title": "Innovation",
+      "category": "Landing Page",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "orbis-nft-landing": {
+      "title": "Orbis NFT",
+      "category": "Landing Page",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "portfolio-cosmic-hero": {
+      "title": "Portfolio Cosmic",
+      "category": "Portfolio",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "securify-hero": {
+      "title": "Securify Data Security",
+      "category": "SaaS",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "portal-hero": {
+      "title": "Portal",
+      "category": "Hero Section",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "max-reed-portfolio": {
+      "title": "Max Reed Portfolio",
+      "category": "Features",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(6).webp"
+    },
+    "mindloop-landing": {
+      "title": "Mindloop Landing",
+      "category": "Landing Page",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "ember-dsgn-hero": {
+      "title": "EMBER.dsgn",
+      "category": "Hero Section",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(85).webp"
+    },
+    "rivr-hero": {
+      "title": "RIVR",
+      "category": "Hero Section",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "wisa-space-hero": {
+      "title": "WISA Space",
+      "category": "Hero Section",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "vortex-studio-hero": {
+      "title": "AI Designer Portfolio",
+      "category": "Landing Page",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "codenest-hero": {
+      "title": "CodeNest Coding Platform",
+      "category": "Landing Page",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "acreage-farming-hero": {
+      "title": "Acreage Farming",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/hero-acreage-farming-preview-DY4bc7ni.gif"
+    },
+    "power-ai-hero": {
+      "title": "Power AI",
+      "category": "Hero Section",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "impressive-hero": {
+      "title": "Impressive Hero",
+      "category": "Hero Section",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "bloom-ai-hero": {
+      "title": "Bloom AI",
+      "category": "Hero Section",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "flowmate-landing": {
+      "title": "FlowMate",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "luminex-hero": {
+      "title": "Luminex",
+      "category": "Hero Section",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "nike-premium-landing": {
+      "title": "Nike Premium Landing",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "solar-energy-hero": {
+      "title": "Solar Energy Hero",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(35).webp"
+    },
+    "sentinel-ai-hero": {
+      "title": "Sentinel AI",
+      "category": "Hero Section",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "slam-dunk-hero": {
+      "title": "Slam Dunk",
+      "category": "Hero Section",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "designpro-hero": {
+      "title": "DesignPro Academy",
+      "category": "Hero Section",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "crypto-wealth-hero": {
+      "title": "Crypto Wealth",
+      "category": "Hero Section",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "nexora-hero": {
+      "title": "Nexora Automation",
+      "category": "SaaS",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "shamoni-hero": {
+      "title": "Shamoni",
+      "category": "Hero Section",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "transform-data-hero": {
+      "title": "Transform Data",
+      "category": "Hero Section",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "glow-features": {
+      "title": "Glow Features",
+      "category": "Features Section",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "lumina-footer": {
+      "title": "Lumina",
+      "category": "Footer Section",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "nexacore-hero": {
+      "title": "NexaCore",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "halo-usd-landing": {
+      "title": "USD Halo",
+      "category": "Landing Page",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/halo-usd-hero-CtMXOklk.gif"
+    },
+    "stellar-ai-v2-hero": {
+      "title": "Sync AI",
+      "category": "Hero Section",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "taskly-hero": {
+      "title": "Taskly",
+      "category": "Hero Section",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "xportfolio-hero": {
+      "title": "xPortfolio Hero",
+      "category": "Hero Section",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "stellar-ai-hero": {
+      "title": "Stellar AI",
+      "category": "Hero Section",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "ai-designer-agency": {
+      "title": "AI Designer Agency",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "datacore-booking-hero": {
+      "title": "Datacore Booking",
+      "category": "SaaS",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "neovision-landing": {
+      "title": "NeoVision",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "convix-software-hero": {
+      "title": "SAAS Software",
+      "category": "SaaS",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/convix-software-hero-B6-tdnN6.gif"
+    },
+    "guardnet-landing": {
+      "title": "Guardnet",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "neuralyn-hero": {
+      "title": "Neuralyn",
+      "category": "SaaS",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "automation-machines-hero": {
+      "title": "Automation Machines",
+      "category": "Hero Section",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "digitwist-hero": {
+      "title": "Digitwist AI Builder",
+      "category": "SaaS",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "dot-hero": {
+      "title": "Dot",
+      "category": "Hero Section",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/dot-hero-Csf49OgS.gif"
+    },
+    "focus-ai-landing": {
+      "title": "Focus AI",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "design-rocket-email-hero": {
+      "title": "Email Marketing",
+      "category": "Email Marketing",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "rivr-defi-landing": {
+      "title": "RIVR DeFi",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "duolingo-styleguide-hero": {
+      "title": "Duolingo Styleguide",
+      "category": "Hero Section",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "velorah-focus-hero": {
+      "title": "Velorah Focus",
+      "category": "Social Media",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "price-calculator": {
+      "title": "Price Calculator",
+      "category": "SaaS",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "yacht-club-hero": {
+      "title": "Yacht Club",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "social-media-posts-hero": {
+      "title": "Social Media Posts",
+      "category": "Social Media",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "ecommerce-website-landing": {
+      "title": "E-commerce Website",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "digital-epoch-hero": {
+      "title": "Digital Epoch",
+      "category": "Hero Section",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "ecovolta-hero": {
+      "title": "EcoVolta",
+      "category": "Hero Section",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "kresna-footer": {
+      "title": "Kresna Footer",
+      "category": "Footer Section",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "orbit-engineers": {
+      "title": "Orbit Engineers",
+      "category": "Agency",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "vize-footer": {
+      "title": "Vize Footer",
+      "category": "Footer Section",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "pro-ai-deck": {
+      "title": "Pro AI Deck",
+      "category": "Presentation",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "haul-footer": {
+      "title": "HAUL!",
+      "category": "Footer Section",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "terra-hero": {
+      "title": "Terra Geo Map",
+      "category": "SaaS",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "veloce-finance-landing": {
+      "title": "Veloce Finance",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "clubx-hero": {
+      "title": "ClubX Investors",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "railroad-ai-hero": {
+      "title": "Railroad.ai",
+      "category": "Hero Section",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "slate-hero": {
+      "title": "Slate",
+      "category": "SaaS",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "ecovolta-v2-hero": {
+      "title": "EcoVolta V2",
+      "category": "Hero Section",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "evr-ventures-hero": {
+      "title": "EVR Ventures",
+      "category": "Hero Section",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "cosmos-interface": {
+      "title": "Cosmos Interface",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/uploaded/cosmos%20shtuffArea.mp4"
+    },
+    "luxury-escapes": {
+      "title": "Luxury Escapes",
+      "category": "Travel App",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/uploaded/traveltobalilight.mp4"
+    },
+    "coffee-rewards": {
+      "title": "Coffee Rewards",
+      "category": "Loyalty App",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/uploaded/coffeorangeArea.mp4"
+    },
+    "skills-lea": {
+      "title": "LearnHub",
+      "category": "Education",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/uploaded/linesbrightArea.mp4"
+    },
+    "remit-race": {
+      "title": "Remit Race",
+      "category": "Fintech",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/mobile%20apps/purpleglobapp.mp4"
+    },
+    "cross-border": {
+      "title": "Cross-Border",
+      "category": "Transportation",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/mobile%20apps/freeautomobile.mp4"
+    },
+    "travel-journal": {
+      "title": "Travel Journal",
+      "category": "Travel",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/mobile%20apps/balitravel.mp4"
+    },
+    "movie-premiere": {
+      "title": "Movie Premiere",
+      "category": "Entertainment",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/mobile%20apps/filmstudioArea.mp4"
+    },
+    "travel-explorer": {
+      "title": "Travel Explorer",
+      "category": "Travel",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/mobile%20apps/natureweb3Area.mp4"
+    },
+    "mood-tracker": {
+      "title": "Mood Tracker",
+      "category": "Wellness",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/mobile%20apps/mobilenature33.mp4"
+    },
+    "wellness-companion": {
+      "title": "Wellness Companion",
+      "category": "Wellness",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/mobileArea.mp4"
+    },
+    "oyla": {
+      "title": "OYLA",
+      "category": "Ecommerce",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/prompts%20(i've%20added%20them%20to%20the%20motionsites)/%20bewpostArea.mp4"
+    },
+    "innovation-summit": {
+      "title": "Innovation Summit",
+      "category": "Mobile App",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/mobile%20apps/mobileupArea.mp4"
+    },
+    "innovation-studio": {
+      "title": "Innovation Studio",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/prompts%20(i've%20added%20them%20to%20the%20motionsites)/Innovation%20Studio.mp4"
+    },
+    "3d-studio-pricing": {
+      "title": "3D Studio Pricing",
+      "category": "Pricing",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/prompts%20(i've%20added%20them%20to%20the%20motionsites)/priicnggrow.mp4"
+    },
+    "stillmind": {
+      "title": "Stillmind",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/prompts%20(i've%20added%20them%20to%20the%20motionsites)/endless.mp4"
+    },
+    "cargo-group": {
+      "title": "Cargo Group",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/prompts%20(i've%20added%20them%20to%20the%20motionsites)/carArea.mp4"
+    },
+    "3d-story": {
+      "title": "3D Story",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(21).webp"
+    },
+    "financial-suite": {
+      "title": "Financial Suite",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/prompts%20(i've%20added%20them%20to%20the%20motionsites)/f4444Area.mp4"
+    },
+    "lead-funnel": {
+      "title": "Lead Funnel",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/prompts%20(i've%20added%20them%20to%20the%20motionsites)/mux3.mp4"
+    },
+    "tech-forward": {
+      "title": "Tech-Forward",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/prompts%20(i've%20added%20them%20to%20the%20motionsites)/132Area.mp4"
+    },
+    "vision-reveal": {
+      "title": "Vision Reveal",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/newpsotArea.mp4"
+    },
+    "prompt-hero": {
+      "title": "PROMPT",
+      "category": "Landing Page",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/fe42Area.mp4"
+    },
+    "wellness-balance": {
+      "title": "Wellness Balance",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(11).webp"
+    },
+    "bio-age-dashboard": {
+      "title": "Bio-Age Dashboard",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(17).webp"
+    },
+    "interactive-portfolio": {
+      "title": "Interactive Portfolio",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(15).webp"
+    },
+    "integration-saas": {
+      "title": "Integration SaaS",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/wisdongate.mp4"
+    },
+    "cozypaws": {
+      "title": "CozyPaws",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/prompts%20(i've%20added%20them%20to%20the%20motionsites)/petsArea.mp4"
+    },
+    "health-portal": {
+      "title": "Health Portal",
+      "category": "Landing Page",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(12).webp"
+    },
+    "3d-collectible-hero": {
+      "title": "3D Collectible Hero",
+      "category": "3D Website",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(24).webp"
+    },
+    "luxury-hero": {
+      "title": "Luxury Hero",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(8).webp"
+    },
+    "network-hero": {
+      "title": "Network Hero",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(19).webp"
+    },
+    "investment-hero": {
+      "title": "Investment Gate",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(9).webp"
+    },
+    "golden-portal": {
+      "title": "Golden Portal",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(13).webp"
+    },
+    "immersive-ocean": {
+      "title": "Immersive Ocean",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(14).webp"
+    },
+    "wellbeing-os": {
+      "title": "Wellbeing OS",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/prompts%20(i've%20added%20them%20to%20the%20motionsites)/Wellbeing%20OS.mp4"
+    },
+    "subscription-agency": {
+      "title": "Subscription Agency",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/prompts%20(i've%20added%20them%20to%20the%20motionsites)/agencygradientArea.mp4"
+    },
+    "pulse-3d": {
+      "title": "Pulse 3D",
+      "category": "3D Website",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(16).webp"
+    },
+    "creative-portfolio": {
+      "title": "Creative Portfolio",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(89).webp"
+    },
+    "obsidian-hero": {
+      "title": "Obsidian Hero",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(18).webp"
+    },
+    "future-state": {
+      "title": "Future-State",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(20).webp"
+    },
+    "apex-pulse": {
+      "title": "Apex Pulse",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(44).webp"
+    },
+    "neon-logic": {
+      "title": "Neon Logic",
+      "category": "Landing Page",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(33).webp"
+    },
+    "unwind-hero": {
+      "title": "Unwind Hero",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(37).webp"
+    },
+    "glitch-pulse": {
+      "title": "Glitch Pulse",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(29).webp"
+    },
+    "impact-ventures": {
+      "title": "Impact Ventures",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(67).webp"
+    },
+    "bio-active": {
+      "title": "Clarity Core",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(30).webp"
+    },
+    "organic-odyssey": {
+      "title": "Organic Odyssey",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(51).webp"
+    },
+    "cyberpunk-reveal": {
+      "title": "Cyberpunk Reveal",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(31).webp"
+    },
+    "ai-interface": {
+      "title": "AI Interface",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/sniamtedblueish%20site.mp4"
+    },
+    "vertex-sci": {
+      "title": "Vertex Sci",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(23).webp"
+    },
+    "neural-interface": {
+      "title": "Neural Interface",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(54).webp"
+    },
+    "wellness-hero": {
+      "title": "Wellness Hero",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(32).webp"
+    },
+    "cosmic": {
+      "title": "Cosmic",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(25).webp"
+    },
+    "404-planet": {
+      "title": "404 Planet",
+      "category": "404",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(7).webp"
+    },
+    "bl": {
+      "title": "Bloom",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(96).webp"
+    },
+    "saas-value": {
+      "title": "SaaS Value",
+      "category": "SaaS",
+      "is_free": true,
+      "image_preview_url": "https://res.cloudinary.com/dsdhxhhqh/image/upload/v1781539562/CleanShot_2026-06-15_at_15.31.34_2x_ckhjmj.png",
+      "video_preview_url": null
+    },
+    "luxury-focus": {
+      "title": "Luxury Focus",
+      "category": "E-commerce",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://stream.mux.com/MSctoqC17nNR00ZSv5l7fTur9QOwcJHC01uL02uOFs1Vvs.m3u8"
+    },
+    "animated-cards": {
+      "title": "Animated Cards",
+      "category": "Component",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(8).webp"
+    },
+    "synthesis": {
+      "title": "Synthesis",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(91).webp"
+    },
+    "conversion": {
+      "title": "Conversion",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(84).webp"
+    },
+    "luminara": {
+      "title": "Luminara",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(98).webp"
+    },
+    "digital-experiences": {
+      "title": "Digital Experiences",
+      "category": "Landing Page",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(40).webp"
+    },
+    "gateway-portal": {
+      "title": "Gateway Portal",
+      "category": "Landing page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(76).webp"
+    },
+    "audio-showcase": {
+      "title": "Audio Showcase",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(70).webp"
+    },
+    "interior-features": {
+      "title": "Interior Features",
+      "category": "Features",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(9).webp"
+    },
+    "eco-intelligence": {
+      "title": "Eco Intelligence",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(41).webp"
+    },
+    "solace-sign-in": {
+      "title": "Solace sign-in",
+      "category": "Sign In Form",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(66).webp"
+    },
+    "liquid-glass-features": {
+      "title": "Liquid Glass Features",
+      "category": "Features",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(10).webp"
+    },
+    "liquid-glass-cta": {
+      "title": "Liquid Glass CTA",
+      "category": "CTA",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(17).webp"
+    },
+    "veloce-cards": {
+      "title": "Veloce Cards",
+      "category": "Cards",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(60).webp"
+    },
+    "arceage-contact-us": {
+      "title": "Arceage Contact Us",
+      "category": "Form",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(20).webp"
+    },
+    "arceage-testimonial": {
+      "title": "Arceage Testimonial",
+      "category": "Testimonials",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(24).webp"
+    },
+    "arceage-services": {
+      "title": "Arceage Services",
+      "category": "Services",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(50).webp"
+    },
+    "arceage-stats": {
+      "title": "Arceage Stats",
+      "category": "Stats",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(59).webp"
+    },
+    "nexacore-results": {
+      "title": "NexaCore Results",
+      "category": "Features",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(40).webp"
+    },
+    "nexacore-process": {
+      "title": "NexaCore Process",
+      "category": "Process",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(47).webp"
+    },
+    "nexacore-control": {
+      "title": "NexaCore Control",
+      "category": "Features",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(33).webp"
+    },
+    "nike-hover": {
+      "title": "Nike Hover",
+      "category": "Features",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(41).webp"
+    },
+    "guardnet-benefits": {
+      "title": "Guardnet Benefits",
+      "category": "Benefits",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(34).webp"
+    },
+    "guardnet-demo": {
+      "title": "Guardnet Demo",
+      "category": "Info",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(26).webp"
+    },
+    "halo-use-case": {
+      "title": "Halo Use Case",
+      "category": "Use Case",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(18).webp"
+    },
+    "halo-benefits": {
+      "title": "Halo Benefits",
+      "category": "Why Us",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(13).webp"
+    },
+    "projects-catalog": {
+      "title": "Projects Catalog",
+      "category": "Projects",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(36).webp"
+    },
+    "agency-services": {
+      "title": "Agency Services",
+      "category": "Services",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(14).webp"
+    },
+    "portfolio-about": {
+      "title": "Portfolio About",
+      "category": "About",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(23).webp"
+    },
+    "scroll-marquee": {
+      "title": "Scroll Marquee",
+      "category": "Marquee",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(21).webp"
+    },
+    "daisy-wild": {
+      "title": "Daisy Wild",
+      "category": "Product",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(32).webp"
+    },
+    "daisy-sweet": {
+      "title": "Daisy Sweet",
+      "category": "Product",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(43).webp"
+    },
+    "nimbus-ops": {
+      "title": "Nimbus Ops",
+      "category": "CTA",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(27).webp"
+    },
+    "nimbus-demo": {
+      "title": "Nimbus Demo",
+      "category": "Dashboard Demo",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(57).webp"
+    },
+    "nimbus-security": {
+      "title": "Nimbus Security",
+      "category": "Cards",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(68).webp"
+    },
+    "nimbus-pricing": {
+      "title": "NimBus Pricing",
+      "category": "Pricing",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(12).webp"
+    },
+    "nimbus-sticky-cards": {
+      "title": "Nimbus Sticky Cards",
+      "category": "Cards",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(42).webp"
+    },
+    "cognitra-offer": {
+      "title": "Cognitra Offer",
+      "category": "Cards",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(56).webp"
+    },
+    "cognitra-feature": {
+      "title": "Cognitra Feature",
+      "category": "Feature",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(72).webp"
+    },
+    "tech-noir-about": {
+      "title": "Tech-Noir About",
+      "category": "About",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(48).webp"
+    },
+    "beauty-categories": {
+      "title": "Beauty Categories",
+      "category": "Categories",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(67).webp"
+    },
+    "beauty-products": {
+      "title": "Beauty Products",
+      "category": "Products",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(54).webp"
+    },
+    "launchex-about": {
+      "title": "LaunchEx About",
+      "category": "About",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(49).webp"
+    },
+    "launchex-submissions": {
+      "title": "LaunchEx Submissions",
+      "category": "Features",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(52).webp"
+    },
+    "orbis-cta": {
+      "title": "Orbis CTA",
+      "category": "CTA",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(19).webp"
+    },
+    "orbis-hello": {
+      "title": "Orbis Hello",
+      "category": "About",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(53).webp"
+    },
+    "orbis-cards": {
+      "title": "Orbis Cards",
+      "category": "Cards",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(16).webp"
+    },
+    "kova-features": {
+      "title": "Kova Features",
+      "category": "Benefits",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(28).webp"
+    },
+    "rocket-cta": {
+      "title": "Rocket CTA",
+      "category": "CTA",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(69).webp"
+    },
+    "rocket-faq": {
+      "title": "Rocket FAQ",
+      "category": "FAQ",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(31).webp"
+    },
+    "kova-testimonial": {
+      "title": "Kova Testimonial",
+      "category": "Testimonial",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(51).webp"
+    },
+    "global-cta-footer": {
+      "title": "Global CTA Footer",
+      "category": "CTA",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(64).webp"
+    },
+    "axion-about": {
+      "title": "Axion About",
+      "category": "About",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(29).webp"
+    },
+    "rocket-pricing": {
+      "title": "Rocket Pricing",
+      "category": "Pricing",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(55).webp"
+    },
+    "flowmate-carousal": {
+      "title": "FlowMate Carousal",
+      "category": "Carousal",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(65).webp"
+    },
+    "apex-program-accordion": {
+      "title": "Apex Program Accordion",
+      "category": "Accordion",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(25).webp"
+    },
+    "pixel-grid-hover": {
+      "title": "Pixel Grid Hover",
+      "category": "Case Studies",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(15).webp"
+    },
+    "bento-grid-stats": {
+      "title": "Bento Grid Stats",
+      "category": "Bento",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(58).webp"
+    },
+    "radial-diagram": {
+      "title": "Radial Diagram",
+      "category": "Testimonials",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(62).webp"
+    },
+    "glassmorphic-feature-tabs": {
+      "title": "Glassmorphic Feature Tabs",
+      "category": "Tabs",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(30).webp"
+    },
+    "editorial-collection-cta": {
+      "title": "Editorial Collection CTA",
+      "category": "CTA",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(70).webp"
+    },
+    "botanical-shadow-about": {
+      "title": "Botanical Shadow About",
+      "category": "About",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(11).webp"
+    },
+    "mouse-trail-cta": {
+      "title": "Mouse Trail CTA",
+      "category": "CTA",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(46).webp"
+    },
+    "feedback-slider": {
+      "title": "Feedback Slider",
+      "category": "Slider",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(38).webp"
+    },
+    "stark-minimal-footer": {
+      "title": "Stark Minimal Footer",
+      "category": "Footer",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(37).webp"
+    },
+    "media-card-carousel": {
+      "title": "Media Card Carousel",
+      "category": "Slider",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(45).webp"
+    },
+    "yoga-coach": {
+      "title": "Yoga Coach",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(39).webp"
+    },
+    "technical-specifications": {
+      "title": "Technical Specifications",
+      "category": "Tabs",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(71).webp"
+    },
+    "luxury-real-estate": {
+      "title": "Luxury Real Estate",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(38).webp"
+    },
+    "mythic-naturecore": {
+      "title": "Mythic Naturecore",
+      "category": "landing page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(72).webp"
+    },
+    "cinematic-brand": {
+      "title": "Cinematic Brand",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(65).webp"
+    },
+    "layered-depth": {
+      "title": "Layered Depth",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(43).webp"
+    },
+    "features": {
+      "title": "Capabilities Overview",
+      "category": "Features",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(39).webp"
+    },
+    "intelligentx": {
+      "title": "IntelligentX",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(61).webp"
+    },
+    "retro-futurist": {
+      "title": "Retro-Futurist",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(46).webp"
+    },
+    "cursor-follow": {
+      "title": "Cursor Follow",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(48).webp"
+    },
+    "luxury-botanical": {
+      "title": "Luxury Botanical",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(36).webp"
+    },
+    "growth-marketing-saas": {
+      "title": "Growth Marketing SaaS",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(28).webp"
+    },
+    "build-with-us": {
+      "title": "Build With Us",
+      "category": "Contact us",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(45).webp"
+    },
+    "contact-cybernetic": {
+      "title": "Contact Cybernetic",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(42).webp"
+    },
+    "aerocore": {
+      "title": "AeroCore",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(34).webp"
+    },
+    "scroll-landing": {
+      "title": "Scroll Landing Page",
+      "category": "Interactive",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(47).webp"
+    },
+    "finflow": {
+      "title": "FinFlow",
+      "category": "Fintech",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(81).webp"
+    },
+    "bio-digital": {
+      "title": "Bio-Digital",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(95).webp"
+    },
+    "velorix-iic": {
+      "title": "Velorix IIC",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(87).webp"
+    },
+    "no-code-waitlist": {
+      "title": "No-Code Waitlist",
+      "category": "Waitlist",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://stream.mux.com/iY611PYuZ02AKpIzYB4Q1BMpl7W2O3UwqjQm9p01xlmVg.m3u8"
+    },
+    "portal": {
+      "title": "Portal",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(68).webp"
+    },
+    "vaultshield": {
+      "title": "VaultShield",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(64).webp"
+    },
+    "cinematic-landing-page": {
+      "title": "Cinematic Landing Page",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(66).webp"
+    },
+    "ai-workflow": {
+      "title": "AI Workflow Hero",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(55).webp"
+    },
+    "ai-automation": {
+      "title": "AI Automation",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(83).webp"
+    },
+    "cybersecurity-hero-v2": {
+      "title": "Cybersecurity Hero v2",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(62).webp"
+    },
+    "nimbus-grid": {
+      "title": "Nimbus Grid",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(63).webp"
+    },
+    "book-hero": {
+      "title": "Book Hero",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(57).webp"
+    },
+    "neo-museum": {
+      "title": "Neo Museum",
+      "category": "Website",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(75).webp"
+    },
+    "minimal-workflow-saas": {
+      "title": "Minimal Workflow SaaS",
+      "category": "SaaS",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(86).webp"
+    },
+    "futuristic-tech": {
+      "title": "Futuristic Tech",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(73).webp"
+    },
+    "evergreen-finance": {
+      "title": "Evergreen Finance",
+      "category": "Fintech",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(79).webp"
+    },
+    "stellar-launch": {
+      "title": "Stellar Launch",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(88).webp"
+    },
+    "financialfocus": {
+      "title": "FinancialFocus",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(80).webp"
+    },
+    "shop": {
+      "title": "Daisy Shop",
+      "category": "Ecommerce",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://stream.mux.com/imC5vQh9WbYUhhreIFOOONfNBnQI8AZznRfgZw8p2fA.m3u8"
+    },
+    "visual-hero": {
+      "title": "Visual Hero",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://stream.mux.com/i9kUFJpB6GrWoe2UXRZG4lIP02g00LGulS1GTVrMMwZI00.m3u8"
+    },
+    "creative-studio": {
+      "title": "Creative Studio",
+      "category": "Agency",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(71).webp"
+    },
+    "wanderful-hero": {
+      "title": "Wanderful Hero",
+      "category": "Travel",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(78).webp"
+    },
+    "travel-hero": {
+      "title": "Scenic Travel",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(94).webp"
+    },
+    "prosthetics-hero": {
+      "title": "Prosthetics Hero",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(49).webp"
+    },
+    "novadesk-signup": {
+      "title": "NovaDesk Signup",
+      "category": "Signup",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(69).webp"
+    },
+    "speakup-venture-hero": {
+      "title": "SpeakUp Venture Hero",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://stream.mux.com/a6HPc2D4wiAmo1102yX8WVFt01gzGYkOG1vPVysYykdao.m3u8"
+    },
+    "futuristic-cinematic": {
+      "title": "Futuristic Cinematic",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(52).webp"
+    },
+    "email-landing-page": {
+      "title": "Email Landing Page",
+      "category": "Landing page",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(59).webp"
+    },
+    "learnly": {
+      "title": "Learnly",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(82).webp"
+    },
+    "faq-cta": {
+      "title": "FAQ CTA",
+      "category": "CTA",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(61).webp"
+    },
+    "waitlist-hero": {
+      "title": "Waitlist Hero",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(74).webp"
+    },
+    "nex-max-upgrade": {
+      "title": "Nex Max Upgrade",
+      "category": "Pricing",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(44).webp"
+    },
+    "saas-pricing-flow": {
+      "title": "SaaS Pricing Flow",
+      "category": "Pricing",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(35).webp"
+    },
+    "ai-image-generator-ui": {
+      "title": "AI Image Generator UI",
+      "category": "AI",
+      "is_free": true,
+      "image_preview_url": "https://res.cloudinary.com/dsdhxhhqh/image/upload/v1778221760/CleanShot_2026-05-08_at_13.28.55_2x_swwnfd.png",
+      "video_preview_url": null
+    },
+    "aurora-onboard": {
+      "title": "Aurora Onboard",
+      "category": "Signup",
+      "is_free": true,
+      "image_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/CleanShot_2026-05-07_at_15.40.21_2x_kfgapx.png",
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/CleanShot_2026-05-07_at_15.40.21_2x_kfgapx.png"
+    },
+    "auramail": {
+      "title": "AuraMail",
+      "category": "SaaS",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(56).webp"
+    },
+    "naturecore-saas": {
+      "title": "Naturecore SaaS",
+      "category": "Hero",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(53).webp"
+    },
+    "bookedup": {
+      "title": "BookedUp",
+      "category": "SaaS",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(58).webp"
+    },
+    "creative-agency": {
+      "title": "Creative Agency",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(50).webp"
+    },
+    "cybersecurity-hero": {
+      "title": "Cybersecurity Hero",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(60).webp"
+    },
+    "nexora-features": {
+      "title": "Nexora Features",
+      "category": "Features Section",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "equilibrium": {
+      "title": "Equilibrium",
+      "category": "Hero",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/hero%20sections/animated%20(93).webp"
+    },
+    "dashboard": {
+      "title": "Dashboard UI",
+      "category": "Dashboard",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(63).webp"
+    },
+    "blog-showcase": {
+      "title": "Blog Showcase",
+      "category": "Blog",
+      "is_free": true,
+      "image_preview_url": null,
+      "video_preview_url": "https://pub-86dc5b5484314368ac5436a674b0d919.r2.dev/animated%20(22).webp"
+    },
+    "modern-hr-dashboard": {
+      "title": "Modern HR Dashboard",
+      "category": "Dashboard",
+      "is_free": false,
+      "image_preview_url": "https://res.cloudinary.com/dsdhxhhqh/image/upload/v1779784289/CleanShot_2026-05-26_at_15.26.21_2x_f2ytq9.png",
+      "video_preview_url": null
+    },
+    "deck-investor": {
+      "title": "Investor Deck",
+      "category": "Investor Presentations",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "vitara-hero": {
+      "title": "Vitara",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "bionova-hero": {
+      "title": "Bionova Biotech",
+      "category": "SaaS",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "finlytic-hero": {
+      "title": "Finlytic AI Agent",
+      "category": "SaaS",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "nova-space-landing": {
+      "title": "NOVA Space Systems",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "zenith-realty-landing": {
+      "title": "Zenith Realty",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "nexar-hero": {
+      "title": "Nexar",
+      "category": "Hero Section",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "akor-security-landing": {
+      "title": "AKOR Security",
+      "category": "Landing Page",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "prioritize-hero": {
+      "title": "Prioritize",
+      "category": "Hero Section",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "planet-orbit-hero": {
+      "title": "Planet Orbit",
+      "category": "SaaS",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "mindloop-hero": {
+      "title": "Mindloop",
+      "category": "SaaS",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "nexus-hero": {
+      "title": "Nexus IT Solutions",
+      "category": "Hero Section",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "nickel-hero": {
+      "title": "Nickel Payments",
+      "category": "SaaS",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "orbit-web3-hero": {
+      "title": "Orbit Web3",
+      "category": "Web3",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "apex-saas-hero": {
+      "title": "Apex SaaS",
+      "category": "SaaS",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "vertex-ai-hero": {
+      "title": "VertexAI Hero",
+      "category": "Hero Section",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "keep-ahead-features": {
+      "title": "Keep Ahead Features",
+      "category": "Features Section",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "benefits-features": {
+      "title": "Benefits Features",
+      "category": "Features Section",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "zenith-footer": {
+      "title": "Zenith Footer",
+      "category": "Footer Section",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "digital-reality-hero": {
+      "title": "Digital Reality",
+      "category": "Social Media",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "community-cta": {
+      "title": "Community CTA",
+      "category": "CTA Section",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    },
+    "package-fits-pricing": {
+      "title": "What Package Fits You",
+      "category": "Pricing",
+      "is_free": false,
+      "image_preview_url": null,
+      "video_preview_url": null
+    }
+  }
+}
