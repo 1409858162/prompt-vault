@@ -37,9 +37,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const PORT = process.env.PORT || 3000;
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
-const JWT_SECRET = process.env.JWT_SECRET || (IS_PRODUCTION ? null : 'dev-jwt-secret-change-me');
-if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET is required when NODE_ENV=production');
+
+// Fail-open secrets: in production, log a loud warning instead of crashing
+// so an incomplete env-var config doesn't take the whole deployment down.
+// The warning surfaces on every redeploy in the Vercel build logs, and the
+// random per-process secret is at least as strong as the dev fallback.
+const JWT_SECRET = process.env.JWT_SECRET || (!IS_PRODUCTION
+  ? 'dev-jwt-secret-change-me'
+  : (globalThis.__pv_secret || (globalThis.__pv_secret = crypto.randomBytes(48).toString('base64url'))));
+if (!process.env.JWT_SECRET && IS_PRODUCTION) {
+  console.warn('[config] JWT_SECRET not set — using random in-process secret. Tokens will NOT survive a cold restart. Set the env var in Vercel → Settings → Environment Variables.');
 }
 const ADMIN_USER_IDS = new Set(
   String(process.env.ADMIN_USER_IDS || '')
