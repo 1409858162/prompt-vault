@@ -402,6 +402,15 @@ app.get('/login', (req, res) => {
   res.send(html);
 });
 
+// ---------- Health probe ----------
+// Zero-dependency probe: lets ops (and curl) verify that the function is
+// actually serving requests, independent of DB / auth / portal build state.
+// Returns 200 as long as the JS module finished loading.
+app.get('/api/health', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ ok: true, ts: new Date().toISOString() });
+});
+
 // ---------- CAPTCHA endpoints ----------
 app.get('/api/captcha/new', async (req, res) => {
   const c = await issueCaptcha();
