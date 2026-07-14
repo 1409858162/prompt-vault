@@ -23,44 +23,34 @@
 import 'dotenv/config';
 import { readFile } from 'node:fs/promises';
 import mysql from 'mysql2/promise';
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
+import { URL } from 'node:url';
 
 const src = process.argv[2] || 'prompt_vault.tidb.sql';
 
-// Prefer the same connection helper the app uses so SSL/TiDB URL handling
-// stays consistent.
-const { readConfig } = await import('../lib/mysql.js?init').catch(async () => {
-  // Fallback if the dynamic import-with-query-string trick fails on older
-  // Node — just inline a minimal reader that mirrors readConfig().
-  const { URL } = await import('node:url');
+// Mirror the connection helper in lib/mysql.js (kept private there on
+// purpose). Keeping it in sync here is cheap — and avoids the ESM dynamic
+// import-with-query-string hack that some Node versions refuse to honour.
+function readConfig() {
+  if (process.env.MYSQL_URL) {
+    const u = new URL(process.env.MYSQL_URL);
+    return {
+      host: u.hostname,
+      port: parseInt(u.port || '4000', 10),
+      user: decodeURIComponent(u.username),
+      password: decodeURIComponent(u.password),
+      database: (u.pathname || '/').replace(/^\//, '') || undefined,
+      ssl: u.hostname.includes('tidbcloud.com') ? {} : undefined,
+    };
+  }
   return {
-    readConfig() {
-      if (process.env.MYSQL_URL) {
-        const u = new URL(process.env.MYSQL_URL);
-        return {
-          host: u.hostname,
-          port: parseInt(u.port || '4000', 10),
-          user: decodeURIComponent(u.username),
-          password: decodeURIComponent(u.password),
-          database: (u.pathname || '/').replace(/^\//, '') || undefined,
-          multipleStatements: true,
-          ssl: u.hostname.includes('tidbcloud.com') ? {} : undefined,
-        };
-      }
-      return {
-        host: process.env.MYSQL_HOST || '127.0.0.1',
-        port: parseInt(process.env.MYSQL_PORT || '3306', 10),
-        user: process.env.MYSQL_USER || 'root',
-        password: process.env.MYSQL_PASSWORD || '',
-        database: process.env.MYSQL_DATABASE || 'prompt_vault',
-        multipleStatements: true,
-        ssl: (process.env.MYSQL_HOST || '').includes('tidbcloud.com') ? {} : undefined,
-      };
-    },
+    host: process.env.MYSQL_HOST || '127.0.0.1',
+    port: parseInt(process.env.MYSQL_PORT || '3306', 10),
+    user: process.env.MYSQL_USER || 'root',
+    password: process.env.MYSQL_PASSWORD || '',
+    database: process.env.MYSQL_DATABASE || 'prompt_vault',
+    ssl: (process.env.MYSQL_HOST || '').includes('tidbcloud.com') ? {} : undefined,
   };
-});
+}
 
 const cfg = readConfig();
 // This script needs multi-statement to import the dump efficiently. The
