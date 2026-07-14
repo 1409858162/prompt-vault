@@ -1179,7 +1179,18 @@ app.use((err, _req, res, _next) => {
 loadPromptsCache();
 watchPromptsFile();
 
-app.listen(PORT, () => {
-  console.log(`\n  Prompt Vault running (hardened)`);
-  console.log(`  → http://localhost:${PORT}\n`);
-});
+// In Vercel / serverless deployments we don't call listen() — Vercel hands
+// requests to the exported `app` via the api/index.js entry. Locally we
+// still want to bind to a port so `node server.js` works as before.
+//
+// Export FIRST so serverless runtimes can pick up the handler before any
+// async / side-effectful setup (file watcher, prompt cache) has a chance
+// to throw — and so importing the module without invoking listen() is safe.
+export default app;
+
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`\n  Prompt Vault running (hardened)`);
+    console.log(`  → http://localhost:${PORT}\n`);
+  });
+}
