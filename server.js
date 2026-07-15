@@ -32,6 +32,7 @@ import {
   signDownloadUrl, verifyDownloadSignature,
   issueVideoKey, issueVideoKeyToken, verifyVideoKeyToken,
 } from './lib/contentToken.js';
+import { describeConnection, query as mysqlQuery } from './lib/mysql.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -108,6 +109,16 @@ app.get('/api/health', (_req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.json({ ok: true, ts: new Date().toISOString() });
 });
+app.get('/api/db-health', asyncHandler(async (_req, res) => {
+  const start = Date.now();
+  const rows = await mysqlQuery('SELECT 1 AS ok', []);
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({
+    ok: rows[0]?.ok === 1,
+    ms: Date.now() - start,
+    connection: describeConnection(),
+  });
+}));
 
 const PORTAL_DIST = path.join(__dirname, 'portal', 'dist');
 const PROMPTS_PATH = path.join(__dirname, 'merged-prompts.json');
@@ -1200,6 +1211,7 @@ app.use((err, _req, res, _next) => {
     'ER_ACCESS_DENIED_ERROR',
     'ER_BAD_DB_ERROR',
     'ER_NO_SUCH_TABLE',
+    'PV_DB_TIMEOUT',
     'PROTOCOL_CONNECTION_LOST',
   ]);
   if (dbCodes.has(err?.code)) {
