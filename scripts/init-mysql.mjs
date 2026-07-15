@@ -78,6 +78,7 @@ const DDL = [
   `CREATE TABLE IF NOT EXISTS codes (
     id              VARCHAR(64)  NOT NULL,
     code_hash       VARCHAR(255) NOT NULL,
+    code_fingerprint VARCHAR(64) NULL,
     label           VARCHAR(255),
     note            TEXT,
     revoked         TINYINT(1) NOT NULL DEFAULT 0,
@@ -92,6 +93,7 @@ const DDL = [
     activated_at    DATETIME NULL,
     expires_at      DATETIME NULL,
     PRIMARY KEY (id),
+    UNIQUE KEY uniq_codes_code_fingerprint (code_fingerprint),
     KEY idx_codes_code_hash (code_hash),
     KEY idx_codes_consumed_for_account (consumed_for_account)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
@@ -248,6 +250,14 @@ async function ensureColumn(conn, table, column, definition) {
   }
 }
 
+async function ensureIndex(conn, table, indexName, ddl) {
+  const [rows] = await conn.query(`SHOW INDEX FROM \`${table}\` WHERE Key_name = ?`, [indexName]);
+  if (!rows.length) {
+    await conn.query(`ALTER TABLE \`${table}\` ADD ${ddl}`);
+    console.log(`[init] added index ${table}.${indexName}`);
+  }
+}
+
 async function main() {
   // Step 1: connect without a database so we can CREATE it if missing.
   const root = await mysql.createConnection(cfg);
@@ -262,6 +272,8 @@ async function main() {
   }
   await ensureColumn(conn, 'accounts', 'revoked_reason', 'TEXT NULL');
   await ensureColumn(conn, 'accounts', 'revoked_at', 'DATETIME NULL');
+  await ensureColumn(conn, 'codes', 'code_fingerprint', 'VARCHAR(64) NULL');
+  await ensureIndex(conn, 'codes', 'uniq_codes_code_fingerprint', 'UNIQUE INDEX `uniq_codes_code_fingerprint` (`code_fingerprint`)');
   await conn.end();
   console.log(`[init] ${DDL.length} tables ensured (indexes included)`);
 }
