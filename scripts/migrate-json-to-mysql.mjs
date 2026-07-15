@@ -38,7 +38,7 @@ function readConfig() {
     const u = new URL(process.env.MYSQL_URL);
     const sslMode = u.searchParams.get('ssl-mode') || u.searchParams.get('ssl');
     const ssl = sslMode && sslMode !== 'false' && sslMode !== '0'
-      ? { rejectUnauthorized: sslMode === 'VERIFY_IDENTITY' || sslMode === 'true' }
+      ? { rejectUnauthorized: sslMode === 'VERIFY_IDENTITY' }
       : null;
     return {
       ...base,
