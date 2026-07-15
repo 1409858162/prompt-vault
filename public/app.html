@@ -864,7 +864,7 @@ function loginNextUrl() {
 }
 
 function canAccessPrompts() {
-  return !!VIEWER.authenticated && MEMBERSHIP.is_member !== false;
+  return !!VIEWER.authenticated && MEMBERSHIP.is_member === true;
 }
 
 function membershipRequiredMessage() {
@@ -873,6 +873,9 @@ function membershipRequiredMessage() {
   }
   if (MEMBERSHIP.reason === 'revoked') {
     return '账户或邀请码已吊销，无法查看和复制提示词。如有疑问请联系卖家。';
+  }
+  if (MEMBERSHIP.reason === 'registered' || MEMBERSHIP.reason === 'not_found' || MEMBERSHIP.reason === 'unknown') {
+    return '当前账号还不是会员：可浏览卡片预览，但需要会员才能查看和复制完整提示词。';
   }
   return '会员已到期，无法查看和复制提示词。如需续费请联系卖家（闲鱼）。';
 }
@@ -927,7 +930,7 @@ async function loadMe() {
     const code = data.code || {};
     const codeId = code.id || '';
     document.getElementById('meLabel').textContent = code.label || (codeId ? ('码 #' + codeId.slice(-6)) : '已登录');
-    MEMBERSHIP = data.membership || { is_member: true, expires_label: code.expires_label || '' };
+    MEMBERSHIP = data.membership || { is_member: false, expires_label: code.expires_label || '', reason: 'unknown' };
     const expiryEl = document.getElementById('meExpiry');
     const label = MEMBERSHIP.expires_label || code.expires_label || '';
     if (label) {
