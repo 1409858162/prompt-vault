@@ -19,7 +19,7 @@
     "mysql2": "^3.22.6"
   },
   "engines": {
-    "node": "20.x"
+    "node": "24.x"
   },
   "devDependencies": {
     "playwright": "^1.61.1"
