@@ -881,12 +881,55 @@ function classifyPreviewUrl(url) {
   return null;
 }
 
-function extractPreviewFromPromptText(promptText) {
+function previewWords(value) {
+  return new Set(String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .split(/\s+/)
+    .filter((word) => word.length > 2 && ![
+      'hero',
+      'preview',
+      'landing',
+      'page',
+      'agency',
+      'studio',
+      'design',
+      'designer',
+      'portfolio',
+      'website',
+      'assets',
+      'sections',
+      'animated',
+    ].includes(word)));
+}
+
+function isCompatiblePromptPreview(p, url) {
+  const value = String(url || '');
+  if (!/motionsites\.ai\/assets\/hero-/i.test(value)) return true;
+  let file = value;
+  try {
+    file = decodeURIComponent(new URL(value).pathname.split('/').pop() || value);
+  } catch {}
+  const assetWords = previewWords(file
+    .replace(/^hero-/i, '')
+    .replace(/-preview-.*/i, '')
+    .replace(/\.(?:png|jpe?g|webp|gif|avif|mp4|webm|mov|m4v)$/i, ''));
+  const promptWords = previewWords(`${p.id || ''} ${p.title || ''}`);
+  if (!assetWords.size) return true;
+  for (const word of assetWords) {
+    if (promptWords.has(word)) return true;
+  }
+  return false;
+}
+
+function extractPreviewFromPromptText(p) {
+  if (p.disable_auto_preview) return null;
+  const promptText = p.prompt_text;
   const urls = String(promptText || '').match(PROMPT_URL_RE) || [];
   for (const raw of urls) {
     const url = cleanPromptUrl(raw);
     const kind = classifyPreviewUrl(url);
-    if (kind) return { kind, url };
+    if (kind && isCompatiblePromptPreview(p, url)) return { kind, url };
   }
   return null;
 }
@@ -896,7 +939,7 @@ function promptListItem(p) {
   const explicitVideo = p.preview_video_url || p.video_preview_url || null;
   const explicitPlayable = p.playable_video_url || null;
   const derived = (!explicitImage && !explicitVideo && !explicitPlayable)
-    ? extractPreviewFromPromptText(p.prompt_text)
+    ? extractPreviewFromPromptText(p)
     : null;
   const previewImageUrl = explicitImage || (derived?.kind === 'image' ? derived.url : null);
   const previewVideoUrl = explicitVideo || null;
@@ -919,9 +962,10 @@ function promptListItem(p) {
     preview_video_url: previewVideoUrl,
     playable_video_url: playableVideoUrl,
     // has_prompt_text: hint that content is available; never include the body.
-    // Keep length private too; it is not useful for preview and helps scrapers
-    // fingerprint the catalog.
+    // prompt_text_length is only a coarse UI hint for the card/modal loading
+    // copy; the full body still stays behind /api/prompts/:id membership gates.
     has_prompt_text: !!(p.prompt_text && !String(p.prompt_text).startsWith('(Prompt text not')),
+    prompt_text_length: p.prompt_text ? String(p.prompt_text).length : 0,
   };
   return item;
 }
