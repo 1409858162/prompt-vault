@@ -23,3 +23,5 @@ work/
 !prompts-full.json
 !public/static/
 !portal/dist/
+.vercel/
+.env.local
