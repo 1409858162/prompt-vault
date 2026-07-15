@@ -64,6 +64,12 @@ app.use(express.json({ limit: '32kb' }));
 app.use(express.urlencoded({ extended: false, limit: '32kb' }));
 app.use(cookieParser());
 
+function asyncHandler(fn) {
+  return (req, res, next) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}
+
 // Disable Express's automatic ETag for JSON API routes (they send 304 with no
 // body, which breaks r.json() on the client). Static files can keep ETag.
 app.set('etag', false);
@@ -93,6 +99,14 @@ app.use((req, res, next) => {
     "frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
   );
   next();
+});
+
+// ---------- Health probe ----------
+// Keep this before auth / risk middleware so it proves the serverless function
+// loaded even when MySQL is unreachable or cold-starting.
+app.get('/api/health', (_req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ ok: true, ts: new Date().toISOString() });
 });
 
 const PORTAL_DIST = path.join(__dirname, 'portal', 'dist');
@@ -296,7 +310,7 @@ async function getAuthFromCookie(req) {
 // Attach req.auth + req.deviceIdentity; never throw, just leave undefined.
 // We deliberately store derived fields on a sub-object (req._pv) because
 // newer Express makes req.clientIp a read-only getter.
-app.use(async (req, _res, next) => {
+app.use(asyncHandler(async (req, _res, next) => {
   try {
     const auth = await getAuthFromCookie(req);
     if (auth) {
@@ -321,7 +335,7 @@ app.use(async (req, _res, next) => {
   req.clientIp = req._pv.ip;
   req.clientUaInfo = req._pv.uaInfo;
   next();
-});
+}));
 
 function requireAuth(req, res, next) {
   if (!req.auth) return res.redirect('/login?next=' + encodeURIComponent(req.originalUrl));
@@ -340,7 +354,7 @@ function requireAdmin(req, res, next) {
 
 // ---------- Global gateway: IP-level rate limit + per-IP burst ----------
 const GLOBAL_IP_LIMIT = parseInt(process.env.GLOBAL_IP_LIMIT || '600', 10); // req/min/IP
-app.use(async (req, res, next) => {
+app.use(asyncHandler(async (req, res, next) => {
   const ipKey = `ip:${req.clientIp}`;
   const r = take(ipKey, GLOBAL_IP_LIMIT, GLOBAL_IP_LIMIT / 60);
   res.setHeader('X-RateLimit-Limit', String(GLOBAL_IP_LIMIT));
@@ -362,7 +376,7 @@ app.use(async (req, res, next) => {
   }
 
   next();
-});
+}));
 
 // Per-user behavior inspection (only for authenticated traffic).
 // Whitelist auth-lifecycle endpoints (logout, /api/me read-only) — they must
@@ -402,29 +416,20 @@ app.get('/login', (req, res) => {
   res.send(html);
 });
 
-// ---------- Health probe ----------
-// Zero-dependency probe: lets ops (and curl) verify that the function is
-// actually serving requests, independent of DB / auth / portal build state.
-// Returns 200 as long as the JS module finished loading.
-app.get('/api/health', (_req, res) => {
-  res.setHeader('Cache-Control', 'no-store');
-  res.json({ ok: true, ts: new Date().toISOString() });
-});
-
 // ---------- CAPTCHA endpoints ----------
-app.get('/api/captcha/new', async (req, res) => {
+app.get('/api/captcha/new', asyncHandler(async (req, res) => {
   const c = await issueCaptcha();
   res.json({ ok: true, ...c });
-});
-app.post('/api/captcha/verify', async (req, res) => {
+}));
+app.post('/api/captcha/verify', asyncHandler(async (req, res) => {
   const { challenge_id, answer } = req.body || {};
   if (!challenge_id || answer == null) return res.status(400).json({ ok: false, error: 'missing_params' });
   const r = await verifyCaptcha({ challenge_id, answer: Number(answer) });
   res.json({ ok: r.ok, reason: r.reason || null });
-});
+}));
 
 // ---------- LOGIN (mode='password', with risk + device binding) ----------
-app.post('/api/login', async (req, res) => {
+app.post('/api/login', asyncHandler(async (req, res) => {
   const start = Date.now();
   const {
     mode = 'password',
@@ -558,7 +563,7 @@ app.post('/api/login', async (req, res) => {
   }).catch(err => console.error('[login] success log error:', err.message));
 
   res.json({ ok: true, next, device_id: reg.device.device_id, kind: account.kind });
-});
+}));
 
 // ---------- REGISTER (invite-code bound, then sets username+password) ----------
 // Body: { code, captcha_id?, captcha_answer?, client_fp?, username, password }
@@ -568,7 +573,7 @@ app.post('/api/login', async (req, res) => {
 //   3. bcrypt the password, create accounts record, mark the code consumed_for_account.
 //   4. Reuse the same risk+captcha+device pipeline as login (skip 'medium risk if first ever' for promotions).
 //   5. Mint session cookie immediately so the user lands logged-in (we still cap the device list).
-app.post('/api/register', async (req, res) => {
+app.post('/api/register', asyncHandler(async (req, res) => {
   const start = Date.now();
   const {
     code, username, password,
@@ -693,15 +698,15 @@ app.post('/api/register', async (req, res) => {
   }).catch(err => console.error('[register] log error:', err.message));
 
   res.json({ ok: true, next: '/', device_id: reg.device.device_id, username: acct.username });
-});
+}));
 
-app.post('/api/logout', async (req, res) => {
+app.post('/api/logout', asyncHandler(async (req, res) => {
   if (req.jti) {
     await db.update('user_session', req.jti, { revoked: true, revoked_at: new Date().toISOString() });
   }
   res.clearCookie(COOKIE_NAME);
   res.json({ ok: true });
-});
+}));
 
 // ---------- Pages ----------
 app.get('/', requireAuth, (_req, res) => { res.setHeader('Cache-Control','no-store'); res.sendFile(path.join(__dirname,'public','app.html')); });
@@ -715,7 +720,7 @@ app.get('/admin/security', requireAuth, requireAdmin, (_req, res) => res.sendFil
 // Legacy fields (member_days, use_count, note, created_at, last_used_at, masked, id)
 // are preserved so me.html keeps working unchanged. New fields `kind` and
 // `username` are added so newer UIs can distinguish identity type cleanly.
-app.get('/api/me', async (req, res) => {
+app.get('/api/me', asyncHandler(async (req, res) => {
   if (!req.auth) return res.status(401).json({ ok: false });
   const code = req.code;
   const id = code.id || '';
@@ -759,20 +764,20 @@ app.get('/api/me', async (req, res) => {
       is_current: d.device_id === req.deviceId,
     })),
   });
-});
+}));
 
 // ---------- Announcements ----------
 // Public read endpoint — any logged-in user can fetch active announcements.
 // Returns pinned-first, then newest-first. Expired or inactive rows are hidden.
-app.get('/api/announcements', requireAuth, async (_req, res) => {
+app.get('/api/announcements', requireAuth, asyncHandler(async (_req, res) => {
   res.json({ ok: true, announcements: await announcements.listActive() });
-});
+}));
 
 // /api/devices — list / kick
-app.get('/api/devices', requireAuth, async (req, res) => {
+app.get('/api/devices', requireAuth, asyncHandler(async (req, res) => {
   res.json({ ok: true, devices: await listDevices(req.userId) });
-});
-app.post('/api/devices/kick', requireAuth, async (req, res) => {
+}));
+app.post('/api/devices/kick', requireAuth, asyncHandler(async (req, res) => {
   const { device_id } = req.body || {};
   if (!device_id) return res.status(400).json({ ok: false, error: 'missing_device_id' });
   if (device_id === req.deviceId) {
@@ -780,7 +785,7 @@ app.post('/api/devices/kick', requireAuth, async (req, res) => {
   }
   const ok = await kickDevice(req.userId, device_id);
   res.json({ ok });
-});
+}));
 
 const PROMPT_URL_RE = /https?:\/\/[^\s<>)\]"']+/g;
 const IMAGE_PREVIEW_RE = /\.(?:png|jpe?g|webp|gif|avif)(?:[?#]|$)/i;
@@ -880,7 +885,7 @@ app.get('/api/prompts', requireAuth, (req, res) => {
 
 // /api/prompts/:id — chapter-level detail.
 // Requires a valid content_token issued by /api/prompts/:id/access.
-app.get('/api/prompts/:id/access', requireAuth, async (req, res) => {
+app.get('/api/prompts/:id/access', requireAuth, asyncHandler(async (req, res) => {
   if (denyIfNotMember(req, res)) return;
   const id = req.params.id;
   // Look up via the in-memory cache (built once at boot, hot-reloaded on file change).
@@ -905,9 +910,9 @@ app.get('/api/prompts/:id/access', requireAuth, async (req, res) => {
     expires_in: 300,
     detail_url: `/api/prompts/${encodeURIComponent(id)}`,
   });
-});
+}));
 
-app.get('/api/prompts/:id', requireAuth, async (req, res) => {
+app.get('/api/prompts/:id', requireAuth, asyncHandler(async (req, res) => {
   if (denyIfNotMember(req, res)) return;
   const id = req.params.id;
   const token = req.query.content_token || req.headers['x-content-token'];
@@ -954,7 +959,7 @@ app.get('/api/prompts/:id', requireAuth, async (req, res) => {
     playable_video_url: meta.playable_video_url,
     watermark,
   });
-});
+}));
 
 // ---------- File / PDF proxy with signed URLs ----------
 // /api/file/access?id=xxx  -> returns a signed URL (5 min TTL) the front-end
@@ -996,7 +1001,7 @@ app.get('/api/file/stream', (req, res) => {
 });
 
 // ---------- Video HLS key issuance ----------
-app.get('/api/video/:id/key', requireAuth, async (req, res) => {
+app.get('/api/video/:id/key', requireAuth, asyncHandler(async (req, res) => {
   if (denyIfNotMember(req, res)) return;
   const id = req.params.id;
   const token = req.query.content_token;
@@ -1011,10 +1016,10 @@ app.get('/api/video/:id/key', requireAuth, async (req, res) => {
   // HLS key URI typically returns binary key. We also return base64 for JSON clients.
   res.setHeader('Content-Type', 'application/octet-stream');
   res.send(key);
-});
+}));
 
 // /api/video/:id/access — mint a 1h video key token (single-use, IP+device bound).
-app.get('/api/video/:id/access', requireAuth, async (req, res) => {
+app.get('/api/video/:id/access', requireAuth, asyncHandler(async (req, res) => {
   if (denyIfNotMember(req, res)) return;
   const id = req.params.id;
   const token = await issueVideoKeyToken({ userId: req.userId, deviceId: req.deviceId, resource: id });
@@ -1025,10 +1030,10 @@ app.get('/api/video/:id/access', requireAuth, async (req, res) => {
     expires_in: 3600,
     key_url: `/api/video/${encodeURIComponent(id)}/key`,
   });
-});
+}));
 
 // ---------- Admin security console (read-only APIs) ----------
-app.get('/api/admin/security/overview', requireAuth, requireAdmin, async (req, res) => {
+app.get('/api/admin/security/overview', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
   const today = Date.now() - 24 * 3600 * 1000;
   const [eventsAll, behAll, ipBlocksAll, sessionsAll] = await Promise.all([
     db.list('security_event'),
@@ -1076,18 +1081,18 @@ app.get('/api/admin/security/overview', requireAuth, requireAdmin, async (req, r
     recent_events: events.slice(-30).reverse(),
     blocked_ips: ipBlocks,
   });
-});
+}));
 
-app.post('/api/admin/security/unblock-ip', requireAuth, requireAdmin, async (req, res) => {
+app.post('/api/admin/security/unblock-ip', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
   const { ip } = req.body || {};
   if (!ip) return res.status(400).json({ ok: false, error: 'missing_ip' });
   const before = await db.list('ip_block');
   const targets = before.filter(b => b.ip === ip);
   for (const b of targets) await db.remove('ip_block', b.id);
   res.json({ ok: true, removed: targets.length });
-});
+}));
 
-app.post('/api/admin/security/block-ip', requireAuth, requireAdmin, async (req, res) => {
+app.post('/api/admin/security/block-ip', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
   const { ip, reason, ttl_seconds } = req.body || {};
   if (!ip) return res.status(400).json({ ok: false, error: 'missing_ip' });
   const ttl = Number(ttl_seconds || 86400);
@@ -1097,16 +1102,16 @@ app.post('/api/admin/security/block-ip', requireAuth, requireAdmin, async (req, 
   db.appendLog('security_event', { type: 'manual_block', ip, reason })
     .catch(err => console.error('[admin] log error:', err.message));
   res.json({ ok: true });
-});
+}));
 
 // ---------- Admin: announcements ----------
 // List every announcement (including inactive/expired) for the admin console.
-app.get('/api/admin/announcements', requireAuth, requireAdmin, async (_req, res) => {
+app.get('/api/admin/announcements', requireAuth, requireAdmin, asyncHandler(async (_req, res) => {
   res.json({ ok: true, announcements: await announcements.listAll() });
-});
+}));
 
 // Create a new announcement. Body fields: kind, title, body, expires_at, pinned.
-app.post('/api/admin/announcements', requireAuth, requireAdmin, async (req, res) => {
+app.post('/api/admin/announcements', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
   const { kind, title, body, expires_at, pinned } = req.body || {};
   if (!title || !body) return res.status(400).json({ ok: false, error: 'missing_title_or_body' });
   const entry = await announcements.create({
@@ -1120,31 +1125,31 @@ app.post('/api/admin/announcements', requireAuth, requireAdmin, async (req, res)
   db.appendLog('security_event', { type: 'announcement_created', id: entry.id, kind: entry.kind, by: req.userId })
     .catch(err => console.error('[admin] log error:', err.message));
   res.json({ ok: true, announcement: entry });
-});
+}));
 
 // Patch an existing announcement (toggle active, edit content, etc).
-app.post('/api/admin/announcements/:id/update', requireAuth, requireAdmin, async (req, res) => {
+app.post('/api/admin/announcements/:id/update', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
   const entry = await announcements.update(req.params.id, req.body || {});
   if (!entry) return res.status(404).json({ ok: false, error: 'not_found' });
   db.appendLog('security_event', { type: 'announcement_updated', id: entry.id, by: req.userId })
     .catch(err => console.error('[admin] log error:', err.message));
   res.json({ ok: true, announcement: entry });
-});
+}));
 
 // Hard-delete an announcement.
-app.post('/api/admin/announcements/:id/delete', requireAuth, requireAdmin, async (req, res) => {
+app.post('/api/admin/announcements/:id/delete', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
   const ok = await announcements.remove(req.params.id);
   if (!ok) return res.status(404).json({ ok: false, error: 'not_found' });
   db.appendLog('security_event', { type: 'announcement_deleted', id: req.params.id, by: req.userId })
     .catch(err => console.error('[admin] log error:', err.message));
   res.json({ ok: true });
-});
+}));
 
 // ---------- Admin: batch invite-code generation ----------
 // POST { count: <1..200>, label?: string, note?: string, years?: number }
 // Returns { ok, codes: [{ id, plaintext, label, note, membership_years }, ...] }.
 // Cap at 200 to keep the response size sane and the bcrypt batch short.
-app.post('/api/admin/invites/batch', requireAuth, requireAdmin, async (req, res) => {
+app.post('/api/admin/invites/batch', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
   const count = Math.max(1, Math.min(200, Number(req.body?.count || 0)));
   const label = String(req.body?.label || '').slice(0, 100);
   const note = String(req.body?.note || '').slice(0, 500);
@@ -1162,7 +1167,7 @@ app.post('/api/admin/invites/batch', requireAuth, requireAdmin, async (req, res)
   db.appendLog('security_event', { type: 'invites_batch_generated', count, by: req.userId })
     .catch(err => console.error('[admin] log error:', err.message));
   res.json({ ok: true, codes: out });
-});
+}));
 
 // ---------- Static ----------
 app.use('/static', express.static(path.join(__dirname, 'public', 'static'), {
@@ -1187,13 +1192,26 @@ app.use((req, res) => {
 });
 app.use((err, _req, res, _next) => {
   console.error('[server]', err);
+  const dbCodes = new Set([
+    'ETIMEDOUT',
+    'ECONNREFUSED',
+    'ECONNRESET',
+    'ENOTFOUND',
+    'ER_ACCESS_DENIED_ERROR',
+    'ER_BAD_DB_ERROR',
+    'ER_NO_SUCH_TABLE',
+    'PROTOCOL_CONNECTION_LOST',
+  ]);
+  if (dbCodes.has(err?.code)) {
+    return res.status(503).json({ ok: false, error: 'service_unavailable', reason: 'database_unavailable' });
+  }
   res.status(500).json({ ok: false, error: 'internal' });
 });
 
 // Prime the in-memory prompts cache before accepting traffic, and start a
 // file watcher so content edits hot-reload without restart.
 loadPromptsCache();
-watchPromptsFile();
+if (!process.env.VERCEL) watchPromptsFile();
 
 // In Vercel / serverless deployments we don't call listen() — Vercel hands
 // requests to the exported `app` via the api/index.js entry. Locally we
