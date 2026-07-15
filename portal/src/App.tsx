@@ -763,7 +763,7 @@ function LoginPanel({
   // ----- Register -----
   async function onRegister(e: React.FormEvent) {
     e.preventDefault();
-    if (!regCode.trim() || !regUsername.trim() || !regPassword || submitting) return;
+    if (!regUsername.trim() || !regPassword || submitting) return;
     setSubmitting(true);
     setError(null);
     setInfo(null);
@@ -772,7 +772,7 @@ function LoginPanel({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          code: regCode.trim(),
+          code: regCode.trim() || undefined,
           username: regUsername.trim(),
           password: regPassword,
           client_fp: clientFpRef.current,
@@ -903,7 +903,7 @@ function LoginPanel({
   // Tab definitions. Each tab gets a stable key so React can reconcile.
   const TABS: Array<{ key: LoginMode; label: string; sub: string }> = [
     { key: 'password', label: '用户名密码', sub: '已注册的账号' },
-    { key: 'register', label: '注册账户', sub: '新邀请码 → 用户名密码' },
+    { key: 'register', label: '注册账户', sub: '邀请码可选' },
   ];
 
   const cardW = isMobile ? 'min(94vw, 460px)' : 480;
@@ -974,7 +974,7 @@ function LoginPanel({
             marginBottom: 16,
           }}
         >
-          使用账号密码进入；新邀请码请先注册成账号。
+          使用账号密码进入；没有邀请码也可以直接注册。
         </div>
 
         {/* Tabs */}
@@ -1111,7 +1111,7 @@ function LoginPanel({
                 onClick={(e) => { e.preventDefault(); setMode('register'); }}
                 style={{ color: 'rgba(255,255,255,0.85)', textDecoration: 'underline', cursor: 'pointer' }}
               >
-                用邀请码注册账户
+                去注册账户
               </a>
             </div>
           </form>
@@ -1127,19 +1127,19 @@ function LoginPanel({
             <textarea
               value={regCode}
               onChange={(e) => setRegCode(e.target.value)}
-              placeholder="粘入五十字符邀请码"
+              placeholder="留空即可直接注册；有邀请码就粘贴进来"
               autoComplete="off"
               autoCorrect="off"
               autoCapitalize="off"
               spellCheck={false}
-              required
               rows={2}
               style={baseInputStyle}
               onFocus={inputHandlers(true)}
               onBlur={inputHandlers(false)}
             />
-            <div style={{ height: 12 }} />
-
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 6, marginBottom: 12 }}>
+              普通注册不需要邀请码；邀请码会把账号升级为会员类型。
+            </div>
             <label style={labelStyle}>用户名</label>
             <input
               type="text"
@@ -1186,7 +1186,7 @@ function LoginPanel({
               </button>
             </div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', marginTop: 6, marginBottom: 14 }}>
-              提交后此邀请码将不可再用; 用此账号与密码永久登录。
+              如果填写了邀请码，提交后它将不可再用；账号会永久保留登录权限。
             </div>
 
             <CaptchaBlock />
@@ -1194,7 +1194,7 @@ function LoginPanel({
 
             <button
               type="submit"
-              disabled={submitting || !regCode.trim() || !regUsername.trim() || !regPassword}
+              disabled={submitting || !regUsername.trim() || !regPassword}
               style={{
                 width: '100%', padding: '13px 16px',
                 background: submitting ? 'linear-gradient(135deg, #4f46e5, #db2777)' : 'linear-gradient(135deg, #6366f1, #f472b6)',

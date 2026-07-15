@@ -285,6 +285,26 @@ function denyIfNotMember(req, res) {
   return false;
 }
 
+function throttleCatalogPreview(req, res) {
+  const status = membershipForAuth(req);
+  if (status.is_member) return false;
+  const key = req.auth
+    ? `catalog_preview:user:${req.userId}`
+    : `catalog_preview:ip:${req.clientIp}`;
+  const r = take(key, 30, 30 / 60);
+  if (!r.ok) {
+    res.setHeader('Retry-After', String(Math.ceil(r.resetMs / 1000)));
+    res.status(429).json({
+      ok: false,
+      error: 'too_many_requests',
+      reason: 'catalog_preview_rate_limit',
+      retry_after_ms: r.resetMs,
+    });
+    return true;
+  }
+  return false;
+}
+
 function guestMembershipPayload() {
   return {
     is_member: false,
@@ -423,6 +443,12 @@ app.use((req, res, next) => {
 });
 
 // ---------- Login page (portal SPA) ----------
+app.get('/robots.txt', (_req, res) => {
+  res.type('text/plain');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.send('User-agent: *\nDisallow: /\n');
+});
+
 app.get('/login', (req, res) => {
   if (req.auth) return res.redirect('/');
   const indexHtml = path.join(PORTAL_DIST, 'index.html');
@@ -436,6 +462,7 @@ app.get('/login', (req, res) => {
   let html = fs.readFileSync(indexHtml, 'utf8');
   if (riskParam) html = html.replace('<div id="root">', `<div id="root"${riskParam}>`);
   res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('X-Robots-Tag', 'noindex, noarchive, noimageindex');
   res.send(html);
 });
 
@@ -588,13 +615,13 @@ app.post('/api/login', asyncHandler(async (req, res) => {
   res.json({ ok: true, next, device_id: reg.device.device_id, kind: account.kind });
 }));
 
-// ---------- REGISTER (invite-code bound, then sets username+password) ----------
-// Body: { code, captcha_id?, captcha_answer?, client_fp?, username, password }
+// ---------- REGISTER (optional invite-code upgrade, otherwise normal account) ----------
+// Body: { code?, captcha_id?, captcha_answer?, client_fp?, username, password }
 // Behaviour:
-//   1. Verify invite-code plaintext (bcrypt) — must be unused, not revoked, not promoted.
-//   2. Validate username (4-20 chars, charset) + uniqueness (case-sensitive).
-//   3. bcrypt the password, create accounts record, mark the code consumed_for_account.
-//   4. Reuse the same risk+captcha+device pipeline as login (skip 'medium risk if first ever' for promotions).
+//   1. Validate username (4-20 chars, charset) + uniqueness (case-sensitive).
+//   2. If a code is provided, verify invite-code plaintext (bcrypt) — must be unused, not revoked, not promoted.
+//   3. bcrypt the password, create an account record, and if this was an invite, mark the code consumed_for_account.
+//   4. Reuse the same risk+captcha+device pipeline as login.
 //   5. Mint session cookie immediately so the user lands logged-in (we still cap the device list).
 app.post('/api/register', asyncHandler(async (req, res) => {
   const start = Date.now();
@@ -608,43 +635,47 @@ app.post('/api/register', asyncHandler(async (req, res) => {
   if (!ipThrottle.ok) {
     return res.status(429).json({ ok: false, error: '注册尝试过于频繁，请稍后再试' });
   }
-  if (typeof code !== 'string' || typeof username !== 'string' || typeof password !== 'string') {
+  if ((code != null && typeof code !== 'string') || typeof username !== 'string' || typeof password !== 'string') {
     return res.status(400).json({ ok: false, error: '请求参数不完整' });
   }
-  const normalized = code.replace(/[\s-]/g, '').toUpperCase();
-  if (normalized.length !== 50) {
-    return res.status(400).json({ ok: false, error: '邀请码格式不正确（应为 50 位）' });
-  }
-
   // Pre-validate username/password shape before doing any bcrypt work (cheap).
   const uv = accounts.validateUsername(username);
   if (!uv.ok) return res.status(400).json({ ok: false, error: uv.error });
   const pv = accounts.validatePassword(password);
   if (!pv.ok) return res.status(400).json({ ok: false, error: pv.error });
 
-  // Find the invite; reject if consumed/revoked/promoted.
-  const entry = await store.findByPlaintext(normalized);
-  if (!entry) {
-    db.appendLog('security_event', { type: 'register_failed', reason: 'invalid_code', ip: req.clientIp })
-      .catch(err => console.error('[register] log error:', err.message));
-    return res.status(401).json({ ok: false, error: '邀请码无效' });
-  }
-  if (entry.revoked) {
-    return res.status(409).json({ ok: false, error: '邀请码已吊销' });
-  }
-  if (store.isLoginDisabled(entry)) {
-    return res.status(409).json({ ok: false, error: '邀请码已被注册过' });
-  }
+  const hasInvite = typeof code === 'string' && code.trim().length > 0;
+  let entry = null;
+  if (hasInvite) {
+    const normalized = code.replace(/[\s-]/g, '').toUpperCase();
+    if (normalized.length !== 50) {
+      return res.status(400).json({ ok: false, error: '邀请码格式不正确（应为 50 位）' });
+    }
 
-  // Per-code throttle (after we know it's a real code, so a single attacker can't burn the global limit).
-  const codeThrottle = take(`register:code:${entry.id}`, 3, 3 / (10 * 60));
-  if (!codeThrottle.ok) {
-    return res.status(429).json({ ok: false, error: '此邀请码注册尝试过于频繁' });
+    // Find the invite; reject if consumed/revoked/promoted.
+    entry = await store.findByPlaintext(normalized);
+    if (!entry) {
+      db.appendLog('security_event', { type: 'register_failed', reason: 'invalid_code', ip: req.clientIp })
+        .catch(err => console.error('[register] log error:', err.message));
+      return res.status(401).json({ ok: false, error: '邀请码无效' });
+    }
+    if (entry.revoked) {
+      return res.status(409).json({ ok: false, error: '邀请码已吊销' });
+    }
+    if (store.isLoginDisabled(entry)) {
+      return res.status(409).json({ ok: false, error: '邀请码已被注册过' });
+    }
+
+    // Per-code throttle (after we know it's a real code, so a single attacker can't burn the global limit).
+    const codeThrottle = take(`register:code:${entry.id}`, 3, 3 / (10 * 60));
+    if (!codeThrottle.ok) {
+      return res.status(429).json({ ok: false, error: '此邀请码注册尝试过于频繁' });
+    }
   }
 
   // Risk evaluation — treat registration like a login for risk purposes.
   const risk = await evaluateLoginRisk({
-    userId: entry.id, ua: req.headers['user-agent'] || '',
+    userId: entry?.id || null, ua: req.headers['user-agent'] || '',
     ip: req.clientIp, clientFp: client_fp || '',
   });
   if (risk.level === 'high') {
@@ -661,15 +692,15 @@ app.post('/api/register', asyncHandler(async (req, res) => {
     if (!cv.ok) return res.status(401).json({ ok: false, error: 'captcha_wrong' });
   }
 
-  // Create the account record FIRST (username uniqueness check inside).
-  await store.activateMembership(entry.id);
-  const activatedCode = await store.findById(entry.id);
+  const accountKind = entry ? 'promoted' : 'registered';
+  const promotedFromCode = entry ? entry.id : null;
+  const activatedCode = entry ? await store.activateMembership(entry.id) : null;
   let acct;
   try {
     acct = await accounts.createAccount({
       username: uv.value, password: pv.value,
-      kind: 'promoted', promoted_from_code: entry.id,
-      note: 'auto-registered via invite',
+      kind: accountKind, promoted_from_code: promotedFromCode,
+      note: entry ? 'auto-registered via invite' : 'self-registered account',
       membership_years: activatedCode?.membership_years ?? null,
       activated_at: activatedCode?.activated_at ?? null,
       expires_at: activatedCode?.expires_at ?? null,
@@ -681,10 +712,11 @@ app.post('/api/register', asyncHandler(async (req, res) => {
     return res.status(400).json({ ok: false, error: e.message || '注册失败' });
   }
 
-  // Mark the invite consumed NOW that the account exists. If a concurrent
-  // register also passed pre-validate, the second consumeForPromotion is a no-op
-  // (we still re-check below before issuing cookies).
-  await store.consumeForPromotion(entry.id, acct.id);
+  // Mark the invite consumed NOW that the account exists. If this was a normal
+  // registration, there is no invite to consume.
+  if (entry) {
+    await store.consumeForPromotion(entry.id, acct.id);
+  }
 
   // Device binding for the new account.
   const reg = await registerDevice({
@@ -716,7 +748,7 @@ app.post('/api/register', asyncHandler(async (req, res) => {
   await accounts.recordLogin(acct.id);
 
   db.appendLog('security_event', {
-    type: 'register_ok', user_id: acct.id, from_code: entry.id, ip: req.clientIp,
+    type: 'register_ok', user_id: acct.id, from_code: entry?.id || null, ip: req.clientIp,
     device_id: reg.device.device_id, ms: Date.now() - start,
   }).catch(err => console.error('[register] log error:', err.message));
 
@@ -732,8 +764,16 @@ app.post('/api/logout', asyncHandler(async (req, res) => {
 }));
 
 // ---------- Pages ----------
-app.get('/', (_req, res) => { res.setHeader('Cache-Control','no-store'); res.sendFile(path.join(__dirname,'public','app.html')); });
-app.get('/app', (_req, res) => { res.setHeader('Cache-Control','no-store'); res.sendFile(path.join(__dirname,'public','app.html')); });
+app.get('/', (_req, res) => {
+  res.setHeader('Cache-Control','no-store');
+  res.setHeader('X-Robots-Tag', 'noindex, noarchive, noimageindex');
+  res.sendFile(path.join(__dirname,'public','app.html'));
+});
+app.get('/app', (_req, res) => {
+  res.setHeader('Cache-Control','no-store');
+  res.setHeader('X-Robots-Tag', 'noindex, noarchive, noimageindex');
+  res.sendFile(path.join(__dirname,'public','app.html'));
+});
 app.get('/me', requireAuth, (_req, res) => res.sendFile(path.join(__dirname, 'public', 'me.html')));
 app.get('/admin/security', requireAuth, requireAdmin, (_req, res) => res.sendFile(path.join(__dirname, 'public', 'security.html')));
 
@@ -822,12 +862,22 @@ const IMAGE_PREVIEW_RE = /\.(?:png|jpe?g|webp|gif|avif)(?:[?#]|$)/i;
 const VIDEO_PREVIEW_RE = /\.(?:mp4|webm|mov|m4v|m3u8)(?:[?#]|$)/i;
 
 function cleanPromptUrl(raw) {
-  return String(raw || '').replace(/[.,;:!?，。；：！？]+$/u, '');
+  return String(raw || '').replace(/[`'".,;:!?，。；：！？]+$/u, '');
 }
 
 function classifyPreviewUrl(url) {
-  if (IMAGE_PREVIEW_RE.test(url)) return 'image';
-  if (VIDEO_PREVIEW_RE.test(url)) return 'video';
+  const value = String(url || '');
+  const decoded = (() => {
+    try { return decodeURIComponent(value); } catch { return value; }
+  })();
+  if (IMAGE_PREVIEW_RE.test(value) || IMAGE_PREVIEW_RE.test(decoded)) return 'image';
+  if (VIDEO_PREVIEW_RE.test(value) || VIDEO_PREVIEW_RE.test(decoded)) return 'video';
+  try {
+    const u = new URL(value);
+    const output = (u.searchParams.get('output') || '').toLowerCase();
+    if (['png', 'jpg', 'jpeg', 'webp', 'gif', 'avif'].includes(output)) return 'image';
+    if (['mp4', 'webm', 'mov', 'm4v', 'm3u8'].includes(output)) return 'video';
+  } catch {}
   return null;
 }
 
@@ -868,9 +918,10 @@ function promptListItem(p) {
     preview_image_url: previewImageUrl,
     preview_video_url: previewVideoUrl,
     playable_video_url: playableVideoUrl,
-    // has_prompt_text: hint that content is available; never include the body
+    // has_prompt_text: hint that content is available; never include the body.
+    // Keep length private too; it is not useful for preview and helps scrapers
+    // fingerprint the catalog.
     has_prompt_text: !!(p.prompt_text && !String(p.prompt_text).startsWith('(Prompt text not')),
-    prompt_text_length: p.prompt_text ? String(p.prompt_text).length : 0,
   };
   return item;
 }
@@ -884,6 +935,7 @@ function promptListItem(p) {
 // gets the whole catalog in one round-trip — the client UI then renders
 // / filters / sorts entirely from that dataset.
 app.get('/api/prompts', (req, res) => {
+  if (throttleCatalogPreview(req, res)) return;
   const cache = getPromptsCache();
   // Negotiate 304 — both ETag and Last-Modified supported, browser picks one.
   // Note: the catalog is per-user but the LIST metadata is identical across
@@ -892,6 +944,7 @@ app.get('/api/prompts', (req, res) => {
   // user B; `max-age=60` lets the browser skip the round-trip entirely on
   // F5 / page-reload within a minute.
   res.setHeader('Cache-Control', 'private, max-age=60');
+  res.setHeader('X-Robots-Tag', 'noindex, noarchive, noimageindex');
   res.setHeader('ETag', cache.etag);
   res.setHeader('Last-Modified', cache.lastModified);
   const ifNoneMatch = req.headers['if-none-match'];
