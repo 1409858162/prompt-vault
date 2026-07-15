@@ -863,19 +863,23 @@ function loginNextUrl() {
   return '/login?next=' + encodeURIComponent(location.pathname + location.search);
 }
 
-function canAccessPrompts() {
-  return !!VIEWER.authenticated && MEMBERSHIP.is_member === true;
+function isFreePromptItem(item) {
+  return !!item && item.special_collection === 'blind_box' && usesManghePlaceholder(item);
+}
+
+function canAccessPrompts(item = null) {
+  return isFreePromptItem(item) || (!!VIEWER.authenticated && MEMBERSHIP.is_member === true);
 }
 
 function membershipRequiredMessage() {
   if (!VIEWER.authenticated || MEMBERSHIP.reason === 'guest') {
-    return '游客预览模式：开通或登录会员后才能查看、复制完整提示词。';
+    return '游客可直接查看和复制盲盒 UI，其他提示词需要登录会员后才能查看、复制完整内容。';
   }
   if (MEMBERSHIP.reason === 'revoked') {
     return '账户或邀请码已吊销，无法查看和复制提示词。如有疑问请联系卖家。';
   }
   if (MEMBERSHIP.reason === 'registered' || MEMBERSHIP.reason === 'not_found' || MEMBERSHIP.reason === 'unknown') {
-    return '当前账号还不是会员：可浏览卡片预览，但需要会员才能查看和复制完整提示词。';
+    return '当前账号还不是会员：盲盒 UI 可直接查看复制，其他提示词需要会员权限。';
   }
   return '会员已到期，无法查看和复制提示词。如需续费请联系卖家（闲鱼）。';
 }
@@ -1548,7 +1552,8 @@ function previewHtml(item) {
 }
 
 function cardHtml(item) {
-  const locked = !canAccessPrompts();
+  const freeItem = isFreePromptItem(item);
+  const locked = !canAccessPrompts(item);
   const cls = (item.row_span === 2 ? 'card row-span-2' : 'card') + (locked ? ' locked' : '');
   const favActive = isFavorite(item.id);
   const favCount = favoriteCount(item.id);
@@ -1563,7 +1568,9 @@ function cardHtml(item) {
   const origBadge = showOrig
     ? `<span class="badge orig" title="原分类 · 在「盲盒 UI」专题中被归集">原 ${escapeHtml(item.original_category)}</span>`
     : '';
-  const metaBadge = locked && item.has_prompt_text
+  const metaBadge = freeItem && item.has_prompt_text
+    ? '<span class="badge meta" title="可直接查看和复制完整提示词">免费</span>'
+    : locked && item.has_prompt_text
     ? '<span class="badge meta" title="会员可查看和复制完整提示词">会员</span>'
     : (item.has_prompt_text ? '' : '<span class="badge meta" title="只有元数据，没有提示词正文">meta only</span>');
   const badges = `
@@ -1587,10 +1594,10 @@ function cardHtml(item) {
       </div>
       <div class="body">
         <h3>${escapeHtml(item.title)}</h3>
-        <div class="snippet">${escapeHtml(snippet(item.prompt_text || (item.has_prompt_text ? (locked ? `预览模式 · 会员可查看完整提示词（${item.prompt_text_length || 0} 字符）` : `点击查看完整提示词（${item.prompt_text_length || 0} 字符）`) : '')))}</div>
+        <div class="snippet">${escapeHtml(snippet(item.prompt_text || (item.has_prompt_text ? (locked ? `预览模式 · 会员可查看完整提示词（${item.prompt_text_length || 0} 字符）` : (freeItem ? `免费查看完整提示词（${item.prompt_text_length || 0} 字符）` : `点击查看完整提示词（${item.prompt_text_length || 0} 字符）`)) : '')))}</div>
         <div class="footer">
           <span>#${escapeHtml(item.id)} · order ${item.sort_order}</span>
-          <span class="arrow">${locked ? '会员解锁' : '查看 →'}</span>
+          <span class="arrow">${locked ? '会员解锁' : (freeItem ? '免费查看' : '查看 →')}</span>
         </div>
       </div>
     </article>`;
@@ -2150,9 +2157,9 @@ async function openModal(id) {
     useBtn.textContent = '在 AI 中使用 →';
     useBtn.disabled = false;
   }
-  const memberActive = canAccessPrompts();
+  const promptAccessible = canAccessPrompts(item);
 
-  if (!memberActive) {
+  if (!promptAccessible) {
     item.prompt_text = '';
     modalPrompt.classList.add('pv-locked');
     modalPrompt.textContent = membershipRequiredMessage();
@@ -2161,7 +2168,7 @@ async function openModal(id) {
       useBtn.disabled = false;
       useBtn.textContent = VIEWER.authenticated ? '联系续费' : '登录 / 开通会员';
     }
-    showToast('必须会员才能查看和复制完整提示词');
+    showToast('这个提示词需要会员权限，盲盒 UI 可直接查看复制');
     return;
   }
   if (copyBtn) copyBtn.disabled = false;
@@ -2228,7 +2235,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && modal.clas
 
 document.getElementById('copyBtn').addEventListener('click', async () => {
   if (!currentItem) return;
-  if (!canAccessPrompts()) {
+  if (!canAccessPrompts(currentItem)) {
     showToast('必须会员才能复制完整提示词');
     return;
   }
@@ -2242,7 +2249,7 @@ favoriteModalBtn.addEventListener('click', () => {
 
 document.getElementById('useBtn').addEventListener('click', async () => {
   if (!currentItem) return;
-  if (!canAccessPrompts()) {
+  if (!canAccessPrompts(currentItem)) {
     if (!VIEWER.authenticated) location.href = loginNextUrl();
     else showToast(membershipRequiredMessage());
     return;

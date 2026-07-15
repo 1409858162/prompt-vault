@@ -233,6 +233,9 @@
       }
     } catch (e) { throw e; }
     if (!tokenJson.ok) throw new Error(tokenJson.error || 'access_denied');
+    if (tokenJson.access === 'public' || Object.prototype.hasOwnProperty.call(tokenJson, 'prompt_text')) {
+      return tokenJson;
+    }
 
     const r = await fetch(`/api/prompts/${encodeURIComponent(id)}?content_token=${encodeURIComponent(tokenJson.content_token)}`, { credentials: 'same-origin' });
     if (r.status === 401) {

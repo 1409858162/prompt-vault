@@ -317,6 +317,33 @@ function guestMembershipPayload() {
   };
 }
 
+function isPublicPromptItem(found) {
+  if (!found) return false;
+  const meta = promptListItem(found);
+  return meta.special_collection === 'blind_box';
+}
+
+function promptBodyPayload(found, watermark = null) {
+  const meta = promptListItem(found);
+  return {
+    ok: true,
+    id: meta.id,
+    title: meta.title,
+    category: meta.category,
+    original_category: meta.original_category,
+    special_collection: meta.special_collection,
+    type: meta.type,
+    page_type: meta.page_type,
+    sort_order: meta.sort_order,
+    is_free: meta.is_free,
+    prompt_text: found.prompt_text || null,
+    preview_image_url: meta.preview_image_url,
+    preview_video_url: meta.preview_video_url,
+    playable_video_url: meta.playable_video_url,
+    watermark,
+  };
+}
+
 async function getAuthFromCookie(req) {
   const token = req.cookies[COOKIE_NAME];
   if (!token) return null;
@@ -1016,6 +1043,18 @@ app.get('/api/prompts', (req, res) => {
 // /api/prompts/:id — chapter-level detail.
 // Requires a valid content_token issued by /api/prompts/:id/access.
 app.get('/api/prompts/:id/access', asyncHandler(async (req, res) => {
+  const id = req.params.id;
+  const cache = getPromptsCache();
+  const found = cache.byId.get(id);
+  if (!found) return res.status(404).json({ ok: false, error: 'not_found' });
+
+  if (isPublicPromptItem(found)) {
+    return res.json({
+      ...promptBodyPayload(found, null),
+      access: 'public',
+    });
+  }
+
   if (!req.auth) {
     return res.status(403).json({
       ok: false,
@@ -1026,11 +1065,6 @@ app.get('/api/prompts/:id/access', asyncHandler(async (req, res) => {
     });
   }
   if (denyIfNotMember(req, res)) return;
-  const id = req.params.id;
-  // Look up via the in-memory cache (built once at boot, hot-reloaded on file change).
-  const cache = getPromptsCache();
-  const found = cache.byId.get(id);
-  if (!found) return res.status(404).json({ ok: false, error: 'not_found' });
 
   const resource = `prompt:${id}`;
   const token = await issueContentToken({
@@ -1079,25 +1113,7 @@ app.get('/api/prompts/:id', requireAuth, asyncHandler(async (req, res) => {
     ts: Date.now(),
     token_jti: cv.payload.jti,
   };
-  const meta = promptListItem(found);
-
-  res.json({
-    ok: true,
-    id: meta.id,
-    title: meta.title,
-    category: meta.category,
-    original_category: meta.original_category,
-    special_collection: meta.special_collection,
-    type: meta.type,
-    page_type: meta.page_type,
-    sort_order: meta.sort_order,
-    is_free: meta.is_free,
-    prompt_text: found.prompt_text || null,
-    preview_image_url: meta.preview_image_url,
-    preview_video_url: meta.preview_video_url,
-    playable_video_url: meta.playable_video_url,
-    watermark,
-  });
+  res.json(promptBodyPayload(found, watermark));
 }));
 
 // ---------- File / PDF proxy with signed URLs ----------
