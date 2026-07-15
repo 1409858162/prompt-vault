@@ -278,12 +278,12 @@
   async function loadMe() {
     let r;
     try {
-      r = await fetch('/api/me', { credentials: 'same-origin' });
+      r = await fetch('/api/me?optional=1', { credentials: 'same-origin' });
     } catch (e) {
       console.warn('[PVS] loadMe: network error:', e && e.message ? e.message : e);
       return null;
     }
-    if (r.status === 401) { location.href = '/login'; return null; }
+    if (r.status === 401) return null;
     try {
       return await r.json();
     } catch (e) {

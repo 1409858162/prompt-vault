@@ -285,6 +285,18 @@ function denyIfNotMember(req, res) {
   return false;
 }
 
+function guestMembershipPayload() {
+  return {
+    is_member: false,
+    is_permanent: false,
+    expires_at: null,
+    expires_label: '',
+    activated_at: null,
+    membership_years: null,
+    reason: 'guest',
+  };
+}
+
 async function getAuthFromCookie(req) {
   const token = req.cookies[COOKIE_NAME];
   if (!token) return null;
@@ -720,8 +732,8 @@ app.post('/api/logout', asyncHandler(async (req, res) => {
 }));
 
 // ---------- Pages ----------
-app.get('/', requireAuth, (_req, res) => { res.setHeader('Cache-Control','no-store'); res.sendFile(path.join(__dirname,'public','app.html')); });
-app.get('/app', requireAuth, (_req, res) => { res.setHeader('Cache-Control','no-store'); res.sendFile(path.join(__dirname,'public','app.html')); });
+app.get('/', (_req, res) => { res.setHeader('Cache-Control','no-store'); res.sendFile(path.join(__dirname,'public','app.html')); });
+app.get('/app', (_req, res) => { res.setHeader('Cache-Control','no-store'); res.sendFile(path.join(__dirname,'public','app.html')); });
 app.get('/me', requireAuth, (_req, res) => res.sendFile(path.join(__dirname, 'public', 'me.html')));
 app.get('/admin/security', requireAuth, requireAdmin, (_req, res) => res.sendFile(path.join(__dirname, 'public', 'security.html')));
 
@@ -732,6 +744,13 @@ app.get('/admin/security', requireAuth, requireAdmin, (_req, res) => res.sendFil
 // are preserved so me.html keeps working unchanged. New fields `kind` and
 // `username` are added so newer UIs can distinguish identity type cleanly.
 app.get('/api/me', asyncHandler(async (req, res) => {
+  if (!req.auth && req.query.optional === '1') {
+    return res.json({
+      ok: true,
+      authenticated: false,
+      membership: guestMembershipPayload(),
+    });
+  }
   if (!req.auth) return res.status(401).json({ ok: false });
   const code = req.code;
   const id = code.id || '';
@@ -864,7 +883,7 @@ function promptListItem(p) {
 // We default to 96 (rather than a smaller page size) so the SPA's first fetch
 // gets the whole catalog in one round-trip — the client UI then renders
 // / filters / sorts entirely from that dataset.
-app.get('/api/prompts', requireAuth, (req, res) => {
+app.get('/api/prompts', (req, res) => {
   const cache = getPromptsCache();
   // Negotiate 304 — both ETag and Last-Modified supported, browser picks one.
   // Note: the catalog is per-user but the LIST metadata is identical across
@@ -887,6 +906,9 @@ app.get('/api/prompts', requireAuth, (req, res) => {
   const items = cache.sanitized.slice(start, start + limit);
   res.json({
     ok: true,
+    viewer: req.auth
+      ? { authenticated: true, membership: membershipPayload(membershipForAuth(req)) }
+      : { authenticated: false, membership: guestMembershipPayload() },
     total: cache.sanitized.length,
     page, limit,
     has_more: start + limit < cache.sanitized.length,
@@ -896,7 +918,16 @@ app.get('/api/prompts', requireAuth, (req, res) => {
 
 // /api/prompts/:id — chapter-level detail.
 // Requires a valid content_token issued by /api/prompts/:id/access.
-app.get('/api/prompts/:id/access', requireAuth, asyncHandler(async (req, res) => {
+app.get('/api/prompts/:id/access', asyncHandler(async (req, res) => {
+  if (!req.auth) {
+    return res.status(403).json({
+      ok: false,
+      error: 'membership_required',
+      reason: 'guest',
+      message: '开通会员后可查看和复制完整提示词',
+      membership: guestMembershipPayload(),
+    });
+  }
   if (denyIfNotMember(req, res)) return;
   const id = req.params.id;
   // Look up via the in-memory cache (built once at boot, hot-reloaded on file change).

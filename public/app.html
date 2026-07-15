@@ -330,6 +330,10 @@
     white-space: nowrap;
   }
   .me-expiry.expired { color: #f87171; }
+  .me.guest {
+    border-color: rgba(245,158,11,.35);
+    background: rgba(245,158,11,.1);
+  }
   .logout {
     background: transparent;
     border: 1px solid var(--border);
@@ -367,6 +371,12 @@
     transform: translateY(-2px);
     border-color: var(--accent);
     box-shadow: 0 12px 28px -16px rgba(99,102,241,.5);
+  }
+  .card.locked {
+    border-color: rgba(245,158,11,.28);
+  }
+  .card.locked .arrow {
+    color: #fde68a;
   }
   .card .preview {
     position: relative;
@@ -846,17 +856,80 @@ function hydrateCatalogFromCache() {
 }
 
 // ---- Auth UI ----
-let MEMBERSHIP = { is_member: true, expires_label: '' };
+let VIEWER = { authenticated: false };
+let MEMBERSHIP = { is_member: false, expires_label: '', reason: 'guest' };
+
+function loginNextUrl() {
+  return '/login?next=' + encodeURIComponent(location.pathname + location.search);
+}
+
+function canAccessPrompts() {
+  return !!VIEWER.authenticated && MEMBERSHIP.is_member !== false;
+}
+
+function membershipRequiredMessage() {
+  if (!VIEWER.authenticated || MEMBERSHIP.reason === 'guest') {
+    return '游客预览模式：开通或登录会员后才能查看、复制完整提示词。';
+  }
+  if (MEMBERSHIP.reason === 'revoked') {
+    return '账户或邀请码已吊销，无法查看和复制提示词。如有疑问请联系卖家。';
+  }
+  return '会员已到期，无法查看和复制提示词。如需续费请联系卖家（闲鱼）。';
+}
+
+function applyGuestViewer() {
+  VIEWER = { authenticated: false };
+  MEMBERSHIP = { is_member: false, expires_label: '', reason: 'guest' };
+  const mePill = document.getElementById('mePill');
+  const expiryEl = document.getElementById('meExpiry');
+  document.getElementById('meLabel').textContent = '游客预览';
+  if (mePill) {
+    mePill.classList.add('guest');
+    mePill.href = loginNextUrl();
+    mePill.title = '登录或开通会员';
+  }
+  if (expiryEl) {
+    expiryEl.textContent = '会员可复制';
+    expiryEl.classList.add('expired');
+    expiryEl.style.display = '';
+  }
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (logoutBtn) logoutBtn.textContent = '登录';
+}
+
+function syncViewerFromCatalog(data) {
+  if (!data || !data.viewer || data.viewer.authenticated !== false) return;
+  applyGuestViewer();
+}
 
 async function loadMe() {
   try {
-    const r = await fetch('/api/me');
-    if (r.status === 401) { location.href = '/login'; return; }
+    const r = await fetch('/api/me?optional=1');
+    if (r.status === 401) {
+      applyGuestViewer();
+      if (DATA.length) render();
+      return null;
+    }
     const data = await r.json();
-    document.getElementById('meLabel').textContent = data.code.label || ('码 #' + data.code.id.slice(-6));
-    MEMBERSHIP = data.membership || { is_member: true, expires_label: data.code.expires_label || '' };
+    if (data.authenticated === false) {
+      applyGuestViewer();
+      if (DATA.length) render();
+      return null;
+    }
+    VIEWER = { authenticated: true };
+    const mePill = document.getElementById('mePill');
+    if (mePill) {
+      mePill.classList.remove('guest');
+      mePill.href = '/me';
+      mePill.title = '个人中心';
+    }
+    document.getElementById('logoutBtn').textContent = '退出';
+    const code = data.code || {};
+    const codeId = code.id || '';
+    document.getElementById('meLabel').textContent = code.label || (codeId ? ('码 #' + codeId.slice(-6)) : '已登录');
+    MEMBERSHIP = data.membership || { is_member: true, expires_label: code.expires_label || '' };
     const expiryEl = document.getElementById('meExpiry');
-    const label = MEMBERSHIP.expires_label || data.code.expires_label || '';
+    const label = MEMBERSHIP.expires_label || code.expires_label || '';
     if (label) {
       expiryEl.textContent = label;
       expiryEl.classList.toggle('expired', !MEMBERSHIP.is_member);
@@ -865,11 +938,18 @@ async function loadMe() {
       expiryEl.textContent = '';
       expiryEl.style.display = 'none';
     }
+    if (DATA.length) render();
+    return data;
   } catch (e) {
-    document.getElementById('meLabel').textContent = '已登录';
+    applyGuestViewer();
+    return null;
   }
 }
 document.getElementById('logoutBtn').addEventListener('click', async () => {
+  if (!VIEWER.authenticated) {
+    location.href = loginNextUrl();
+    return;
+  }
   await fetch('/api/logout', { method: 'POST' });
   location.href = '/login';
 });
@@ -1094,9 +1174,10 @@ async function fetchFreshCatalogSnapshot() {
   const seen = new Set();
   while (more) {
     const r = await fetch(`/api/prompts?limit=${SERVER_PAGE_SIZE}&page=${page}`, { cache: 'no-store' });
-    if (r.status === 401) { location.href = '/login'; return null; }
+    if (r.status === 401) { applyGuestViewer(); throw new Error('catalog unauthorized'); }
     if (!r.ok) throw new Error('refresh catalog failed: ' + r.status);
     const data = await r.json();
+    syncViewerFromCatalog(data);
     if (!data || !Array.isArray(data.items)) throw new Error('refresh catalog returned invalid data');
     freshTotal = data.total || freshTotal;
     for (const p of data.items) {
@@ -1228,7 +1309,17 @@ async function fetchOneServerPage(serverPage) {
     }
     return false;
   }
-  if (r.status === 401) { location.href = '/login'; loadingMore = false; inflightPages.delete(serverPage); return false; }
+  if (r.status === 401) {
+    applyGuestViewer();
+    if (serverPage === 1) {
+      renderFatalError('无法加载提示词列表，请刷新后重试。', true);
+      render();
+      fatalErrorCleanup();
+    }
+    loadingMore = false;
+    inflightPages.delete(serverPage);
+    return false;
+  }
   if (r.status === 429) {
     if (serverPage === 1) {
       renderRateLimited(r, () => {
@@ -1260,6 +1351,7 @@ async function fetchOneServerPage(serverPage) {
     else toast('加载第 ' + serverPage + ' 页失败：返回数据格式无效');
     return false;
   }
+  syncViewerFromCatalog(data);
   if (!data || !Array.isArray(data.items)) {
     if (serverPage === 1) { renderFatalError('服务器返回的数据缺少 items 字段。请稍后重试。', true); render(); fatalErrorCleanup(); }
     else toast('加载第 ' + serverPage + ' 页失败：缺少 items 字段');
@@ -1453,7 +1545,8 @@ function previewHtml(item) {
 }
 
 function cardHtml(item) {
-  const cls = item.row_span === 2 ? 'card row-span-2' : 'card';
+  const locked = !canAccessPrompts();
+  const cls = (item.row_span === 2 ? 'card row-span-2' : 'card') + (locked ? ' locked' : '');
   const favActive = isFavorite(item.id);
   const favCount = favoriteCount(item.id);
   // "📦 盲盒" badge is reserved for cards that still render manghe.png.
@@ -1467,7 +1560,9 @@ function cardHtml(item) {
   const origBadge = showOrig
     ? `<span class="badge orig" title="原分类 · 在「盲盒 UI」专题中被归集">原 ${escapeHtml(item.original_category)}</span>`
     : '';
-  const metaBadge = item.has_prompt_text ? '' : '<span class="badge meta" title="只有元数据，没有提示词正文">meta only</span>';
+  const metaBadge = locked && item.has_prompt_text
+    ? '<span class="badge meta" title="会员可查看和复制完整提示词">会员</span>'
+    : (item.has_prompt_text ? '' : '<span class="badge meta" title="只有元数据，没有提示词正文">meta only</span>');
   const badges = `
     <div class="badges">
       <div class="badges-left">
@@ -1489,10 +1584,10 @@ function cardHtml(item) {
       </div>
       <div class="body">
         <h3>${escapeHtml(item.title)}</h3>
-        <div class="snippet">${escapeHtml(snippet(item.prompt_text || (item.has_prompt_text ? `点击查看完整提示词（${item.prompt_text_length || 0} 字符 · 需验证）` : '')))}</div>
+        <div class="snippet">${escapeHtml(snippet(item.prompt_text || (item.has_prompt_text ? (locked ? `预览模式 · 会员可查看完整提示词（${item.prompt_text_length || 0} 字符）` : `点击查看完整提示词（${item.prompt_text_length || 0} 字符）`) : '')))}</div>
         <div class="footer">
           <span>#${escapeHtml(item.id)} · order ${item.sort_order}</span>
-          <span class="arrow">查看 →</span>
+          <span class="arrow">${locked ? '会员解锁' : '查看 →'}</span>
         </div>
       </div>
     </article>`;
@@ -2044,15 +2139,26 @@ async function openModal(id) {
 
   const copyBtn = document.getElementById('copyBtn');
   const useBtn = document.getElementById('useBtn');
-  const memberActive = MEMBERSHIP.is_member !== false;
+  if (copyBtn) {
+    copyBtn.textContent = '复制提示词';
+    copyBtn.disabled = false;
+  }
+  if (useBtn) {
+    useBtn.textContent = '在 AI 中使用 →';
+    useBtn.disabled = false;
+  }
+  const memberActive = canAccessPrompts();
 
   if (!memberActive) {
-    modalPrompt.classList.remove('pv-locked');
-    modalPrompt.textContent = MEMBERSHIP.reason === 'revoked'
-      ? '账户或邀请码已吊销，无法查看提示词正文。如有疑问请联系卖家。'
-      : '会员已到期，无法查看提示词正文。如需续费请联系卖家（闲鱼）。';
+    item.prompt_text = '';
+    modalPrompt.classList.add('pv-locked');
+    modalPrompt.textContent = membershipRequiredMessage();
     if (copyBtn) copyBtn.disabled = true;
-    if (useBtn) useBtn.disabled = true;
+    if (useBtn) {
+      useBtn.disabled = false;
+      useBtn.textContent = VIEWER.authenticated ? '联系续费' : '登录 / 开通会员';
+    }
+    showToast('必须会员才能查看和复制完整提示词');
     return;
   }
   if (copyBtn) copyBtn.disabled = false;
@@ -2085,11 +2191,13 @@ async function openModal(id) {
     if (currentItem !== item || !modal.classList.contains('open')) return;
     modalPrompt.classList.remove('pv-locked');
     if (e.message === 'membership_required') {
-      modalPrompt.textContent = MEMBERSHIP.reason === 'revoked'
-        ? '账户或邀请码已吊销，无法查看提示词正文。如有疑问请联系卖家。'
-        : '会员已到期，无法查看提示词正文。如需续费请联系卖家（闲鱼）。';
+      MEMBERSHIP.is_member = false;
+      modalPrompt.textContent = membershipRequiredMessage();
       if (copyBtn) copyBtn.disabled = true;
-      if (useBtn) useBtn.disabled = true;
+      if (useBtn) {
+        useBtn.disabled = false;
+        useBtn.textContent = VIEWER.authenticated ? '联系续费' : '登录 / 开通会员';
+      }
     } else if (/^token_(replay|device_mismatch|ip_mismatch)/.test(e.message)) {
       modalPrompt.textContent = '安全令牌失效（可能在另一台设备或网络下打开）。请关闭此弹窗后重新点击。';
     } else {
@@ -2117,6 +2225,10 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && modal.clas
 
 document.getElementById('copyBtn').addEventListener('click', async () => {
   if (!currentItem) return;
+  if (!canAccessPrompts()) {
+    showToast('必须会员才能复制完整提示词');
+    return;
+  }
   await copyText(currentItem.prompt_text, '已复制提示词');
 });
 
@@ -2127,6 +2239,11 @@ favoriteModalBtn.addEventListener('click', () => {
 
 document.getElementById('useBtn').addEventListener('click', async () => {
   if (!currentItem) return;
+  if (!canAccessPrompts()) {
+    if (!VIEWER.authenticated) location.href = loginNextUrl();
+    else showToast(membershipRequiredMessage());
+    return;
+  }
   await copyText(currentItem.prompt_text, '已复制，请粘贴到 AI 对话框');
   setTimeout(() => {
     const url = pickAIUrl(currentItem.prompt_text);
