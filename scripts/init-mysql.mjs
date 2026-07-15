@@ -11,16 +11,46 @@
 
 import 'dotenv/config';
 import mysql from 'mysql2/promise';
+import { URL } from 'node:url';
 
-const cfg = {
-  host: process.env.MYSQL_HOST || '127.0.0.1',
-  port: parseInt(process.env.MYSQL_PORT || '3306', 10),
-  user: process.env.MYSQL_USER || 'root',
-  password: process.env.MYSQL_PASSWORD || '',
-  multipleStatements: true,
-};
+function readConfig() {
+  const base = {
+    multipleStatements: true,
+    connectTimeout: parseInt(process.env.MYSQL_CONNECT_TIMEOUT_MS || '15000', 10),
+  };
+  if (process.env.MYSQL_URL) {
+    const u = new URL(process.env.MYSQL_URL);
+    const sslMode = u.searchParams.get('ssl-mode') || u.searchParams.get('ssl');
+    const ssl = sslMode && sslMode !== 'false' && sslMode !== '0'
+      ? { rejectUnauthorized: sslMode === 'VERIFY_IDENTITY' || sslMode === 'true' }
+      : null;
+    return {
+      cfg: {
+        ...base,
+        host: u.hostname,
+        port: parseInt(u.port || '4000', 10),
+        user: decodeURIComponent(u.username),
+        password: decodeURIComponent(u.password),
+        ssl: ssl ?? (u.hostname.includes('tidbcloud.com') ? {} : undefined),
+      },
+      db: (u.pathname || '/').replace(/^\//, '') || process.env.MYSQL_DATABASE || 'prompt_vault',
+    };
+  }
+  const host = process.env.MYSQL_HOST || '127.0.0.1';
+  return {
+    cfg: {
+      ...base,
+      host,
+      port: parseInt(process.env.MYSQL_PORT || '3306', 10),
+      user: process.env.MYSQL_USER || 'root',
+      password: process.env.MYSQL_PASSWORD || '',
+      ssl: host.includes('tidbcloud.com') ? {} : undefined,
+    },
+    db: process.env.MYSQL_DATABASE || 'prompt_vault',
+  };
+}
 
-const DB = process.env.MYSQL_DATABASE || 'prompt_vault';
+const { cfg, db: DB } = readConfig();
 
 // All DDL is idempotent so re-running is a no-op.
 const DDL = [

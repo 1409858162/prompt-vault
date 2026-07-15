@@ -20,22 +20,49 @@ import 'dotenv/config';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { URL } from 'node:url';
 import mysql from 'mysql2/promise';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, '..', 'data');
 
-const cfg = {
-  host: process.env.MYSQL_HOST || '127.0.0.1',
-  port: parseInt(process.env.MYSQL_PORT || '3306', 10),
-  user: process.env.MYSQL_USER || 'root',
-  password: process.env.MYSQL_PASSWORD || '',
-  database: process.env.MYSQL_DATABASE || 'prompt_vault',
-  // dateStrings keeps the import side clean: we always read ISO strings from
-  // the JSON files and feed them straight to the time-coercion helpers.
-  dateStrings: true,
-  multipleStatements: false,
-};
+function readConfig() {
+  const base = {
+    // dateStrings keeps the import side clean: we always read ISO strings from
+    // the JSON files and feed them straight to the time-coercion helpers.
+    dateStrings: true,
+    multipleStatements: false,
+    connectTimeout: parseInt(process.env.MYSQL_CONNECT_TIMEOUT_MS || '15000', 10),
+  };
+  if (process.env.MYSQL_URL) {
+    const u = new URL(process.env.MYSQL_URL);
+    const sslMode = u.searchParams.get('ssl-mode') || u.searchParams.get('ssl');
+    const ssl = sslMode && sslMode !== 'false' && sslMode !== '0'
+      ? { rejectUnauthorized: sslMode === 'VERIFY_IDENTITY' || sslMode === 'true' }
+      : null;
+    return {
+      ...base,
+      host: u.hostname,
+      port: parseInt(u.port || '4000', 10),
+      user: decodeURIComponent(u.username),
+      password: decodeURIComponent(u.password),
+      database: (u.pathname || '/').replace(/^\//, '') || process.env.MYSQL_DATABASE || 'prompt_vault',
+      ssl: ssl ?? (u.hostname.includes('tidbcloud.com') ? {} : undefined),
+    };
+  }
+  const host = process.env.MYSQL_HOST || '127.0.0.1';
+  return {
+    ...base,
+    host,
+    port: parseInt(process.env.MYSQL_PORT || '3306', 10),
+    user: process.env.MYSQL_USER || 'root',
+    password: process.env.MYSQL_PASSWORD || '',
+    database: process.env.MYSQL_DATABASE || 'prompt_vault',
+    ssl: host.includes('tidbcloud.com') ? {} : undefined,
+  };
+}
+
+const cfg = readConfig();
 
 // ---- Read helpers ----
 function readJson(name) {
