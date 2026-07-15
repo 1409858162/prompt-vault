@@ -645,7 +645,7 @@
     head.appendChild(el('h3', null, '已生成 ' + codes.length + ' 个邀请码'));
     head.appendChild(el('span', { class: 'warn' }, '⚠ 明文只显示这一次，请立即复制'));
     const actions = el('div', { class: 'code-result-actions' });
-    const btnAll = el('button', { class: 'btn' }, '复制全部 (换行)');
+    const btnAll = el('button', { class: 'btn' }, '复制纯卡密');
     btnAll.onclick = () => copyAllCodes(codes);
     const btnJson = el('button', { class: 'btn' }, '下载 JSON');
     btnJson.onclick = () => downloadJson(codes);
@@ -675,8 +675,8 @@
   }
 
   function copyAllCodes(codes) {
-    const text = codes.map((c, i) => (i + 1) + '. ' + formatCode(c.plaintext) + '   (' + c.plaintext + ')').join('\n');
-    navigator.clipboard.writeText(text).then(() => showToast('已复制全部到剪贴板', 'ok'));
+    const text = codes.map(c => c.plaintext).join('\n');
+    navigator.clipboard.writeText(text).then(() => showToast('已复制纯卡密到剪贴板', 'ok'));
   }
 
   function downloadJson(codes) {
