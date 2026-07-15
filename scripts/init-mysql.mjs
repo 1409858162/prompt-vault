@@ -69,6 +69,8 @@ const DDL = [
     last_login_at   DATETIME NULL,
     login_count     INT NOT NULL DEFAULT 0,
     revoked         TINYINT(1) NOT NULL DEFAULT 0,
+    revoked_reason  TEXT NULL,
+    revoked_at      DATETIME NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uniq_accounts_username (username)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
@@ -238,6 +240,14 @@ const DDL = [
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
 
+async function ensureColumn(conn, table, column, definition) {
+  const [rows] = await conn.query(`SHOW COLUMNS FROM \`${table}\` LIKE ?`, [column]);
+  if (!rows.length) {
+    await conn.query(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${definition}`);
+    console.log(`[init] added column ${table}.${column}`);
+  }
+}
+
 async function main() {
   // Step 1: connect without a database so we can CREATE it if missing.
   const root = await mysql.createConnection(cfg);
@@ -250,6 +260,8 @@ async function main() {
   for (const stmt of DDL) {
     await conn.query(stmt);
   }
+  await ensureColumn(conn, 'accounts', 'revoked_reason', 'TEXT NULL');
+  await ensureColumn(conn, 'accounts', 'revoked_at', 'DATETIME NULL');
   await conn.end();
   console.log(`[init] ${DDL.length} tables ensured (indexes included)`);
 }

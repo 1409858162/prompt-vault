@@ -95,6 +95,10 @@
     }
     .toolbar button { padding: 8px 14px; }
     .empty { padding: 20px; color: var(--text-dim); text-align: center; font-size: 13px; }
+    .cell-stack { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .cell-sub { color: var(--text-dim); font-size: 11px; }
+    .reason-text { max-width: 320px; white-space: pre-wrap; word-break: break-word; }
+    .actions-row { display: flex; gap: 8px; flex-wrap: wrap; }
     /* Tabs */
     .tabs {
       display: flex; gap: 4px; border-bottom: 1px solid var(--border);
@@ -274,6 +278,11 @@
     </section>
 
     <section>
+      <h2>账号管理</h2>
+      <div id="accountsWrap"></div>
+    </section>
+
+    <section>
       <h2>最近安全事件</h2>
       <div id="eventsWrap"></div>
     </section>
@@ -368,6 +377,7 @@
     return n;
   }
   function fmtTs(ts) { return new Date(ts).toLocaleString('zh-CN', { hour12: false }); }
+  function fmtMaybeTs(ts) { return ts ? fmtTs(ts) : '-'; }
   function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
   function showToast(msg, kind) {
@@ -405,6 +415,7 @@
     renderTopUsers(j.top_users || []);
     renderTopIps(j.top_ips || []);
     renderBlocked(j.blocked_ips || []);
+    renderAccounts(j.accounts || []);
     renderEvents(j.recent_events || []);
   }
 
@@ -416,7 +427,10 @@
     const tb = el('tbody');
     for (const r of rows) {
       const tr = el('tr');
-      tr.appendChild(el('td', null, el('span', { class: 'mono' }, r.user_id)));
+      const cell = el('div', { class: 'cell-stack' });
+      cell.appendChild(el('span', null, r.username || '匿名/未知'));
+      cell.appendChild(el('span', { class: 'mono cell-sub' }, r.user_id || '-'));
+      tr.appendChild(el('td', null, cell));
       tr.appendChild(el('td', null, String(r.hits)));
       tb.appendChild(tr);
     }
@@ -470,6 +484,44 @@
     wrap.innerHTML = ''; wrap.appendChild(t);
   }
 
+  function renderAccounts(rows) {
+    const wrap = $('#accountsWrap');
+    if (!rows.length) { wrap.innerHTML = '<div class="empty">暂无账号数据</div>'; return; }
+    const t = el('table');
+    t.innerHTML = '<thead><tr><th>用户名</th><th>用户 ID</th><th>注册时间</th><th>最近登录</th><th>登录次数</th><th>状态</th><th>封禁原因</th><th>操作</th></tr></thead>';
+    const tb = el('tbody');
+    for (const r of rows) {
+      const tr = el('tr');
+      tr.appendChild(el('td', null, r.username || '-'));
+      tr.appendChild(el('td', null, el('span', { class: 'mono' }, r.id || '-')));
+      tr.appendChild(el('td', null, fmtMaybeTs(r.created_at)));
+      tr.appendChild(el('td', null, fmtMaybeTs(r.last_login_at)));
+      tr.appendChild(el('td', null, String(r.login_count || 0)));
+      tr.appendChild(el('td', null,
+        el('span', { class: 'pill ' + (r.revoked ? 'danger' : 'ok') }, r.revoked ? '已封禁' : '正常')
+      ));
+      const reasonCell = el('div', { class: 'cell-stack' });
+      reasonCell.appendChild(el('div', { class: 'reason-text' }, r.revoked_reason || '-'));
+      if (r.revoked_at) reasonCell.appendChild(el('span', { class: 'cell-sub' }, '封禁于 ' + fmtTs(r.revoked_at)));
+      tr.appendChild(el('td', null, reasonCell));
+      const actions = el('div', { class: 'actions-row' });
+      if (r.revoked) {
+        const btn = el('button', { class: 'btn' }, '解封');
+        btn.onclick = () => doUnbanUser(r);
+        actions.appendChild(btn);
+      } else {
+        const btn = el('button', { class: 'btn danger' }, '封禁');
+        btn.onclick = () => doBanUser(r);
+        actions.appendChild(btn);
+      }
+      tr.appendChild(el('td', null, actions));
+      tb.appendChild(tr);
+    }
+    t.appendChild(tb);
+    wrap.innerHTML = '';
+    wrap.appendChild(t);
+  }
+
   function renderEvents(rows) {
     const wrap = $('#eventsWrap');
     if (!rows.length) { wrap.innerHTML = '<div class="empty">暂无事件</div>'; return; }
@@ -481,7 +533,10 @@
       tr.appendChild(el('td', null, fmtTs(e.ts || Date.now())));
       const pillClass = e.type && /risk|ban|fail|block/.test(e.type) ? 'pill danger' : 'pill';
       tr.appendChild(el('td', null, el('span', { class: pillClass }, e.type || '?')));
-      tr.appendChild(el('td', null, e.user_id || e.ip || '-'));
+      const who = el('div', { class: 'cell-stack' });
+      who.appendChild(el('span', null, e.username || e.actor_username || e.user_id || e.ip || '-'));
+      if (e.user_id || e.by) who.appendChild(el('span', { class: 'mono cell-sub' }, e.user_id || e.by));
+      tr.appendChild(el('td', null, who));
       tr.appendChild(el('td', null, el('span', { class: 'mono', style: 'font-size:11px;color:var(--text-dim)' },
         JSON.stringify({ reasons: e.reasons, score: e.score, ip: e.ip }, (k,v) => v == null ? undefined : v))));
       tb.appendChild(tr);
@@ -506,6 +561,41 @@
     doBlock(ip, reason || 'manual');
     $('#blockIp').value = ''; $('#blockReason').value = '';
   };
+
+  async function doBanUser(account) {
+    const input = prompt('请输入封禁原因（会显示在后台）', account.revoked_reason || '手动封禁');
+    if (input === null) return;
+    try {
+      const r = await fetch('/api/admin/security/ban-user', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ user_id: account.id, reason: input.trim() }),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) throw new Error(j.error || ('HTTP ' + r.status));
+      showToast('已封禁 ' + (account.username || account.id), 'ok');
+      loadSecurity();
+    } catch (e) {
+      showToast('封禁失败: ' + e.message, 'err');
+    }
+  }
+
+  async function doUnbanUser(account) {
+    if (!confirm('确认解封账号「' + (account.username || account.id) + '」?')) return;
+    try {
+      const r = await fetch('/api/admin/security/unban-user', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ user_id: account.id }),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) throw new Error(j.error || ('HTTP ' + r.status));
+      showToast('已解封 ' + (account.username || account.id), 'ok');
+      loadSecurity();
+    } catch (e) {
+      showToast('解封失败: ' + e.message, 'err');
+    }
+  }
   // ---- Tab 2: 邀请码 ----
   function formatCode(p) {
     // Insert dashes every 5 chars for readability: ABCDE-FGHIJ-KLMNO-...

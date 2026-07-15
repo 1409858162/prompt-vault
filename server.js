@@ -55,6 +55,12 @@ const ADMIN_USER_IDS = new Set(
     .map(s => s.trim())
     .filter(Boolean)
 );
+const ADMIN_USERNAMES = new Set(
+  String(process.env.ADMIN_USERNAMES || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean)
+);
 const COOKIE_NAME = 'pv_session';
 const COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days (re-issued on each login)
 
@@ -194,6 +200,14 @@ function verifySessionToken(token) {
   catch { return null; }
 }
 
+function clearSessionCookie(res) {
+  res.clearCookie(COOKIE_NAME, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: IS_PRODUCTION,
+  });
+}
+
 // Resolve an account entry into the legacy `code` shape that /api/me and friends
 // already consume. We synthesise the same fields so existing handlers don't need
 // to fork on identity type.
@@ -268,6 +282,21 @@ function membershipPayload(status) {
     activated_at: status.activated_at,
     membership_years: status.membership_years,
     reason: status.reason,
+  };
+}
+
+function adminAccountSummary(account) {
+  if (!account) return null;
+  return {
+    id: account.id,
+    username: account.username,
+    kind: account.kind || 'registered',
+    created_at: account.created_at || null,
+    last_login_at: account.last_login_at || null,
+    login_count: Number(account.login_count || 0),
+    revoked: !!account.revoked,
+    revoked_reason: account.revoked_reason || null,
+    revoked_at: account.revoked_at || null,
   };
 }
 
@@ -414,11 +443,12 @@ function requireAuth(req, res, next) {
 
 function requireAdmin(req, res, next) {
   if (!req.auth) return res.status(401).json({ ok: false, error: 'unauthorized' });
-  if (ADMIN_USER_IDS.size === 0) {
-    if (IS_PRODUCTION) return res.status(503).json({ ok: false, error: 'admin_not_configured' });
-    return next();
+  const username = req.auth?.account?.username || req.code?.__username || req.code?.username || req.code?.label || null;
+  if (ADMIN_USER_IDS.size === 0 && ADMIN_USERNAMES.size === 0) {
+    return res.status(503).json({ ok: false, error: 'admin_not_configured' });
   }
   if (ADMIN_USER_IDS.has(req.userId)) return next();
+  if (username && ADMIN_USERNAMES.has(username)) return next();
   return res.status(403).json({ ok: false, error: 'forbidden' });
 }
 
@@ -452,22 +482,67 @@ app.use(asyncHandler(async (req, res, next) => {
 // Whitelist auth-lifecycle endpoints (logout, /api/me read-only) — they must
 // always work even if the user is being rate-limited for content scraping.
 const INSPECT_WHITELIST = /^\/api\/(logout|me|devices|admin\/security|captcha\/new)$/;
-app.use((req, res, next) => {
+app.use(asyncHandler(async (req, res, next) => {
   if (!req.path.startsWith('/api/')) return next();
   if (!req.auth) return next(); // unauthenticated traffic handled by route-level guards
   if (INSPECT_WHITELIST.test(req.path)) return next();
   const r = inspect({ userId: req.userId, deviceId: req.deviceId, ip: req.clientIp, path: req.path });
   if (!r.allowed) {
-    // Auto-ban ONLY for content-scraping patterns (see AUTO_BAN_CLASSES).
-    // /api/me or /api/devices bursts are rate-limited but not auto-banned.
-    if (r.score >= 80 && r.cls && /^(prompt_list|prompt_detail|file_download|video_segment)$/.test(r.cls)) {
-      autoBan({ ip: req.clientIp, userId: req.userId, reason: r.reason });
+    const isContentAbuse = r.cls && /^(prompt_list|prompt_access|prompt_detail|file_download|video_segment)$/.test(r.cls);
+    const retryAfterMs = r.banTtlMs || 60_000;
+
+    db.appendLog('security_event', {
+      type: 'behavior_blocked',
+      user_id: req.userId,
+      device_id: req.deviceId,
+      ip: req.clientIp,
+      jti: req.jti,
+      cls: r.cls,
+      prompt_id: r.promptId || null,
+      reason: r.reason,
+      score: r.score || 0,
+      limit: r.limit ?? null,
+      current: r.current ?? null,
+      action: r.action || null,
+      distinct_prompts: r.distinctPrompts ?? null,
+      window_ms: r.windowMs ?? null,
+    }).catch(err => console.error('[behavior] block log failed:', err.message));
+
+    // Open the circuit on the current session before we reply so the same
+    // cookie cannot keep draining prompt bodies in the background.
+    if (r.action === 'revoke_session' && req.jti) {
+      await db.update('user_session', req.jti, {
+        revoked: true,
+        revoked_at: new Date().toISOString(),
+      });
+      clearSessionCookie(res);
+    } else if (r.action === 'revoke_all_sessions') {
+      await revokeAllSessionsForUser(req.userId);
+      clearSessionCookie(res);
     }
-    res.setHeader('Retry-After', '60');
-    return res.status(429).json({ ok: false, error: 'too_many_requests', reason: r.reason, limit: r.limit, current: r.current });
+
+    if (r.score >= 80 && isContentAbuse) {
+      autoBan({
+        ip: req.clientIp,
+        userId: req.userId,
+        reason: r.reason,
+        ttlMs: retryAfterMs,
+      });
+    }
+
+    res.setHeader('Retry-After', String(Math.max(1, Math.ceil(retryAfterMs / 1000))));
+    return res.status(r.action ? 403 : 429).json({
+      ok: false,
+      error: r.action ? 'scrape_blocked' : 'too_many_requests',
+      reason: r.reason,
+      limit: r.limit,
+      current: r.current,
+      action: r.action || null,
+      retry_after_ms: retryAfterMs,
+    });
   }
   next();
-});
+}));
 
 // ---------- Login page (portal SPA) ----------
 app.get('/robots.txt', (_req, res) => {
@@ -786,7 +861,7 @@ app.post('/api/logout', asyncHandler(async (req, res) => {
   if (req.jti) {
     await db.update('user_session', req.jti, { revoked: true, revoked_at: new Date().toISOString() });
   }
-  res.clearCookie(COOKIE_NAME);
+  clearSessionCookie(res);
   res.json({ ok: true });
 }));
 
@@ -1190,16 +1265,18 @@ app.get('/api/video/:id/access', requireAuth, asyncHandler(async (req, res) => {
 // ---------- Admin security console (read-only APIs) ----------
 app.get('/api/admin/security/overview', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
   const today = Date.now() - 24 * 3600 * 1000;
-  const [eventsAll, behAll, ipBlocksAll, sessionsAll] = await Promise.all([
+  const [eventsAll, behAll, ipBlocksAll, sessionsAll, accountsAll] = await Promise.all([
     db.list('security_event'),
     db.list('user_behavior_log'),
     db.list('ip_block'),
     db.list('user_session'),
+    accounts.listAll(),
   ]);
   const events = eventsAll.filter(e => (e.ts || 0) >= today);
   const beh = behAll.filter(e => (e.ts || 0) >= today);
   const ipBlocks = ipBlocksAll.filter(b => !b.expires_at || new Date(b.expires_at).getTime() > Date.now());
   const sessions = sessionsAll.filter(s => !s.revoked);
+  const accountMap = new Map(accountsAll.map(account => [account.id, account]));
 
   // Top users
   const byUser = new Map();
@@ -1208,7 +1285,11 @@ app.get('/api/admin/security/overview', requireAuth, requireAdmin, asyncHandler(
     byUser.set(k, (byUser.get(k) || 0) + 1);
   }
   const topUsers = [...byUser.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10)
-    .map(([user_id, hits]) => ({ user_id, hits }));
+    .map(([user_id, hits]) => ({
+      user_id,
+      username: accountMap.get(user_id)?.username || null,
+      hits,
+    }));
 
   const byIp = new Map();
   for (const b of beh) {
@@ -1217,6 +1298,22 @@ app.get('/api/admin/security/overview', requireAuth, requireAdmin, asyncHandler(
   }
   const topIps = [...byIp.entries()].sort((a, b) => b[1] - a[1]).slice(0, 10)
     .map(([ip, hits]) => ({ ip, hits }));
+
+  const recentEvents = events.slice(-30).reverse().map((event) => {
+    const details = event.payload && typeof event.payload === 'object' ? event.payload : {};
+    const userId = event.user_id || details.user_id || null;
+    const by = event.by || details.by || null;
+    const ip = event.ip || details.ip || null;
+    return {
+      ...event,
+      ...details,
+      user_id: userId,
+      by,
+      ip,
+      username: userId ? (accountMap.get(userId)?.username || null) : null,
+      actor_username: by ? (accountMap.get(by)?.username || null) : null,
+    };
+  });
 
   res.json({
     ok: true,
@@ -1233,9 +1330,50 @@ app.get('/api/admin/security/overview', requireAuth, requireAdmin, asyncHandler(
     },
     top_users: topUsers,
     top_ips: topIps,
-    recent_events: events.slice(-30).reverse(),
+    recent_events: recentEvents,
     blocked_ips: ipBlocks,
+    accounts: accountsAll.map(adminAccountSummary),
   });
+}));
+
+app.post('/api/admin/security/ban-user', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const userId = String(req.body?.user_id || '').trim();
+  const reason = String(req.body?.reason || '').trim().slice(0, 500);
+  if (!userId) return res.status(400).json({ ok: false, error: 'missing_user_id' });
+  if (userId === req.userId) return res.status(400).json({ ok: false, error: 'cannot_ban_self' });
+
+  const found = await accounts.findById(userId);
+  if (!found) return res.status(404).json({ ok: false, error: 'user_not_found' });
+
+  const updated = await accounts.ban(userId, reason || '管理员手动封禁');
+  await revokeAllSessionsForUser(userId);
+  db.appendLog('security_event', {
+    type: 'manual_user_ban',
+    user_id: userId,
+    by: req.userId,
+    ip: req.clientIp,
+    reason: updated?.revoked_reason || reason || null,
+  }).catch(err => console.error('[admin] log error:', err.message));
+
+  res.json({ ok: true, account: adminAccountSummary(updated) });
+}));
+
+app.post('/api/admin/security/unban-user', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const userId = String(req.body?.user_id || '').trim();
+  if (!userId) return res.status(400).json({ ok: false, error: 'missing_user_id' });
+
+  const found = await accounts.findById(userId);
+  if (!found) return res.status(404).json({ ok: false, error: 'user_not_found' });
+
+  const updated = await accounts.unban(userId);
+  db.appendLog('security_event', {
+    type: 'manual_user_unban',
+    user_id: userId,
+    by: req.userId,
+    ip: req.clientIp,
+  }).catch(err => console.error('[admin] log error:', err.message));
+
+  res.json({ ok: true, account: adminAccountSummary(updated) });
 }));
 
 app.post('/api/admin/security/unblock-ip', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
