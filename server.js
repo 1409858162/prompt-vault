@@ -648,8 +648,8 @@ app.post('/api/register', asyncHandler(async (req, res) => {
   let entry = null;
   if (hasInvite) {
     const normalized = code.replace(/[\s-]/g, '').toUpperCase();
-    if (normalized.length !== 50) {
-      return res.status(400).json({ ok: false, error: '邀请码格式不正确（应为 50 位）' });
+    if (![32, 50].includes(normalized.length)) {
+      return res.status(400).json({ ok: false, error: '邀请码格式不正确（应为 32 位；旧邀请码 50 位也可用）' });
     }
 
     // Find the invite; reject if consumed/revoked/promoted.
