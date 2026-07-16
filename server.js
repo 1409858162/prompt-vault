@@ -209,6 +209,105 @@ function clearSessionCookie(res) {
   });
 }
 
+const HONEYPOT_FIELD_NAMES = ['website', 'contact_method'];
+const HONEYPOT_RESOURCE_ROUTES = [
+  '/api/prompts/export-all',
+  '/api/prompts/full-dump',
+  '/api/prompts/all.zip',
+  '/api/internal/prompts.ndjson',
+];
+
+function isTrustedHoneypotRequest(req) {
+  const site = String(req.headers['sec-fetch-site'] || '').toLowerCase();
+  if (site === 'cross-site') return false;
+  const host = `${req.protocol}://${req.get('host')}`;
+  const origin = String(req.headers.origin || '').trim();
+  const referer = String(req.headers.referer || '').trim();
+  if (origin && origin !== host) return false;
+  if (referer && referer !== host && !referer.startsWith(host + '/')) return false;
+  return true;
+}
+
+function honeypotTtlMs(severity) {
+  switch (severity) {
+    case 'critical': return 24 * 60 * 60 * 1000;
+    case 'high': return 12 * 60 * 60 * 1000;
+    case 'medium': return 2 * 60 * 60 * 1000;
+    default: return 30 * 60 * 1000;
+  }
+}
+
+function sanitizeTrapKind(kind, fallback = 'dom_trap') {
+  return String(kind || fallback).replace(/[^a-z0-9:_-]/gi, '').slice(0, 64) || fallback;
+}
+
+function collectFilledHoneypotFields(body) {
+  const fields = [];
+  for (const name of HONEYPOT_FIELD_NAMES) {
+    const raw = body?.[name];
+    if (raw == null) continue;
+    const value = Array.isArray(raw) ? raw.join(' ') : String(raw);
+    const trimmed = value.trim();
+    if (!trimmed) continue;
+    fields.push({ name, value: trimmed.slice(0, 160) });
+  }
+  return fields;
+}
+
+async function triggerHoneypot(req, res, {
+  kind,
+  source = 'dom',
+  severity = 'high',
+  action = 'revoke_session',
+  detail = null,
+  fields = [],
+} = {}) {
+  const safeKind = sanitizeTrapKind(kind, 'dom_trap');
+  const ttlMs = honeypotTtlMs(severity);
+  const expiresAt = new Date(Date.now() + ttlMs).toISOString();
+  const revokePromise = action === 'revoke_all_sessions' && req.userId
+    ? revokeAllSessionsForUser(req.userId)
+    : action === 'revoke_session' && req.jti
+      ? db.update('user_session', req.jti, {
+          revoked: true,
+          revoked_at: new Date().toISOString(),
+        })
+      : Promise.resolve();
+
+  const tasks = [
+    db.appendLog('security_event', {
+      type: 'honeypot_triggered',
+      trap_kind: safeKind,
+      source,
+      severity,
+      action,
+      ip: req.clientIp,
+      user_id: req.userId || null,
+      device_id: req.deviceId || null,
+      jti: req.jti || null,
+      method: req.method,
+      path: req.originalUrl,
+      ua: req.headers['user-agent'] || '',
+      sec_fetch_site: req.headers['sec-fetch-site'] || null,
+      sec_fetch_mode: req.headers['sec-fetch-mode'] || null,
+      sec_fetch_dest: req.headers['sec-fetch-dest'] || null,
+      filled_fields: fields.map((field) => field.name),
+      detail,
+    }),
+    revokePromise,
+  ];
+  if (req.clientIp) {
+    tasks.push(db.insert('ip_block', {
+      ip: req.clientIp,
+      reason: `honeypot:${safeKind}`,
+      expires_at: expiresAt,
+    }));
+  }
+  await Promise.allSettled(tasks);
+  if (req.auth || req.jti) clearSessionCookie(res);
+  return { ttlMs, expiresAt, action, kind: safeKind };
+}
+
 // Resolve an account entry into the legacy `code` shape that /api/me and friends
 // already consume. We synthesise the same fields so existing handlers don't need
 // to fork on identity type.
@@ -598,11 +697,30 @@ app.post('/api/login', asyncHandler(async (req, res) => {
     mode = 'password',
     username,
     password,
+    website,
+    contact_method,
     captcha_id,
     captcha_answer,
     client_fp,
     next = '/',
   } = req.body || {};
+
+  const filledTrapFields = collectFilledHoneypotFields({ website, contact_method });
+  if (filledTrapFields.length && isTrustedHoneypotRequest(req)) {
+    await triggerHoneypot(req, res, {
+      kind: 'auth_form_fill',
+      source: 'login_form',
+      severity: 'high',
+      action: 'revoke_session',
+      fields: filledTrapFields,
+      detail: { mode: String(mode || 'password') },
+    });
+    return res.status(403).json({
+      ok: false,
+      error: 'risk_blocked',
+      message: '请求已被安全策略拦截，请稍后再试。',
+    });
+  }
 
   // Per-IP login throttling (10/min) — separate from global limit so login
   // bursts stand out from regular browsing.
@@ -740,8 +858,26 @@ app.post('/api/register', asyncHandler(async (req, res) => {
   const start = Date.now();
   const {
     code, username, password,
+    website, contact_method,
     captcha_id, captcha_answer, client_fp,
   } = req.body || {};
+
+  const filledTrapFields = collectFilledHoneypotFields({ website, contact_method });
+  if (filledTrapFields.length && isTrustedHoneypotRequest(req)) {
+    await triggerHoneypot(req, res, {
+      kind: 'register_form_fill',
+      source: 'register_form',
+      severity: 'critical',
+      action: 'revoke_session',
+      fields: filledTrapFields,
+      detail: { has_code: !!(typeof code === 'string' && code.trim()) },
+    });
+    return res.status(403).json({
+      ok: false,
+      error: 'risk_blocked',
+      message: '请求已被安全策略拦截，请稍后再试。',
+    });
+  }
 
   // Throttle: per-IP and per-code. Same key namespace idea as login so refills match human latency.
   const ipThrottle = take(`register:ip:${req.clientIp}`, 5, 5 / (10 * 60));
@@ -874,6 +1010,31 @@ app.post('/api/logout', asyncHandler(async (req, res) => {
   }
   clearSessionCookie(res);
   res.json({ ok: true });
+}));
+
+app.post('/api/trap/honeypot', asyncHandler(async (req, res) => {
+  if (!isTrustedHoneypotRequest(req)) return res.status(204).end();
+  const rawKind = sanitizeTrapKind(req.body?.kind, 'dom_trap');
+  const severity = ['medium', 'high', 'critical'].includes(req.body?.severity)
+    ? req.body.severity
+    : (/export|dump|bulk|copy_all/i.test(rawKind) ? 'critical' : 'high');
+  const action = severity === 'critical' ? 'revoke_all_sessions' : 'revoke_session';
+  let detail = null;
+  if (req.body?.detail && typeof req.body.detail === 'object') {
+    try {
+      detail = JSON.parse(JSON.stringify(req.body.detail).slice(0, 4000));
+    } catch {
+      detail = { parse_failed: true };
+    }
+  }
+  await triggerHoneypot(req, res, {
+    kind: rawKind,
+    source: 'dom_honeypot',
+    severity,
+    action,
+    detail,
+  });
+  res.status(204).end();
 }));
 
 // ---------- Pages ----------
@@ -1244,6 +1405,22 @@ app.get('/api/prompts', (req, res) => {
     items,
   });
 });
+
+app.all(HONEYPOT_RESOURCE_ROUTES, asyncHandler(async (req, res) => {
+  if (isTrustedHoneypotRequest(req)) {
+    await triggerHoneypot(req, res, {
+      kind: 'fake_resource_probe',
+      source: 'fake_resource',
+      severity: 'critical',
+      action: 'revoke_all_sessions',
+      detail: { route: req.path, query: req.query || null },
+    });
+  }
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('X-Robots-Tag', 'noindex, noarchive, noimageindex');
+  if (req.method === 'HEAD') return res.status(410).end();
+  return res.status(410).json({ ok: false, error: 'gone' });
+}));
 
 // /api/prompts/:id — chapter-level detail.
 // Requires a valid content_token issued by /api/prompts/:id/access.
@@ -1628,6 +1805,12 @@ app.post('/api/admin/invites/batch', requireAuth, requireAdmin, asyncHandler(asy
 }));
 
 // ---------- Static ----------
+app.get('/teach.mp4', (_req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.sendFile(path.join(__dirname, 'public', 'teach.mp4'));
+});
+
 app.use('/static', express.static(path.join(__dirname, 'public', 'static'), {
   maxAge: 0,
   // Disable directory listing / execution

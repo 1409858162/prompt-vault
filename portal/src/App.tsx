@@ -21,6 +21,7 @@ const WORLD_BG =
   'https://res.cloudinary.com/dy5er7kv5/image/upload/q_auto/f_auto/v1779706392/image_2_gkcdlx.png';
 const BOTTOM_CLOUDS =
   'https://res.cloudinary.com/dy5er7kv5/image/upload/q_auto/f_auto/v1779706555/bottom_clouds_xskut6.png';
+const TUTORIAL_URL = 'https://v.douyin.com/0T-aHQW3MwA/';
 
 const CARD_IMAGES = [
   'https://images.higgs.ai/?default=1&output=webp&url=https%3A%2F%2Fd8j0ntlcm91z4.cloudfront.net%2Fuser_38xzZboKViGWJOttwIXH07lWA1P%2Fhf_20260525_160507_2ccbb4eb-1469-484f-af25-59168ad9a233.png&w=1280&q=85',
@@ -120,10 +121,76 @@ function ScrollChevron() {
   );
 }
 
+function TutorialBadge({
+  onClick,
+  compact = false,
+}: {
+  onClick: () => void;
+  compact?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        position: 'relative',
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: compact ? 7 : 9,
+        padding: compact ? '10px 14px' : '13px 20px',
+        borderRadius: 999,
+        border: '1px solid rgba(255,255,255,0.3)',
+        background: 'linear-gradient(135deg, rgba(99,102,241,0.92), rgba(244,114,182,0.9))',
+        color: '#fff',
+        fontFamily: "'Imprima', 'PingFang SC', sans-serif",
+        fontSize: compact ? 12.5 : 13.5,
+        fontWeight: 700,
+        letterSpacing: '0.04em',
+        cursor: 'pointer',
+        boxShadow:
+          '0 18px 42px -14px rgba(244,114,182,0.84), 0 0 24px rgba(99,102,241,0.32), 0 0 0 1px rgba(255,255,255,0.1) inset',
+        whiteSpace: 'nowrap',
+        animation: 'tutorialBadgeFloat 2.8s ease-in-out infinite, tutorialBadgeGlow 2.2s ease-in-out infinite',
+        transformOrigin: 'center',
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          width: compact ? 22 : 26,
+          height: compact ? 22 : 26,
+          borderRadius: '50%',
+          background: 'rgba(255,255,255,0.18)',
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          boxShadow: '0 0 18px rgba(255,255,255,0.18), 0 0 0 1px rgba(255,255,255,0.08) inset',
+          animation: 'tutorialBadgeCoreGlow 2.1s ease-in-out infinite',
+        }}
+      >
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M8 5v14l11-7z" />
+        </svg>
+      </span>
+      <span>使用教程</span>
+    </button>
+  );
+}
+
 /* ============================================================
    NAV
    ============================================================ */
-function Nav({ isMobile, onJumpToLogin }: { isMobile: boolean; onJumpToLogin: () => void }) {
+function Nav({
+  isMobile,
+  onJumpToLogin,
+  onOpenTutorial,
+}: {
+  isMobile: boolean;
+  onJumpToLogin: () => void;
+  onOpenTutorial: () => void;
+}) {
   if (isMobile) {
     return (
       <nav
@@ -135,17 +202,29 @@ function Nav({ isMobile, onJumpToLogin }: { isMobile: boolean; onJumpToLogin: ()
           zIndex: 50,
           padding: '18px 20px',
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
+          flexDirection: 'column',
+          gap: 12,
         }}
       >
-        <a href="#vault" style={navLinkStyle(11)}>灵感</a>
-        <BrandDot />
-        <a
-          href="#login"
-          onClick={(e) => { e.preventDefault(); onJumpToLogin(); }}
-          style={navLinkStyle(11)}
-        >登录</a>
+        <div
+          style={{
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <a href="#vault" style={navLinkStyle(11)}>灵感</a>
+          <BrandDot />
+          <a
+            href="#login"
+            onClick={(e) => { e.preventDefault(); onJumpToLogin(); }}
+            style={navLinkStyle(11)}
+          >登录</a>
+        </div>
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+          <TutorialBadge onClick={onOpenTutorial} compact />
+        </div>
       </nav>
     );
   }
@@ -176,6 +255,7 @@ function Nav({ isMobile, onJumpToLogin }: { isMobile: boolean; onJumpToLogin: ()
       <div style={{ display: 'flex', gap: 36, alignItems: 'center' }}>
         <a href="#vault" style={navLinkStyle(12)}>动效</a>
         <a href="#value" style={navLinkStyle(12)}>为什么</a>
+        <TutorialBadge onClick={onOpenTutorial} />
         <a
           href="#login"
           onClick={(e) => { e.preventDefault(); onJumpToLogin(); }}
@@ -601,6 +681,10 @@ type CaptchaState = { challenge_id: string; image: string } | null;
 type DeviceLimitState = {
   existing_devices: Array<{ browser: string; os: string; ip: string; last_active_time: string }>;
 } | null;
+type HoneypotState = {
+  website: string;
+  contact_method: string;
+};
 
 function LoginPanel({
   visible,
@@ -630,9 +714,11 @@ function LoginPanel({
   // Per-mode form state.
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [loginHoneypot, setLoginHoneypot] = useState<HoneypotState>({ website: '', contact_method: '' });
   const [regCode, setRegCode] = useState('');
   const [regUsername, setRegUsername] = useState('');
   const [regPassword, setRegPassword] = useState('');
+  const [registerHoneypot, setRegisterHoneypot] = useState<HoneypotState>({ website: '', contact_method: '' });
   const [showPwd, setShowPwd] = useState(false); // for password fields
   const [showRegPwd, setShowRegPwd] = useState(false);
 
@@ -741,6 +827,8 @@ function LoginPanel({
           mode: 'password',
           username: username.trim(),
           password,
+          website: loginHoneypot.website,
+          contact_method: loginHoneypot.contact_method,
           next: new URLSearchParams(location.search).get('next') || '/',
           client_fp: clientFpRef.current,
           ...(captcha ? { captcha_id: captcha.challenge_id, captcha_answer: captchaAnswer.trim() } : {}),
@@ -775,6 +863,8 @@ function LoginPanel({
           code: regCode.trim() || undefined,
           username: regUsername.trim(),
           password: regPassword,
+          website: registerHoneypot.website,
+          contact_method: registerHoneypot.contact_method,
           client_fp: clientFpRef.current,
           ...(captcha ? { captcha_id: captcha.challenge_id, captcha_answer: captchaAnswer.trim() } : {}),
         }),
@@ -898,6 +988,51 @@ function LoginPanel({
         e.currentTarget.style.boxShadow = 'none';
       }
     };
+  }
+
+  const honeypotWrapStyle: CSSProperties = {
+    position: 'absolute',
+    left: '-10000px',
+    top: 'auto',
+    width: 1,
+    height: 1,
+    overflow: 'hidden',
+    opacity: 0,
+  };
+
+  function HoneypotFields({
+    scope,
+    value,
+    onChange,
+  }: {
+    scope: string;
+    value: HoneypotState;
+    onChange: (next: HoneypotState) => void;
+  }) {
+    return (
+      <div aria-hidden="true" style={honeypotWrapStyle}>
+        <label htmlFor={`${scope}-website`}>官网</label>
+        <input
+          id={`${scope}-website`}
+          name="website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          value={value.website}
+          onChange={(e) => onChange({ ...value, website: e.target.value })}
+        />
+        <label htmlFor={`${scope}-contact-method`}>联系渠道</label>
+        <input
+          id={`${scope}-contact-method`}
+          name="contact_method"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          value={value.contact_method}
+          onChange={(e) => onChange({ ...value, contact_method: e.target.value })}
+        />
+      </div>
+    );
   }
 
   // Tab definitions. Each tab gets a stable key so React can reconcile.
@@ -1025,6 +1160,7 @@ function LoginPanel({
         {/* Per-mode body */}
         {mode === 'password' && (
           <form onSubmit={onLoginPassword}>
+            <HoneypotFields scope="login" value={loginHoneypot} onChange={setLoginHoneypot} />
             <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.55)', lineHeight: 1.55, marginBottom: 14 }}>
               {TABS[0].sub}
             </p>
@@ -1119,6 +1255,7 @@ function LoginPanel({
 
         {mode === 'register' && (
           <form onSubmit={onRegister}>
+            <HoneypotFields scope="register" value={registerHoneypot} onChange={setRegisterHoneypot} />
             <p style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.55)', lineHeight: 1.55, marginBottom: 14 }}>
               {TABS[1].sub}
             </p>
@@ -1233,6 +1370,260 @@ function LoginPanel({
     </div>
   );
 }
+
+function TutorialModal({
+  open,
+  onClose,
+  isMobile,
+}: {
+  open: boolean;
+  onClose: () => void;
+  isMobile: boolean;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [open, onClose]);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(false), 1800);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
+
+  const openTutorial = () => {
+    window.open(TUTORIAL_URL, '_blank', 'noopener,noreferrer');
+  };
+
+  const copyTutorialLink = async () => {
+    try {
+      await navigator.clipboard.writeText(TUTORIAL_URL);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  if (!open) return null;
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="使用教程"
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 120,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: isMobile ? 18 : 28,
+        background: 'rgba(7, 4, 10, 0.82)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: 'min(1100px, 100%)',
+          borderRadius: isMobile ? 20 : 24,
+          overflow: 'hidden',
+          background: 'rgba(18, 16, 24, 0.94)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          boxShadow: '0 32px 80px rgba(0,0,0,0.55)',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: isMobile ? 'flex-start' : 'center',
+            justifyContent: 'space-between',
+            gap: 16,
+            padding: isMobile ? '16px 16px 12px' : '18px 20px 14px',
+            borderBottom: '1px solid rgba(255,255,255,0.08)',
+          }}
+        >
+          <div>
+            <div
+              style={{
+                fontFamily: "'Viaoda Libre', serif",
+                fontSize: isMobile ? 24 : 28,
+                color: '#fff',
+                lineHeight: 1.1,
+              }}
+            >
+              使用教程
+            </div>
+            <div
+              style={{
+                marginTop: 6,
+                fontSize: 12.5,
+                lineHeight: 1.6,
+                color: 'rgba(255,255,255,0.62)',
+              }}
+            >
+              教程托管在抖音，点一下就能直接播放，站内不再加载大视频。
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              flexShrink: 0,
+              width: 40,
+              height: 40,
+              borderRadius: '50%',
+              border: '1px solid rgba(255,255,255,0.14)',
+              background: 'rgba(255,255,255,0.05)',
+              color: '#fff',
+              fontSize: 22,
+              lineHeight: 1,
+              cursor: 'pointer',
+            }}
+            aria-label="关闭教程"
+          >
+            ×
+          </button>
+        </div>
+
+        <div style={{ padding: isMobile ? 12 : 16 }}>
+          <div
+            style={{
+              width: '100%',
+              aspectRatio: '16 / 9',
+              minHeight: isMobile ? 240 : 420,
+              maxHeight: isMobile ? '58vh' : '72vh',
+              borderRadius: 18,
+              overflow: 'hidden',
+              background:
+                'radial-gradient(circle at top, rgba(99,102,241,0.34), transparent 40%), linear-gradient(160deg, rgba(18,16,24,0.98), rgba(9,8,14,0.98))',
+              boxShadow: '0 12px 40px rgba(0,0,0,0.35)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              alignItems: 'center',
+              textAlign: 'center',
+              padding: isMobile ? '26px 20px' : '36px 42px',
+            }}
+          >
+            <div
+              style={{
+                width: isMobile ? 70 : 88,
+                height: isMobile ? 70 : 88,
+                borderRadius: '50%',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'linear-gradient(135deg, rgba(99,102,241,0.94), rgba(244,114,182,0.9))',
+                boxShadow: '0 20px 48px rgba(99,102,241,0.28)',
+                color: '#fff',
+              }}
+            >
+              <svg width={isMobile ? 30 : 38} height={isMobile ? 30 : 38} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </div>
+            <div
+              style={{
+                marginTop: isMobile ? 18 : 22,
+                fontFamily: "'Viaoda Libre', serif",
+                fontSize: isMobile ? 28 : 36,
+                lineHeight: 1.08,
+                color: '#fff',
+              }}
+            >
+              抖音教程直达
+            </div>
+            <div
+              style={{
+                marginTop: 12,
+                maxWidth: 520,
+                fontSize: isMobile ? 13 : 15,
+                lineHeight: 1.8,
+                color: 'rgba(255,255,255,0.72)',
+              }}
+            >
+              抖音限制了第三方站点内嵌播放，所以这里改成轻量入口。
+              点开后会直接跳到你发布的教程视频，不占本站服务器带宽。
+            </div>
+            <div
+              style={{
+                marginTop: isMobile ? 20 : 24,
+                display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
+                gap: 12,
+                width: isMobile ? '100%' : 'auto',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              <button
+                type="button"
+                onClick={openTutorial}
+                style={{
+                  minWidth: isMobile ? '100%' : 220,
+                  border: 0,
+                  borderRadius: 999,
+                  padding: isMobile ? '14px 18px' : '14px 24px',
+                  background: 'linear-gradient(135deg, #6366f1, #f472b6)',
+                  color: '#fff',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 16px 36px rgba(99,102,241,0.26)',
+                }}
+              >
+                打开抖音教程
+              </button>
+              <button
+                type="button"
+                onClick={copyTutorialLink}
+                style={{
+                  minWidth: isMobile ? '100%' : 170,
+                  borderRadius: 999,
+                  padding: isMobile ? '13px 18px' : '13px 20px',
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid rgba(255,255,255,0.14)',
+                  color: copied ? '#f9a8d4' : '#fff',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                {copied ? '链接已复制' : '复制教程链接'}
+              </button>
+            </div>
+            <div
+              style={{
+                marginTop: 14,
+                fontSize: 12,
+                color: 'rgba(255,255,255,0.44)',
+                wordBreak: 'break-all',
+              }}
+            >
+              {TUTORIAL_URL}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 export default function App() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const worldRef = useRef<HTMLDivElement | null>(null);
@@ -1245,6 +1636,7 @@ export default function App() {
   const [curtainsOpen, setCurtainsOpen] = useState(false);
   const [uiVisible, setUiVisible] = useState(false);
   const [entranceDone, setEntranceDone] = useState(false);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
   const [mouseTarget, setMouseTarget] = useState({ x: 0, y: 0 });
   const mouseSmooth = useRef({ x: 0, y: 0 });
   const rafId = useRef<number | null>(null);
@@ -1404,6 +1796,38 @@ export default function App() {
       @keyframes hintBob {
         0%, 100% { transform: translateY(0); }
         50%      { transform: translateY(4px); }
+      }
+      @keyframes tutorialBadgeFloat {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-7px); }
+      }
+      @keyframes tutorialBadgeGlow {
+        0%, 100% {
+          box-shadow:
+            0 18px 42px -14px rgba(244,114,182,0.72),
+            0 0 20px rgba(99,102,241,0.24),
+            0 0 0 1px rgba(255,255,255,0.1) inset;
+        }
+        50% {
+          box-shadow:
+            0 26px 52px -14px rgba(244,114,182,0.94),
+            0 0 34px rgba(244,114,182,0.34),
+            0 0 42px rgba(99,102,241,0.28),
+            0 0 0 1px rgba(255,255,255,0.16) inset;
+        }
+      }
+      @keyframes tutorialBadgeCoreGlow {
+        0%, 100% {
+          box-shadow:
+            0 0 14px rgba(255,255,255,0.16),
+            0 0 0 1px rgba(255,255,255,0.08) inset;
+        }
+        50% {
+          box-shadow:
+            0 0 22px rgba(255,255,255,0.26),
+            0 0 28px rgba(244,114,182,0.18),
+            0 0 0 1px rgba(255,255,255,0.14) inset;
+        }
       }
     `;
     return el;
@@ -1588,7 +2012,11 @@ export default function App() {
           />
 
           {/* === Navigation === */}
-          <Nav isMobile={isMobile} onJumpToLogin={() => jumpToLogin.current()} />
+          <Nav
+            isMobile={isMobile}
+            onJumpToLogin={() => jumpToLogin.current()}
+            onOpenTutorial={() => setTutorialOpen(true)}
+          />
 
           {/* === Scroll Hint (顶部提示：向下滚动进入登录) === */}
           <div
@@ -2008,6 +2436,7 @@ export default function App() {
           <LoginPanel visible={loginVisible} isMobile={isMobile} />
         </div>
       </div>
+      <TutorialModal open={tutorialOpen} onClose={() => setTutorialOpen(false)} isMobile={isMobile} />
       {styleEl ? null : null}
     </>
   );

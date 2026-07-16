@@ -89,9 +89,14 @@
     .btn.danger { color: #fca5a5; border-color: rgba(248,113,113,.3); }
     .btn.danger:hover { background: rgba(248,113,113,.1); }
     .toolbar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+    .toolbar.wrap { flex-wrap: wrap; }
     .toolbar input {
       padding: 8px 12px; background: var(--panel); border: 1px solid var(--border);
       border-radius: 8px; color: var(--text); font-size: 13px; min-width: 200px;
+    }
+    .toolbar select {
+      padding: 8px 12px; background: var(--panel); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-size: 13px;
     }
     .toolbar button { padding: 8px 14px; }
     .empty { padding: 20px; color: var(--text-dim); text-align: center; font-size: 13px; }
@@ -279,6 +284,14 @@
 
     <section>
       <h2>账号管理</h2>
+      <div class="toolbar wrap">
+        <input id="accountSearch" placeholder="按用户名搜索，例如 xuan" />
+        <select id="accountSort">
+          <option value="created_desc">注册时间：最新优先</option>
+          <option value="created_asc">注册时间：最早优先</option>
+        </select>
+        <span class="sub" id="accountsMeta" style="margin:0;font-size:12px;color:var(--text-dim);"></span>
+      </div>
       <div id="accountsWrap"></div>
     </section>
 
@@ -365,6 +378,10 @@
 </main>
 
 <script>
+  const SECURITY_STATE = {
+    accounts: [],
+  };
+
   function $(s) { return document.querySelector(s); }
   function el(tag, attrs, ...kids) {
     const n = document.createElement(tag);
@@ -379,6 +396,112 @@
   function fmtTs(ts) { return new Date(ts).toLocaleString('zh-CN', { hour12: false }); }
   function fmtMaybeTs(ts) { return ts ? fmtTs(ts) : '-'; }
   function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function lower(s) { return String(s == null ? '' : s).trim().toLowerCase(); }
+  function asArray(v) { return Array.isArray(v) ? v : (v == null ? [] : [v]); }
+
+  const EVENT_TYPE_LABELS = {
+    login_failed: '登录失败',
+    login_ok: '登录成功',
+    login_high_risk_blocked: '高风险登录拦截',
+    register_failed: '注册失败',
+    register_ok: '注册成功',
+    register_high_risk_blocked: '高风险注册拦截',
+    auto_ban_candidate: '自动封禁候选',
+    behavior_blocked: '行为风控拦截',
+    manual_block: '手动封禁 IP',
+    manual_user_ban: '手动封禁账号',
+    manual_user_unban: '手动解封账号',
+    user_flagged: '用户被标记风险',
+    prompt_sweep_detected: '批量扫读提示词',
+    honeypot_triggered: '命中蜜罐',
+    invite_redeemed_for_account: '邀请码升级会员',
+    redeem_failed: '邀请码兑换失败',
+    invites_batch_generated: '批量生成邀请码',
+  };
+
+  const REASON_LABELS = {
+    manual: '管理员手动封禁。',
+    top_ip: '该 IP 在近 24 小时请求异常活跃，已被管理员手动加入封禁名单。',
+    rate_per_minute: '单位时间请求次数过多，超过每分钟阈值，疑似脚本抓取。',
+    rate_per_hour: '持续请求次数过多，超过每小时阈值，疑似长时间批量抓取。',
+    abuse_score: '多项异常行为累计超阈值，系统判定为高风险访问。',
+    device_limit: '该账号已超过允许登录的设备数量上限。',
+    prompt_sweep_fast: '短时间内连续打开过多不同提示词，疑似批量搬运内容。',
+    prompt_sweep_10m: '10 分钟内扫读大量不同提示词，疑似自动化采集。',
+    prompt_sweep_1h: '1 小时内持续扫读大量提示词，疑似长期爬取。',
+    catalog_preview_rate_limit: '游客预览请求过于频繁，已触发预览限速策略。',
+    auth_form_fill: '命中登录表单蜜罐字段，疑似自动填表脚本。',
+    register_form_fill: '命中注册表单蜜罐字段，疑似自动填表脚本。',
+    fake_resource_probe: '访问了伪造资源入口，疑似探测整库导出接口。',
+    bulk_export_link: '触发了隐藏的“批量导出”蜜罐链接，疑似 DOM 扫描脚本。',
+    prompt_dump_link: '触发了隐藏的“整库导出”蜜罐链接，疑似资源探测脚本。',
+    copy_all_prompts: '触发了隐藏的“复制全部提示词”蜜罐按钮，疑似自动点击脚本。',
+    export_all_assets: '触发了隐藏的“导出全部资源”蜜罐按钮，疑似自动点击脚本。',
+    gone: '访问了不存在或已下线的敏感资源入口。',
+    invalid_code: '提交的邀请码无效或已不存在。',
+    ip_blocked: '该 IP 已在封禁名单中，访问被直接拦截。',
+  };
+
+  function formatRiskReason(code) {
+    const raw = String(code == null ? '' : code).trim();
+    if (!raw) return '未记录原因。';
+    if (/[\u4e00-\u9fa5]/.test(raw)) return raw;
+    if (REASON_LABELS[raw]) return REASON_LABELS[raw];
+    if (raw.startsWith('auto:')) {
+      const inner = raw.slice(5);
+      const detail = REASON_LABELS[inner] || inner;
+      return '系统自动封禁：' + detail;
+    }
+    if (raw.startsWith('honeypot:')) {
+      const inner = raw.slice(9);
+      const detail = REASON_LABELS[inner] || `命中蜜罐（${inner}）。`;
+      return '命中蜜罐：' + detail;
+    }
+    if (raw.startsWith('country_mismatch:')) {
+      const detail = raw.slice('country_mismatch:'.length).replace('->', ' -> ');
+      return '短时间内登录国家发生异常变化：' + detail + '。';
+    }
+    if (raw.startsWith('ua_family_change:')) {
+      const detail = raw.slice('ua_family_change:'.length).replace('->', ' -> ');
+      return '浏览器或操作系统指纹变化异常：' + detail + '。';
+    }
+    if (raw.startsWith('multi_country_active:')) {
+      return '短时间内存在多国家活跃访问：' + raw.slice('multi_country_active:'.length) + '。';
+    }
+    if (raw.startsWith('device_flood:')) {
+      return '短时间内关联设备数量异常增多（设备数：' + raw.slice('device_flood:'.length) + '）。';
+    }
+    if (raw === 'cross_border_jump') return '登录地点出现跨境快速跳变，疑似共享账号或代理异常。';
+    if (raw === 'headless_ua') return '检测到无头浏览器特征。';
+    if (raw === 'automation_ua') return '检测到自动化工具特征（如 Puppeteer / Playwright / Selenium）。';
+    if (raw === 'non_browser_client') return '请求来源不像正常浏览器，疑似脚本或爬虫客户端。';
+    return raw;
+  }
+
+  function formatReasonList(reasons) {
+    const list = asArray(reasons).map(formatRiskReason).filter(Boolean);
+    return list.length ? list.join('\n') : '未记录原因。';
+  }
+
+  function formatEventType(type) {
+    return EVENT_TYPE_LABELS[type] || type || '-';
+  }
+
+  function formatEventDetail(e) {
+    const lines = [];
+    const reasons = asArray(e.reasons).filter(Boolean);
+    if (reasons.length) lines.push('原因: ' + reasons.map(formatRiskReason).join('；'));
+    if (e.reason) lines.push('原因: ' + formatRiskReason(e.reason));
+    if (e.score != null) lines.push('风险分: ' + e.score);
+    if (e.limit != null && e.current != null) lines.push('频率: ' + e.current + ' / 阈值 ' + e.limit);
+    if (e.distinct_prompts != null) lines.push('涉及提示词数: ' + e.distinct_prompts);
+    if (e.window_ms != null) lines.push('观察窗口: ' + Math.round(e.window_ms / 60000) + ' 分钟');
+    if (e.trap_kind) lines.push('蜜罐类型: ' + formatRiskReason(e.trap_kind));
+    if (e.action === 'revoke_session') lines.push('处置: 已撤销当前会话');
+    if (e.action === 'revoke_all_sessions') lines.push('处置: 已撤销该账号全部会话');
+    if (e.ip) lines.push('IP: ' + e.ip);
+    return lines.join('\n') || '—';
+  }
 
   function showToast(msg, kind) {
     const t = document.createElement('div');
@@ -415,7 +538,8 @@
     renderTopUsers(j.top_users || []);
     renderTopIps(j.top_ips || []);
     renderBlocked(j.blocked_ips || []);
-    renderAccounts(j.accounts || []);
+    SECURITY_STATE.accounts = Array.isArray(j.accounts) ? j.accounts : [];
+    renderAccounts();
     renderEvents(j.recent_events || []);
   }
 
@@ -478,7 +602,12 @@
         userCell.appendChild(el('span', null, '匿名/未知'));
       }
       tr.appendChild(el('td', null, userCell));
-      tr.appendChild(el('td', null, r.reason || '-'));
+      const reasonCell = el('div', { class: 'cell-stack' });
+      reasonCell.appendChild(el('div', { class: 'reason-text' }, formatRiskReason(r.reason)));
+      if (r.reason && !/[\u4e00-\u9fa5]/.test(String(r.reason))) {
+        reasonCell.appendChild(el('span', { class: 'mono cell-sub' }, r.reason));
+      }
+      tr.appendChild(el('td', null, reasonCell));
       tr.appendChild(el('td', null, r.created_at ? fmtTs(r.created_at) : '-'));
       tr.appendChild(el('td', null, r.expires_at ? fmtTs(r.expires_at) : '永久'));
       const btn = el('button', { class: 'btn' }, '解除');
@@ -497,9 +626,32 @@
     wrap.innerHTML = ''; wrap.appendChild(t);
   }
 
-  function renderAccounts(rows) {
+  function getFilteredAccounts() {
+    const query = lower($('#accountSearch')?.value || '');
+    const sort = $('#accountSort')?.value || 'created_desc';
+    let rows = [...SECURITY_STATE.accounts];
+    if (query) {
+      rows = rows.filter((row) => lower(row.username).includes(query));
+    }
+    rows.sort((a, b) => {
+      const ta = new Date(a.created_at || 0).getTime() || 0;
+      const tb = new Date(b.created_at || 0).getTime() || 0;
+      return sort === 'created_asc' ? ta - tb : tb - ta;
+    });
+    return rows;
+  }
+
+  function renderAccounts() {
     const wrap = $('#accountsWrap');
-    if (!rows.length) { wrap.innerHTML = '<div class="empty">暂无账号数据</div>'; return; }
+    const rows = getFilteredAccounts();
+    const meta = $('#accountsMeta');
+    if (meta) {
+      meta.textContent = `显示 ${rows.length} / ${SECURITY_STATE.accounts.length} 个账号`;
+    }
+    if (!rows.length) {
+      wrap.innerHTML = `<div class="empty">${SECURITY_STATE.accounts.length ? '没有匹配的账号' : '暂无账号数据'}</div>`;
+      return;
+    }
     const t = el('table');
     t.innerHTML = '<thead><tr><th>用户名</th><th>用户 ID</th><th>注册时间</th><th>最近登录</th><th>登录次数</th><th>会员</th><th>状态</th><th>封禁原因</th><th>操作</th></tr></thead>';
     const tb = el('tbody');
@@ -523,7 +675,10 @@
         el('span', { class: 'pill ' + (r.revoked ? 'danger' : 'ok') }, r.revoked ? '已封禁' : '正常')
       ));
       const reasonCell = el('div', { class: 'cell-stack' });
-      reasonCell.appendChild(el('div', { class: 'reason-text' }, r.revoked_reason || '-'));
+      reasonCell.appendChild(el('div', { class: 'reason-text' }, r.revoked_reason ? formatReasonList(r.revoked_reason) : '-'));
+      if (r.revoked_reason && !/[\u4e00-\u9fa5]/.test(String(r.revoked_reason))) {
+        reasonCell.appendChild(el('span', { class: 'mono cell-sub' }, r.revoked_reason));
+      }
       if (r.revoked_at) reasonCell.appendChild(el('span', { class: 'cell-sub' }, '封禁于 ' + fmtTs(r.revoked_at)));
       tr.appendChild(el('td', null, reasonCell));
       const actions = el('div', { class: 'actions-row' });
@@ -554,13 +709,12 @@
       const tr = el('tr');
       tr.appendChild(el('td', null, fmtTs(e.ts || Date.now())));
       const pillClass = e.type && /risk|ban|fail|block/.test(e.type) ? 'pill danger' : 'pill';
-      tr.appendChild(el('td', null, el('span', { class: pillClass }, e.type || '?')));
+      tr.appendChild(el('td', null, el('span', { class: pillClass }, formatEventType(e.type))));
       const who = el('div', { class: 'cell-stack' });
       who.appendChild(el('span', null, e.username || e.actor_username || e.user_id || e.ip || '-'));
       if (e.user_id || e.by) who.appendChild(el('span', { class: 'mono cell-sub' }, e.user_id || e.by));
       tr.appendChild(el('td', null, who));
-      tr.appendChild(el('td', null, el('span', { class: 'mono', style: 'font-size:11px;color:var(--text-dim)' },
-        JSON.stringify({ reasons: e.reasons, score: e.score, ip: e.ip }, (k,v) => v == null ? undefined : v))));
+      tr.appendChild(el('td', null, el('div', { class: 'reason-text', style: 'font-size:12px;color:var(--text-dim)' }, formatEventDetail(e))));
       tb.appendChild(tr);
     }
     t.appendChild(tb);
@@ -583,6 +737,9 @@
     doBlock(ip, reason || 'manual');
     $('#blockIp').value = ''; $('#blockReason').value = '';
   };
+
+  $('#accountSearch').addEventListener('input', () => renderAccounts());
+  $('#accountSort').addEventListener('change', () => renderAccounts());
 
   async function doBanUser(account) {
     const input = prompt('请输入封禁原因（会显示在后台）', account.revoked_reason || '手动封禁');

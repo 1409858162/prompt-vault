@@ -261,6 +261,32 @@
     return j; // { content_token, key_url }
   }
 
+  async function tripHoneypot(kind, detail) {
+    const payload = JSON.stringify({ kind, detail });
+    try {
+      if (navigator.sendBeacon) {
+        const queued = navigator.sendBeacon(
+          '/api/trap/honeypot',
+          new Blob([payload], { type: 'application/json' })
+        );
+        if (queued) return { ok: true, queued: true };
+      }
+    } catch {}
+    try {
+      const r = await fetch('/api/trap/honeypot', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: payload,
+        keepalive: true,
+        cache: 'no-store',
+      });
+      return { ok: r.ok, status: r.status };
+    } catch (e) {
+      return { ok: false, error: e && e.message ? e.message : 'network_error' };
+    }
+  }
+
   // ---- 6. Prompt-at-load detection ----
   // Run once per page; if botSignals.score >= 2, require captcha up front.
   async function ensureHuman() {
@@ -298,6 +324,6 @@
   window.PVS = {
     fingerprint, botSignals, watermark, captcha,
     pullContent, signedDownloadUrl, signedVideoKeyUrl,
-    ensureHuman, loadMe,
+    tripHoneypot, ensureHuman, loadMe,
   };
 })();
