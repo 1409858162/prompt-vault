@@ -44,6 +44,42 @@
     color: #fecaca; border-radius: 10px; font-size: 13px;
   }
   .risk-banner.show { display:block; }
+  .redeem-box { display: flex; flex-direction: column; gap: 12px; }
+  .redeem-box p {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.7;
+  }
+  .redeem-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+  .redeem-input {
+    width: 100%;
+    min-width: 0;
+    padding: 11px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text);
+    font-size: 14px;
+    outline: none;
+    letter-spacing: 0;
+  }
+  .redeem-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(99,102,241,.16);
+  }
+  .redeem-input::placeholder { color: var(--text-faint); }
+  .redeem-hint {
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+  @media (max-width: 600px) {
+    .redeem-row { grid-template-columns: 1fr; }
+    .redeem-row .btn { width: 100%; justify-content: center; }
+  }
 </style>
 <style>
     :root {
@@ -430,6 +466,29 @@
         </div>
       </div>
 
+      <div class="card soft" style="margin-top:16px">
+        <div class="info-h">
+          <h2>会员升级 / 续期</h2>
+          <span class="pill">邀请码</span>
+        </div>
+        <div class="redeem-box">
+          <p>如果这个账号是先普通注册的，或者会员已经到期，可以直接在这里输入新邀请码完成升级或续期，不需要重新注册。</p>
+          <div class="redeem-row">
+            <input
+              id="redeemInput"
+              class="redeem-input"
+              type="text"
+              inputmode="text"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="输入 32 位邀请码（带 - 或不带 - 都可以）"
+            />
+            <button class="btn primary" id="redeemBtn" type="button">立即升级</button>
+          </div>
+          <div class="redeem-hint" id="redeemHint">兑换成功后会直接绑定到当前账号，原邀请码将失效。</div>
+        </div>
+      </div>
+
       <div class="risk-banner" id="riskBanner"></div>
 
       <div class="card soft">
@@ -468,6 +527,7 @@
 <script>
   // ----- utils -----
   function $(s) { return document.querySelector(s); }
+  let CURRENT_ME = null;
   function escapeHtml(s) {
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -596,6 +656,7 @@
     catch { location.href = '/login'; return; }
     if (r.status === 401) { location.href = '/login'; return; }
     const data = await r.json();
+    CURRENT_ME = data;
     const c = data.code || {};
     const m = data.membership || {};
 
@@ -659,9 +720,25 @@
     $('#rowExpires').textContent = expiryLabel;
     $('#rowExpires').classList.toggle('dim', m.is_member !== false);
     if (m.is_member === false) $('#rowExpires').style.color = '#f87171';
+    else $('#rowExpires').style.color = '';
     $('#rowCreated').textContent = formatDate(c.created_at);
     $('#rowLastUsed').textContent = formatDate(c.last_used_at);
     $('#rowDevice').textContent = deviceHint();
+
+    const redeemInput = $('#redeemInput');
+    const redeemBtn = $('#redeemBtn');
+    const redeemHint = $('#redeemHint');
+    if (data.kind !== 'account') {
+      redeemInput.disabled = true;
+      redeemBtn.disabled = true;
+      redeemHint.textContent = '当前是旧版邀请码身份，无法再给这个会话叠加升级，请先注册正式账号。';
+    } else {
+      redeemInput.disabled = false;
+      redeemBtn.disabled = false;
+      redeemHint.textContent = m.is_member === false
+        ? '输入新邀请码后会立即恢复会员权限并绑定到当前账号。'
+        : '输入新邀请码可直接给当前账号续期，原邀请码会立刻失效。';
+    }
 
     // Bind copy buttons
     document.querySelectorAll('.copy').forEach(btn => {
@@ -685,17 +762,17 @@
     });
 
     // Quick action: copy id
-    $('#copyIdBtn').addEventListener('click', async () => {
+    $('#copyIdBtn').onclick = async () => {
       const text = c.id || '';
       try { await navigator.clipboard.writeText(text); } catch {}
       showToast('账户 ID 已复制');
-    });
+    };
     // Quick action: copy current URL
-    $('#copyLinkBtn').addEventListener('click', async () => {
+    $('#copyLinkBtn').onclick = async () => {
       const text = location.href;
       try { await navigator.clipboard.writeText(text); } catch {}
       showToast('页面链接已复制');
-    });
+    };
   }
 
   async function doLogout() {
@@ -705,6 +782,52 @@
 
   document.getElementById('logoutBtn').addEventListener('click', doLogout);
   document.getElementById('logoutBtn2').addEventListener('click', doLogout);
+
+  async function redeemInvite() {
+    const input = $('#redeemInput');
+    const btn = $('#redeemBtn');
+    const raw = (input.value || '').trim();
+    if (!raw) {
+      showToast('请先输入邀请码');
+      input.focus();
+      return;
+    }
+    if (!CURRENT_ME || CURRENT_ME.kind !== 'account') {
+      showToast('当前会话暂不支持升级');
+      return;
+    }
+    btn.disabled = true;
+    const originalText = btn.textContent;
+    btn.textContent = '升级中...';
+    try {
+      const r = await fetch('/api/account/redeem-invite', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ code: raw }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) {
+        throw new Error(j.message || j.error || ('HTTP ' + r.status));
+      }
+      input.value = '';
+      await loadMe();
+      showToast('会员升级成功');
+    } catch (err) {
+      showToast('升级失败：' + (err && err.message ? err.message : '请稍后重试'));
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
+
+  $('#redeemBtn').addEventListener('click', redeemInvite);
+  $('#redeemInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      redeemInvite();
+    }
+  });
 
   loadMe();
 </script>

@@ -26,13 +26,14 @@ import * as announcements from './lib/announcements.js';
 import { inspect, autoBan } from './lib/behavior.js';
 import {
   getMembershipStatus, resolveAccountMembership, formatExpiresLabel, activationPatch,
+  addYears, DEFAULT_MEMBERSHIP_YEARS, isLegacyPermanent,
 } from './lib/membership.js';
 import {
   issueContentToken, consumeContentToken,
   signDownloadUrl, verifyDownloadSignature,
   issueVideoKey, issueVideoKeyToken, verifyVideoKeyToken,
 } from './lib/contentToken.js';
-import { describeConnection, query as mysqlQuery } from './lib/mysql.js';
+import { describeConnection, query as mysqlQuery, transaction } from './lib/mysql.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -287,6 +288,7 @@ function membershipPayload(status) {
 
 function adminAccountSummary(account) {
   if (!account) return null;
+  const membership = resolveAccountMembership(account);
   return {
     id: account.id,
     username: account.username,
@@ -294,6 +296,15 @@ function adminAccountSummary(account) {
     created_at: account.created_at || null,
     last_login_at: account.last_login_at || null,
     login_count: Number(account.login_count || 0),
+    is_member: membership.is_member,
+    membership_reason: membership.reason,
+    membership_expires_at: membership.expires_at || null,
+    membership_activated_at: membership.activated_at || null,
+    membership_years: membership.membership_years ?? null,
+    membership_label: membership.is_member
+      ? (membership.is_permanent ? '永久会员' : '会员')
+      : (membership.reason === 'expired' ? '已过期' : '非会员'),
+    membership_expires_label: formatExpiresLabel(membership),
     revoked: !!account.revoked,
     revoked_reason: account.revoked_reason || null,
     revoked_at: account.revoked_at || null,
@@ -938,6 +949,125 @@ app.get('/api/me', asyncHandler(async (req, res) => {
   });
 }));
 
+// /api/account/redeem-invite — redeem a fresh invite code onto the current
+// account so self-registered users can upgrade later, and expired members can
+// renew without creating a second account.
+app.post('/api/account/redeem-invite', requireAuth, asyncHandler(async (req, res) => {
+  if (req.userKind !== 'account' || !req.userId) {
+    return res.status(400).json({ ok: false, error: 'account_required' });
+  }
+
+  const redeemThrottle = take(`redeem:account:${req.userId}`, 5, 5 / (10 * 60));
+  if (!redeemThrottle.ok) {
+    return res.status(429).json({ ok: false, error: 'too_many_attempts', message: '兑换尝试过于频繁，请稍后再试' });
+  }
+
+  const rawCode = String(req.body?.code || '').trim();
+  if (!rawCode) {
+    return res.status(400).json({ ok: false, error: 'missing_code', message: '请输入邀请码' });
+  }
+
+  const normalized = rawCode.replace(/[\s-]/g, '').toUpperCase();
+  if (![32, 50].includes(normalized.length)) {
+    return res.status(400).json({ ok: false, error: 'invalid_code_format', message: '邀请码格式不正确（应为 32 位；旧邀请码 50 位也可用）' });
+  }
+
+  const account = await accounts.findById(req.userId);
+  if (!account) return res.status(404).json({ ok: false, error: 'account_not_found' });
+
+  const currentSourceCode = account.promoted_from_code ? await store.findById(account.promoted_from_code) : null;
+  const currentMembership = resolveAccountMembership(account, currentSourceCode);
+  if (currentMembership.is_member && currentMembership.is_permanent) {
+    return res.status(409).json({ ok: false, error: 'already_permanent_member', message: '当前账号已是永久会员，无需再次兑换' });
+  }
+
+  const entry = await store.findByPlaintext(normalized);
+  if (!entry) {
+    db.appendLog('security_event', { type: 'redeem_failed', reason: 'invalid_code', user_id: req.userId, ip: req.clientIp })
+      .catch(err => console.error('[redeem] log error:', err.message));
+    return res.status(401).json({ ok: false, error: 'invalid_code', message: '邀请码无效' });
+  }
+  if (entry.revoked) {
+    return res.status(409).json({ ok: false, error: 'revoked_code', message: '邀请码已吊销' });
+  }
+  if (store.isLoginDisabled(entry) || entry.consumed_for_account) {
+    return res.status(409).json({ ok: false, error: 'code_already_used', message: '邀请码已被使用' });
+  }
+
+  const redeemedAt = new Date().toISOString();
+  let membershipPatch;
+  if (isLegacyPermanent(entry)) {
+    membershipPatch = {
+      membership_years: null,
+      activated_at: redeemedAt,
+      expires_at: null,
+    };
+  } else {
+    const years = entry.membership_years ?? DEFAULT_MEMBERSHIP_YEARS;
+    const baseIso = currentMembership.is_member && currentMembership.expires_at
+      ? currentMembership.expires_at
+      : redeemedAt;
+    membershipPatch = {
+      membership_years: years,
+      activated_at: redeemedAt,
+      expires_at: addYears(baseIso, years),
+    };
+  }
+
+  const nextNote = (!account.note || account.note === 'self-registered account')
+    ? 'upgraded via invite'
+    : account.note;
+
+  try {
+    await transaction(async (conn) => {
+      const consumed = await store.consumeForPromotion(entry.id, account.id, conn);
+      if (!consumed) {
+        const err = new Error('邀请码已被使用');
+        err.code = 'code_already_used';
+        throw err;
+      }
+      const updated = await accounts.applyInviteRedemption(account.id, {
+        promoted_from_code: entry.id,
+        membership_years: membershipPatch.membership_years,
+        activated_at: membershipPatch.activated_at,
+        expires_at: membershipPatch.expires_at,
+        kind: 'promoted',
+        note: nextNote,
+      }, conn);
+      if (!updated) {
+        const err = new Error('account_not_found');
+        err.code = 'account_not_found';
+        throw err;
+      }
+    });
+  } catch (err) {
+    if (err?.code === 'code_already_used') {
+      return res.status(409).json({ ok: false, error: 'code_already_used', message: '邀请码已被使用' });
+    }
+    if (err?.code === 'account_not_found') {
+      return res.status(404).json({ ok: false, error: 'account_not_found' });
+    }
+    throw err;
+  }
+
+  const updatedAccount = await accounts.findById(account.id);
+  const updatedCode = updatedAccount?.promoted_from_code ? await store.findById(updatedAccount.promoted_from_code) : null;
+  const updatedMembership = resolveAccountMembership(updatedAccount, updatedCode);
+  db.appendLog('security_event', {
+    type: 'invite_redeemed_for_account',
+    user_id: account.id,
+    by: req.userId,
+    ip: req.clientIp,
+    code_id: entry.id,
+  }).catch(err => console.error('[redeem] log error:', err.message));
+
+  res.json({
+    ok: true,
+    membership: membershipPayload(updatedMembership),
+    code_id: entry.id,
+  });
+}));
+
 // ---------- Announcements ----------
 // Public read endpoint — any logged-in user can fetch active announcements.
 // Returns pinned-first, then newest-first. Expired or inactive rows are hidden.
@@ -1278,6 +1408,32 @@ app.get('/api/admin/security/overview', requireAuth, requireAdmin, asyncHandler(
   const sessions = sessionsAll.filter(s => !s.revoked);
   const accountMap = new Map(accountsAll.map(account => [account.id, account]));
 
+  const ipUserMap = new Map();
+  function rememberIpUser(ip, userId, ts) {
+    if (!ip || !userId) return;
+    const key = String(ip);
+    const bucket = ipUserMap.get(key) || new Map();
+    const prev = bucket.get(userId);
+    if (!prev || (ts || 0) > prev.last_seen_ts) {
+      bucket.set(userId, {
+        user_id: userId,
+        username: accountMap.get(userId)?.username || null,
+        last_seen_ts: ts || 0,
+      });
+    }
+    ipUserMap.set(key, bucket);
+  }
+
+  for (const row of behAll) rememberIpUser(row.ip, row.user_id, row.ts || 0);
+  for (const row of sessionsAll) {
+    const ts = row.updated_at || row.created_at || 0;
+    rememberIpUser(row.ip, row.user_id, new Date(ts || 0).getTime() || 0);
+  }
+  for (const row of eventsAll) {
+    const details = row.payload && typeof row.payload === 'object' ? row.payload : {};
+    rememberIpUser(row.ip || details.ip, row.user_id || details.user_id, row.ts || 0);
+  }
+
   // Top users
   const byUser = new Map();
   for (const b of beh) {
@@ -1331,7 +1487,16 @@ app.get('/api/admin/security/overview', requireAuth, requireAdmin, asyncHandler(
     top_users: topUsers,
     top_ips: topIps,
     recent_events: recentEvents,
-    blocked_ips: ipBlocks,
+    blocked_ips: ipBlocks.map((block) => {
+      const relatedUsers = [...(ipUserMap.get(block.ip)?.values() || [])]
+        .sort((a, b) => b.last_seen_ts - a.last_seen_ts)
+        .slice(0, 5);
+      return {
+        ...block,
+        related_users: relatedUsers,
+        related_usernames: relatedUsers.map((item) => item.username).filter(Boolean),
+      };
+    }),
     accounts: accountsAll.map(adminAccountSummary),
   });
 }));

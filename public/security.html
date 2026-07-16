@@ -461,12 +461,25 @@
     const wrap = $('#blockedWrap');
     if (!rows.length) { wrap.innerHTML = '<div class="empty">当前无封禁 IP</div>'; return; }
     const t = el('table');
-    t.innerHTML = '<thead><tr><th>IP</th><th>原因</th><th>到期</th><th></th></tr></thead>';
+    t.innerHTML = '<thead><tr><th>IP</th><th>关联用户</th><th>原因</th><th>封禁时间</th><th>到期</th><th></th></tr></thead>';
     const tb = el('tbody');
     for (const r of rows) {
       const tr = el('tr');
       tr.appendChild(el('td', null, el('span', { class: 'mono' }, r.ip)));
+      const userCell = el('div', { class: 'cell-stack' });
+      if (Array.isArray(r.related_users) && r.related_users.length) {
+        for (const user of r.related_users) {
+          const line = el('div', { class: 'cell-stack' });
+          line.appendChild(el('span', null, user.username || '未知用户名'));
+          line.appendChild(el('span', { class: 'mono cell-sub' }, user.user_id || '-'));
+          userCell.appendChild(line);
+        }
+      } else {
+        userCell.appendChild(el('span', null, '匿名/未知'));
+      }
+      tr.appendChild(el('td', null, userCell));
       tr.appendChild(el('td', null, r.reason || '-'));
+      tr.appendChild(el('td', null, r.created_at ? fmtTs(r.created_at) : '-'));
       tr.appendChild(el('td', null, r.expires_at ? fmtTs(r.expires_at) : '永久'));
       const btn = el('button', { class: 'btn' }, '解除');
       btn.onclick = async () => {
@@ -488,7 +501,7 @@
     const wrap = $('#accountsWrap');
     if (!rows.length) { wrap.innerHTML = '<div class="empty">暂无账号数据</div>'; return; }
     const t = el('table');
-    t.innerHTML = '<thead><tr><th>用户名</th><th>用户 ID</th><th>注册时间</th><th>最近登录</th><th>登录次数</th><th>状态</th><th>封禁原因</th><th>操作</th></tr></thead>';
+    t.innerHTML = '<thead><tr><th>用户名</th><th>用户 ID</th><th>注册时间</th><th>最近登录</th><th>登录次数</th><th>会员</th><th>状态</th><th>封禁原因</th><th>操作</th></tr></thead>';
     const tb = el('tbody');
     for (const r of rows) {
       const tr = el('tr');
@@ -497,6 +510,15 @@
       tr.appendChild(el('td', null, fmtMaybeTs(r.created_at)));
       tr.appendChild(el('td', null, fmtMaybeTs(r.last_login_at)));
       tr.appendChild(el('td', null, String(r.login_count || 0)));
+      const membershipCell = el('div', { class: 'cell-stack' });
+      let membershipPillClass = 'pill';
+      if (r.is_member) membershipPillClass += ' ok';
+      else if (r.membership_reason === 'expired') membershipPillClass += ' danger';
+      membershipCell.appendChild(el('span', { class: membershipPillClass }, r.membership_label || (r.is_member ? '会员' : '非会员')));
+      if (r.membership_expires_label && r.membership_expires_label !== '—') {
+        membershipCell.appendChild(el('span', { class: 'cell-sub' }, r.membership_expires_label));
+      }
+      tr.appendChild(el('td', null, membershipCell));
       tr.appendChild(el('td', null,
         el('span', { class: 'pill ' + (r.revoked ? 'danger' : 'ok') }, r.revoked ? '已封禁' : '正常')
       ));
