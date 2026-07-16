@@ -129,6 +129,25 @@ app.get('/api/db-health', asyncHandler(async (_req, res) => {
 
 const PORTAL_DIST = path.join(__dirname, 'portal', 'dist');
 const PROMPTS_PATH = path.join(__dirname, 'merged-prompts.json');
+const COVER_THUMBS_MANIFEST_PATH = path.join(__dirname, 'public', 'static', 'covers-thumbs', 'manifest.json');
+let COVER_THUMBS = Object.create(null);
+
+function loadCoverThumbsManifest() {
+  try {
+    if (!fs.existsSync(COVER_THUMBS_MANIFEST_PATH)) {
+      COVER_THUMBS = Object.create(null);
+      return;
+    }
+    const raw = fs.readFileSync(COVER_THUMBS_MANIFEST_PATH, 'utf8');
+    const parsed = JSON.parse(raw);
+    COVER_THUMBS = parsed && typeof parsed === 'object' ? parsed : Object.create(null);
+    console.log(`  -> cover thumbs loaded: ${Object.keys(COVER_THUMBS).length} items`);
+  } catch (err) {
+    COVER_THUMBS = Object.create(null);
+    console.warn('[covers] failed to load thumbnail manifest:', err?.message || err);
+  }
+}
+loadCoverThumbsManifest();
 
 // ---------- In-memory prompts cache ----------
 // The full /api/prompts payload is built once at boot (the JSON file is 1.8MB;
@@ -477,6 +496,7 @@ function promptBodyPayload(found, watermark = null) {
     is_free: meta.is_free,
     prompt_text: found.prompt_text || null,
     preview_image_url: meta.preview_image_url,
+    preview_thumb_url: meta.preview_thumb_url,
     preview_video_url: meta.preview_video_url,
     playable_video_url: meta.playable_video_url,
     watermark,
@@ -1337,6 +1357,7 @@ function promptListItem(p) {
   const previewImageUrl = explicitImage || (derived?.kind === 'image' ? derived.url : null);
   const previewVideoUrl = explicitVideo || null;
   const playableVideoUrl = explicitPlayable || (derived?.kind === 'video' ? derived.url : null);
+  const previewThumbUrl = previewImageUrl ? (COVER_THUMBS[previewImageUrl] || null) : null;
   const hasPreview = !!(previewImageUrl || previewVideoUrl || playableVideoUrl);
   const wasBlindBox = p.special_collection === 'blind_box';
 
@@ -1352,6 +1373,7 @@ function promptListItem(p) {
     row_span: p.row_span,
     is_free: !!p.is_free,
     preview_image_url: previewImageUrl,
+    preview_thumb_url: previewThumbUrl,
     preview_video_url: previewVideoUrl,
     playable_video_url: playableVideoUrl,
     // has_prompt_text: hint that content is available; never include the body.
@@ -1811,12 +1833,21 @@ app.get('/teach.mp4', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'teach.mp4'));
 });
 
-app.use('/static', express.static(path.join(__dirname, 'public', 'static'), {
-  maxAge: 0,
-  // Disable directory listing / execution
+app.use('/static/covers-thumbs', express.static(path.join(__dirname, 'public', 'static', 'covers-thumbs'), {
+  maxAge: '1y',
+  immutable: true,
   index: false,
   setHeaders: (res) => {
-    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+  },
+}));
+
+app.use('/static', express.static(path.join(__dirname, 'public', 'static'), {
+  maxAge: '1d',
+  index: false,
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'public, max-age=86400');
     res.setHeader('X-Content-Type-Options', 'nosniff');
   },
 }));

@@ -366,6 +366,8 @@
     overflow: hidden;
     cursor: pointer;
     transition: transform .12s, border-color .12s, box-shadow .12s;
+    content-visibility: auto;
+    contain-intrinsic-size: 340px;
   }
   .card:hover {
     transform: translateY(-2px);
@@ -1544,6 +1546,31 @@ function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+function optimizedCoverUrl(src, mode='card') {
+  const value = String(src || '').trim();
+  if (!value) return '';
+  const size = mode === 'detail'
+    ? { width: 1280, quality: 82 }
+    : { width: 640, quality: 68 };
+  try {
+    const url = new URL(value, window.location.origin);
+    const params = url.searchParams;
+    const host = url.hostname.toLowerCase();
+    const canResize = host.includes('images.higgs.ai')
+      || params.has('url')
+      || params.has('w')
+      || params.has('q')
+      || params.has('output');
+    if (!canResize) return value;
+    params.set('output', 'webp');
+    params.set('w', String(size.width));
+    params.set('q', String(size.quality));
+    return url.href;
+  } catch {
+    return value;
+  }
+}
+
 function hasPreviewCover(p) {
   return !!(p.preview_image_url || p.preview_video_url || p.playable_video_url);
 }
@@ -1556,7 +1583,8 @@ function usesManghePlaceholder(p) {
 
 function previewHtml(item) {
   if (item.preview_image_url) {
-    return `<img src="${escapeHtml(item.preview_image_url)}" alt="${escapeHtml(item.title)}" loading="lazy" decoding="async" />`;
+    const thumbUrl = item.preview_thumb_url || optimizedCoverUrl(item.preview_image_url, 'card');
+    return `<img src="${escapeHtml(thumbUrl)}" alt="${escapeHtml(item.title)}" width="640" height="400" loading="lazy" decoding="async" fetchpriority="low" />`;
   }
   // playable_video_url is the canonical field; preview_video_url is a legacy alias.
   const videoUrl = item.preview_video_url || item.playable_video_url;
@@ -1572,7 +1600,7 @@ function previewHtml(item) {
   // never drifts from the view / count / filter logic.
   const isManghe = usesManghePlaceholder(item);
   return `<div class="ph">
-    <img class="ph-img" src="/static/manghe.png" alt="${isManghe ? '盲盒占位图' : '占位图'}" loading="lazy" decoding="async" />
+    <img class="ph-img" src="/static/manghe.png" alt="${isManghe ? '盲盒占位图' : '占位图'}" width="640" height="400" loading="lazy" decoding="async" fetchpriority="low" />
     ${isManghe ? '<span class="ph-tag">盲盒</span>' : ''}
   </div>`;
 }
@@ -2164,7 +2192,8 @@ async function openModal(id) {
   }
   const playUrl = item.playable_video_url || item.preview_video_url;
   if (item.preview_image_url) {
-    modalPreview.innerHTML = `<div class="preview-big"><img src="${escapeHtml(item.preview_image_url)}" alt="${escapeHtml(item.title)}" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>`;
+    const detailUrl = optimizedCoverUrl(item.preview_image_url, 'detail');
+    modalPreview.innerHTML = `<div class="preview-big"><img src="${escapeHtml(detailUrl)}" alt="${escapeHtml(item.title)}" width="1280" height="800" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>`;
   } else if (playUrl) {
     modalPreview.innerHTML = `<div class="preview-big"><video src="${escapeHtml(playUrl)}" controls muted playsinline></video></div>`;
   } else {
