@@ -86,6 +86,9 @@
       color: var(--text-dim); border-radius: 6px; cursor: pointer;
     }
     .btn:hover { color: var(--text); border-color: #3a3a44; }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .btn.warn { color: #fde68a; border-color: rgba(251,191,36,.35); }
+    .btn.warn:hover { background: rgba(251,191,36,.1); }
     .btn.danger { color: #fca5a5; border-color: rgba(248,113,113,.3); }
     .btn.danger:hover { background: rgba(248,113,113,.1); }
     .toolbar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
@@ -100,6 +103,47 @@
     }
     .toolbar button { padding: 8px 14px; }
     .empty { padding: 20px; color: var(--text-dim); text-align: center; font-size: 13px; }
+    .list-scroll {
+      max-height: min(420px, 52vh);
+      overflow-y: auto;
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel);
+    }
+    .list-scroll.tall { max-height: min(560px, 62vh); }
+    .list-scroll table {
+      border: 0;
+      border-radius: 0;
+      min-width: 720px;
+    }
+    .list-scroll th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .list-scroll .empty { background: var(--panel); }
+    .account-table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--panel);
+    }
+    .account-table-wrap table {
+      border: 0;
+      border-radius: 0;
+      min-width: 1080px;
+    }
+    .pager {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 10px;
+      color: var(--text-dim);
+      font-size: 12px;
+    }
+    .pager-info { padding: 0 4px; }
     .cell-stack { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
     .cell-sub { color: var(--text-dim); font-size: 11px; }
     .reason-text { max-width: 320px; white-space: pre-wrap; word-break: break-word; }
@@ -153,6 +197,35 @@
       color: var(--text-dim); border-radius: 8px; cursor: pointer;
     }
     .btn-ghost:hover { color: var(--text); border-color: #3a3a44; }
+
+    .modal-backdrop {
+      position: fixed; inset: 0; z-index: 90;
+      display: none; align-items: center; justify-content: center;
+      padding: 22px;
+      background: rgba(0,0,0,.62);
+      backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    }
+    .modal-backdrop.show { display: flex; }
+    .modal-card {
+      width: min(560px, 100%);
+      background: #15151c;
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: 14px;
+      box-shadow: 0 24px 80px rgba(0,0,0,.42);
+      padding: 20px;
+    }
+    .modal-head {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 16px; margin-bottom: 16px;
+    }
+    .modal-head h2 { font-size: 18px; margin: 0 0 5px; }
+    .modal-head p { color: var(--text-dim); font-size: 12px; line-height: 1.6; }
+    .modal-close {
+      width: 30px; height: 30px; border-radius: 8px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text-dim); cursor: pointer;
+    }
+    .modal-close:hover { color: var(--text); border-color: #3a3a44; }
 
     /* Code generation result panel */
     .code-result {
@@ -257,19 +330,20 @@
       <div class="card"><div class="lbl">安全事件</div><div class="val" id="kEvents">-</div></div>
       <div class="card warn"><div class="lbl">登录失败</div><div class="val" id="kLoginFail">-</div></div>
       <div class="card danger"><div class="lbl">高风险拦截</div><div class="val" id="kHighRisk">-</div></div>
-      <div class="card warn"><div class="lbl">自动封禁候选</div><div class="val" id="kAutoBan">-</div></div>
+      <div class="card warn"><div class="lbl">自动封禁</div><div class="val" id="kAutoBan">-</div></div>
+      <div class="card danger"><div class="lbl">蜜罐封号</div><div class="val" id="kHoneypotBan">-</div></div>
       <div class="card"><div class="lbl">封禁 IP</div><div class="val" id="kIpBlock">-</div></div>
       <div class="card ok"><div class="lbl">活跃会话</div><div class="val" id="kSessions">-</div></div>
     </div>
 
     <section>
       <h2>排行榜 - 最活跃用户</h2>
-      <div id="topUsersWrap"></div>
+      <div id="topUsersWrap" class="list-scroll"></div>
     </section>
 
     <section>
       <h2>排行榜 - 最频繁 IP</h2>
-      <div id="topIpsWrap"></div>
+      <div id="topIpsWrap" class="list-scroll"></div>
     </section>
 
     <section>
@@ -279,7 +353,7 @@
         <input id="blockReason" placeholder="原因 (可选)" />
         <button class="btn danger" id="blockBtn">封禁</button>
       </div>
-      <div id="blockedWrap"></div>
+      <div id="blockedWrap" class="list-scroll"></div>
     </section>
 
     <section>
@@ -292,12 +366,13 @@
         </select>
         <span class="sub" id="accountsMeta" style="margin:0;font-size:12px;color:var(--text-dim);"></span>
       </div>
-      <div id="accountsWrap"></div>
+      <div id="accountsWrap" class="account-table-wrap"></div>
+      <div id="accountsPager" class="pager"></div>
     </section>
 
     <section>
       <h2>最近安全事件</h2>
-      <div id="eventsWrap"></div>
+      <div id="eventsWrap" class="list-scroll tall"></div>
     </section>
   </div>
 
@@ -330,7 +405,22 @@
       <span class="sub" id="invHint" style="margin:0;font-size:12px;color:var(--text-faint);"></span>
     </div>
 
-    <div id="invResult"></div>
+    <div id="invResult" class="list-scroll tall"></div>
+
+    <section style="margin-top:28px;">
+      <h2>销毁邀请码</h2>
+      <div class="sub">适用于你已经手动帮用户升级会员，但之前发出去的邀请码需要立刻作废的情况。支持输入邀请码明文，或者直接输入邀请码 ID。</div>
+      <div class="form-grid">
+        <div class="form-field" style="grid-column:1/-1;">
+          <label for="invRevokeInput">邀请码明文 / 邀请码 ID</label>
+          <input id="invRevokeInput" type="text" placeholder="例如: ABCDE-FGHIJ-... 或 c_xxxxxxxxxx" />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-primary" id="invRevokeBtn" type="button">销毁</button>
+        <span class="sub" id="invRevokeHint" style="margin:0;font-size:12px;color:var(--text-faint);"></span>
+      </div>
+    </section>
   </div>
 
   <!-- Tab 3: 公告 -->
@@ -372,15 +462,79 @@
 
     <section style="margin-top:32px;">
       <h2>已有公告 <span style="font-weight:400;color:var(--text-dim);font-size:12px;">(含已停用和已过期)</span></h2>
-      <div id="annList"></div>
+      <div id="annList" class="list-scroll tall"></div>
     </section>
   </div>
 </main>
 
+<div class="modal-backdrop" id="messageModal" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="messageModalTitle">
+    <div class="modal-head">
+      <div>
+        <h2 id="messageModalTitle">发送站内消息</h2>
+        <p id="messageTarget">选择账号后，可以把通知、提醒或复核结果发送到用户个人中心。</p>
+      </div>
+      <button class="modal-close" id="messageCloseBtn" type="button" aria-label="关闭">x</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-field">
+        <label for="msgKind">类型</label>
+        <select id="msgKind">
+          <option value="info">通知</option>
+          <option value="warn">提醒</option>
+          <option value="success">结果</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label for="msgTitle">标题</label>
+        <input id="msgTitle" type="text" maxlength="200" placeholder="例如：账号复核结果" />
+      </div>
+      <div class="form-field" style="grid-column:1/-1;">
+        <label for="msgBody">正文</label>
+        <textarea id="msgBody" maxlength="5000" placeholder="输入要发送给用户的内容..."></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-primary" id="msgSendBtn" type="button">发送</button>
+      <button class="btn-ghost" id="msgCancelBtn" type="button">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="upgradeModal" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="upgradeModalTitle">
+    <div class="modal-head">
+      <div>
+        <h2 id="upgradeModalTitle">升级会员</h2>
+        <p id="upgradeTarget">系统会自动生成一枚内部邀请码并立即绑定到该账号，不会展示明文邀请码。</p>
+      </div>
+      <button class="modal-close" id="upgradeCloseBtn" type="button" aria-label="关闭">x</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-field">
+        <label for="upgradeYears">会员年限</label>
+        <input id="upgradeYears" type="number" min="1" max="100" step="1" value="10" />
+      </div>
+      <div class="form-field">
+        <label>处理方式</label>
+        <input type="text" value="自动生成内部邀请码并绑定" disabled />
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-primary" id="upgradeSubmitBtn" type="button">确认升级</button>
+      <button class="btn-ghost" id="upgradeCancelBtn" type="button">取消</button>
+    </div>
+  </div>
+</div>
+
 <script>
   const SECURITY_STATE = {
     accounts: [],
+    accountPage: 1,
+    messageTarget: null,
+    upgradeTarget: null,
   };
+  const ACCOUNT_PAGE_SIZE = 10;
 
   function $(s) { return document.querySelector(s); }
   function el(tag, attrs, ...kids) {
@@ -406,11 +560,19 @@
     register_failed: '注册失败',
     register_ok: '注册成功',
     register_high_risk_blocked: '高风险注册拦截',
+    register_identity_limited: '注册数量限制拦截',
     auto_ban_candidate: '自动封禁候选',
+    auto_honeypot_user_ban: '蜜罐自动封号',
+    honeypot_user_ban_skipped: '蜜罐封号跳过',
     behavior_blocked: '行为风控拦截',
     manual_block: '手动封禁 IP',
     manual_user_ban: '手动封禁账号',
     manual_user_unban: '手动解封账号',
+    manual_password_reset: '管理员重置密码',
+    admin_member_upgraded: '管理员升级会员',
+    admin_message_sent: '管理员发送消息',
+    invite_revoked: '邀请码销毁',
+    decoy_cleared: '清除注入状态',
     user_flagged: '用户被标记风险',
     prompt_sweep_detected: '批量扫读提示词',
     honeypot_triggered: '命中蜜罐',
@@ -430,6 +592,7 @@
     prompt_sweep_10m: '10 分钟内扫读大量不同提示词，疑似自动化采集。',
     prompt_sweep_1h: '1 小时内持续扫读大量提示词，疑似长期爬取。',
     catalog_preview_rate_limit: '游客预览请求过于频繁，已触发预览限速策略。',
+    test_or_admin_account: '测试号或管理员账号命中蜜罐，已跳过自动封号。',
     auth_form_fill: '命中登录表单蜜罐字段，疑似自动填表脚本。',
     register_form_fill: '命中注册表单蜜罐字段，疑似自动填表脚本。',
     fake_resource_probe: '访问了伪造资源入口，疑似探测整库导出接口。',
@@ -499,6 +662,10 @@
     if (e.trap_kind) lines.push('蜜罐类型: ' + formatRiskReason(e.trap_kind));
     if (e.action === 'revoke_session') lines.push('处置: 已撤销当前会话');
     if (e.action === 'revoke_all_sessions') lines.push('处置: 已撤销该账号全部会话');
+    if (e.type === 'auto_honeypot_user_ban') lines.push('处置: 已自动封禁账号并退出全部设备');
+    if (e.type === 'honeypot_user_ban_skipped') lines.push('处置: 测试号/管理员白名单，未封号');
+    if (e.type === 'decoy_cleared') lines.push('处置: 已清除注入状态');
+    if (e.revoked_sessions != null) lines.push('退出会话: ' + e.revoked_sessions + ' 个');
     if (e.ip) lines.push('IP: ' + e.ip);
     return lines.join('\n') || '—';
   }
@@ -532,6 +699,7 @@
     $('#kLoginFail').textContent = c.login_failed ?? '-';
     $('#kHighRisk').textContent = c.login_high_risk ?? '-';
     $('#kAutoBan').textContent = c.auto_ban ?? '-';
+    $('#kHoneypotBan').textContent = c.auto_honeypot_user_ban ?? '-';
     $('#kIpBlock').textContent = c.blocked_ips ?? '-';
     $('#kSessions').textContent = c.active_sessions ?? '-';
     $('#updated').textContent = '更新于 ' + fmtTs(Date.now()) + ' - 窗口 ' + j.window;
@@ -547,7 +715,7 @@
     const wrap = $('#topUsersWrap');
     if (!rows.length) { wrap.innerHTML = '<div class="empty">暂无数据</div>'; return; }
     const t = el('table');
-    t.innerHTML = '<thead><tr><th>用户</th><th>请求数</th></tr></thead>';
+    t.innerHTML = '<thead><tr><th>用户</th><th>请求数</th><th></th></tr></thead>';
     const tb = el('tbody');
     for (const r of rows) {
       const tr = el('tr');
@@ -556,6 +724,18 @@
       cell.appendChild(el('span', { class: 'mono cell-sub' }, r.user_id || '-'));
       tr.appendChild(el('td', null, cell));
       tr.appendChild(el('td', null, String(r.hits)));
+      const btn = el('button', { class: 'btn danger' }, '封禁');
+      if (r.user_id) {
+        btn.onclick = () => doBanUser({
+          id: r.user_id,
+          username: r.username || r.user_id,
+          revoked_reason: '活跃请求异常',
+        });
+      } else {
+        btn.disabled = true;
+        btn.title = '未知用户无法封禁账号';
+      }
+      tr.appendChild(el('td', null, btn));
       tb.appendChild(tr);
     }
     t.appendChild(tb);
@@ -641,21 +821,44 @@
     return rows;
   }
 
+  function formatAccountStatusDetail(r) {
+    if (!r) return '-';
+    const lines = [];
+    if (r.effective_status_detail) lines.push(r.effective_status_detail);
+    if (r.decoy_active && r.decoy_marked_at) lines.push('注入触发于 ' + fmtTs(r.decoy_marked_at));
+    if (r.decoy_cleared_at) lines.push('最近清除注入 ' + fmtTs(r.decoy_cleared_at));
+    if (r.active_session_count != null) lines.push('活跃会话 ' + r.active_session_count + ' 个');
+    if (r.latest_behavior_blocked?.reason) lines.push('最近风控: ' + formatRiskReason(r.latest_behavior_blocked.reason));
+    if (r.revoked_reason) lines.push('封禁原因: ' + formatReasonList(r.revoked_reason));
+    if (r.revoked_at) lines.push('封禁于 ' + fmtTs(r.revoked_at));
+    return lines.length ? lines.join('\n') : '-';
+  }
+
   function renderAccounts() {
     const wrap = $('#accountsWrap');
+    const pager = $('#accountsPager');
     const rows = getFilteredAccounts();
     const meta = $('#accountsMeta');
-    if (meta) {
-      meta.textContent = `显示 ${rows.length} / ${SECURITY_STATE.accounts.length} 个账号`;
-    }
     if (!rows.length) {
+      if (meta) {
+        meta.textContent = `显示 0 / ${SECURITY_STATE.accounts.length} 个账号`;
+      }
       wrap.innerHTML = `<div class="empty">${SECURITY_STATE.accounts.length ? '没有匹配的账号' : '暂无账号数据'}</div>`;
+      if (pager) pager.innerHTML = '';
       return;
+    }
+    const totalPages = Math.max(1, Math.ceil(rows.length / ACCOUNT_PAGE_SIZE));
+    SECURITY_STATE.accountPage = Math.min(Math.max(1, SECURITY_STATE.accountPage || 1), totalPages);
+    const start = (SECURITY_STATE.accountPage - 1) * ACCOUNT_PAGE_SIZE;
+    const end = Math.min(start + ACCOUNT_PAGE_SIZE, rows.length);
+    const pageRows = rows.slice(start, end);
+    if (meta) {
+      meta.textContent = `显示 ${start + 1}-${end} / ${rows.length} 个账号`;
     }
     const t = el('table');
     t.innerHTML = '<thead><tr><th>用户名</th><th>用户 ID</th><th>注册时间</th><th>最近登录</th><th>登录次数</th><th>会员</th><th>状态</th><th>封禁原因</th><th>操作</th></tr></thead>';
     const tb = el('tbody');
-    for (const r of rows) {
+    for (const r of pageRows) {
       const tr = el('tr');
       tr.appendChild(el('td', null, r.username || '-'));
       tr.appendChild(el('td', null, el('span', { class: 'mono' }, r.id || '-')));
@@ -672,16 +875,29 @@
       }
       tr.appendChild(el('td', null, membershipCell));
       tr.appendChild(el('td', null,
-        el('span', { class: 'pill ' + (r.revoked ? 'danger' : 'ok') }, r.revoked ? '已封禁' : '正常')
+        el('span', { class: 'pill ' + (r.effective_status_class || (r.revoked ? 'danger' : 'ok')) }, r.effective_status_label || (r.revoked ? '已封禁' : '正常'))
       ));
       const reasonCell = el('div', { class: 'cell-stack' });
-      reasonCell.appendChild(el('div', { class: 'reason-text' }, r.revoked_reason ? formatReasonList(r.revoked_reason) : '-'));
+      reasonCell.appendChild(el('div', { class: 'reason-text' }, formatAccountStatusDetail(r)));
       if (r.revoked_reason && !/[\u4e00-\u9fa5]/.test(String(r.revoked_reason))) {
         reasonCell.appendChild(el('span', { class: 'mono cell-sub' }, r.revoked_reason));
       }
-      if (r.revoked_at) reasonCell.appendChild(el('span', { class: 'cell-sub' }, '封禁于 ' + fmtTs(r.revoked_at)));
       tr.appendChild(el('td', null, reasonCell));
       const actions = el('div', { class: 'actions-row' });
+      const messageBtn = el('button', { class: 'btn' }, '发消息');
+      messageBtn.onclick = () => openMessageModal(r);
+      actions.appendChild(messageBtn);
+      if (!r.is_member && !r.revoked) {
+        const upgradeBtn = el('button', { class: 'btn' }, '升级会员');
+        upgradeBtn.onclick = () => openUpgradeModal(r);
+        actions.appendChild(upgradeBtn);
+      }
+      const resetBtn = el('button', { class: 'btn warn' }, '重置密码');
+      resetBtn.onclick = () => doResetPassword(r);
+      actions.appendChild(resetBtn);
+      const clearDecoyBtn = el('button', { class: 'btn' }, '清除注入');
+      clearDecoyBtn.onclick = () => doClearDecoyState(r);
+      actions.appendChild(clearDecoyBtn);
       if (r.revoked) {
         const btn = el('button', { class: 'btn' }, '解封');
         btn.onclick = () => doUnbanUser(r);
@@ -697,6 +913,32 @@
     t.appendChild(tb);
     wrap.innerHTML = '';
     wrap.appendChild(t);
+    renderAccountsPager(rows.length, totalPages, start, end);
+  }
+
+  function renderAccountsPager(totalRows, totalPages, start, end) {
+    const pager = $('#accountsPager');
+    if (!pager) return;
+    pager.innerHTML = '';
+    if (totalPages <= 1) {
+      pager.appendChild(el('span', { class: 'pager-info' }, `共 ${totalRows} 个账号`));
+      return;
+    }
+    const prev = el('button', { class: 'btn', type: 'button' }, '上一页');
+    prev.disabled = SECURITY_STATE.accountPage <= 1;
+    prev.onclick = () => {
+      SECURITY_STATE.accountPage -= 1;
+      renderAccounts();
+    };
+    const next = el('button', { class: 'btn', type: 'button' }, '下一页');
+    next.disabled = SECURITY_STATE.accountPage >= totalPages;
+    next.onclick = () => {
+      SECURITY_STATE.accountPage += 1;
+      renderAccounts();
+    };
+    pager.appendChild(el('span', { class: 'pager-info' }, `${start + 1}-${end} / ${totalRows} · 第 ${SECURITY_STATE.accountPage} / ${totalPages} 页`));
+    pager.appendChild(prev);
+    pager.appendChild(next);
   }
 
   function renderEvents(rows) {
@@ -738,8 +980,14 @@
     $('#blockIp').value = ''; $('#blockReason').value = '';
   };
 
-  $('#accountSearch').addEventListener('input', () => renderAccounts());
-  $('#accountSort').addEventListener('change', () => renderAccounts());
+  $('#accountSearch').addEventListener('input', () => {
+    SECURITY_STATE.accountPage = 1;
+    renderAccounts();
+  });
+  $('#accountSort').addEventListener('change', () => {
+    SECURITY_STATE.accountPage = 1;
+    renderAccounts();
+  });
 
   async function doBanUser(account) {
     const input = prompt('请输入封禁原因（会显示在后台）', account.revoked_reason || '手动封禁');
@@ -775,6 +1023,167 @@
       showToast('解封失败: ' + e.message, 'err');
     }
   }
+
+  async function doResetPassword(account) {
+    const label = account.username || account.id;
+    const password = prompt('请输入账号「' + label + '」的新密码（至少 8 位）');
+    if (password === null) return;
+    const confirmPassword = prompt('请再次输入新密码');
+    if (confirmPassword === null) return;
+    if (password !== confirmPassword) {
+      showToast('两次输入的密码不一致', 'err');
+      return;
+    }
+    if (password.length < 8) {
+      showToast('密码至少 8 位', 'err');
+      return;
+    }
+    if (!confirm('确认重置账号「' + label + '」的密码？该账号所有已登录设备会被退出。')) return;
+    try {
+      const r = await fetch('/api/admin/security/reset-password', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ user_id: account.id, password }),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) throw new Error(j.error || ('HTTP ' + r.status));
+      showToast('已重置 ' + label + ' 的密码，退出设备 ' + (j.revoked_sessions || 0) + ' 个', 'ok');
+      loadSecurity();
+    } catch (e) {
+      showToast('重置失败: ' + e.message, 'err');
+    }
+  }
+
+  async function doClearDecoyState(account) {
+    const label = account.username || account.id;
+    if (!confirm('确认清除「' + label + '」的注入状态？这会让其下次加载时恢复正常正文。')) return;
+    try {
+      const r = await fetch('/api/admin/security/clear-decoy-state', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ user_id: account.id }),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) throw new Error(j.error || ('HTTP ' + r.status));
+      showToast('已清除 ' + label + ' 的注入状态', 'ok');
+      loadSecurity();
+    } catch (e) {
+      showToast('清除失败: ' + e.message, 'err');
+    }
+  }
+
+  function openUpgradeModal(account) {
+    SECURITY_STATE.upgradeTarget = account;
+    $('#upgradeTarget').textContent = '升级账号：' + (account.username || account.id) + ' · ' + account.id;
+    $('#upgradeYears').value = '10';
+    $('#upgradeModal').classList.add('show');
+    $('#upgradeModal').setAttribute('aria-hidden', 'false');
+    setTimeout(() => $('#upgradeYears').focus(), 0);
+  }
+
+  function closeUpgradeModal() {
+    SECURITY_STATE.upgradeTarget = null;
+    $('#upgradeModal').classList.remove('show');
+    $('#upgradeModal').setAttribute('aria-hidden', 'true');
+  }
+
+  async function submitUpgradeMember() {
+    const account = SECURITY_STATE.upgradeTarget;
+    if (!account) return;
+    const label = account.username || account.id;
+    const years = Number($('#upgradeYears').value);
+    if (!Number.isFinite(years) || years <= 0) {
+      showToast('会员年限必须是大于 0 的数字', 'err');
+      return;
+    }
+    const btn = $('#upgradeSubmitBtn');
+    btn.disabled = true;
+    btn.textContent = '升级中...';
+    try {
+      const r = await fetch('/api/admin/security/upgrade-member', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ user_id: account.id, membership_years: Math.floor(years) }),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) throw new Error(j.message || j.error || ('HTTP ' + r.status));
+      showToast('已升级 ' + label + ' 为会员', 'ok');
+      closeUpgradeModal();
+      loadSecurity();
+    } catch (e) {
+      showToast('升级失败: ' + e.message, 'err');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '确认升级';
+    }
+  }
+
+  function openMessageModal(account) {
+    SECURITY_STATE.messageTarget = account;
+    $('#messageTarget').textContent = '发送给：' + (account.username || account.id) + ' · ' + account.id;
+    $('#msgKind').value = 'info';
+    $('#msgTitle').value = '来自管理员的消息';
+    $('#msgBody').value = '';
+    $('#messageModal').classList.add('show');
+    $('#messageModal').setAttribute('aria-hidden', 'false');
+    setTimeout(() => $('#msgTitle').focus(), 0);
+  }
+
+  function closeMessageModal() {
+    SECURITY_STATE.messageTarget = null;
+    $('#messageModal').classList.remove('show');
+    $('#messageModal').setAttribute('aria-hidden', 'true');
+  }
+
+  async function sendUserMessage() {
+    const target = SECURITY_STATE.messageTarget;
+    if (!target) return;
+    const kind = $('#msgKind').value;
+    const title = $('#msgTitle').value.trim();
+    const body = $('#msgBody').value.trim();
+    if (!title || !body) {
+      showToast('标题和正文不能为空', 'err');
+      return;
+    }
+    const btn = $('#msgSendBtn');
+    btn.disabled = true;
+    btn.textContent = '发送中...';
+    try {
+      const r = await fetch('/api/admin/messages', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ user_id: target.id, kind, title, body }),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) throw new Error(j.error || ('HTTP ' + r.status));
+      showToast('已发送给 ' + (target.username || target.id), 'ok');
+      closeMessageModal();
+      loadSecurity();
+    } catch (e) {
+      showToast('发送失败: ' + e.message, 'err');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '发送';
+    }
+  }
+
+  $('#messageCloseBtn').onclick = closeMessageModal;
+  $('#msgCancelBtn').onclick = closeMessageModal;
+  $('#msgSendBtn').onclick = sendUserMessage;
+  $('#upgradeCloseBtn').onclick = closeUpgradeModal;
+  $('#upgradeCancelBtn').onclick = closeUpgradeModal;
+  $('#upgradeSubmitBtn').onclick = submitUpgradeMember;
+  $('#messageModal').addEventListener('click', (event) => {
+    if (event.target === $('#messageModal')) closeMessageModal();
+  });
+  $('#upgradeModal').addEventListener('click', (event) => {
+    if (event.target === $('#upgradeModal')) closeUpgradeModal();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && $('#messageModal').classList.contains('show')) closeMessageModal();
+    if (event.key === 'Escape' && $('#upgradeModal').classList.contains('show')) closeUpgradeModal();
+  });
   // ---- Tab 2: 邀请码 ----
   function formatCode(p) {
     // Insert dashes every 5 chars for readability: ABCDE-FGHIJ-KLMNO-...
@@ -786,7 +1195,9 @@
     $('#invLabel').value = '';
     $('#invNote').value = '';
     $('#invYears').value = 10;
+    $('#invRevokeInput').value = '';
     $('#invResult').innerHTML = '';
+    $('#invRevokeHint').textContent = '';
   };
 
   $('#invGenerateBtn').onclick = async () => {
@@ -812,6 +1223,43 @@
     } finally {
       btn.disabled = false;
       btn.textContent = '生成';
+    }
+  };
+
+  $('#invRevokeBtn').onclick = async () => {
+    const raw = $('#invRevokeInput').value.trim();
+    if (!raw) {
+      showToast('请先输入邀请码明文或邀请码 ID', 'err');
+      return;
+    }
+    const btn = $('#invRevokeBtn');
+    const hint = $('#invRevokeHint');
+    btn.disabled = true;
+    btn.textContent = '销毁中...';
+    hint.textContent = '';
+    try {
+      const payload = raw.startsWith('c_')
+        ? { invite_id: raw }
+        : { code: raw };
+      const r = await fetch('/api/admin/invites/revoke', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) throw new Error(j.message || j.error || ('HTTP ' + r.status));
+      $('#invRevokeInput').value = '';
+      hint.textContent = j.already_revoked
+        ? `该邀请码之前就已经作废：${j.invite?.id || '-'}`
+        : `已销毁邀请码：${j.invite?.id || '-'}`;
+      showToast(j.already_revoked ? '该邀请码之前就已作废' : '邀请码已销毁', 'ok');
+    } catch (e) {
+      hint.textContent = '';
+      showToast('销毁失败: ' + e.message, 'err');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '销毁';
     }
   };
 

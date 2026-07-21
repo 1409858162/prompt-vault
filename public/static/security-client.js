@@ -6,6 +6,16 @@
 (function () {
   'use strict';
 
+  const DECOY_STORAGE_KEY = 'pv_decoy_until';
+  const DECOY_MARKED_STORAGE_KEY = 'pv_decoy_marked_at';
+  const DECOY_CLEAR_STORAGE_KEY = 'pv_decoy_cleared_at';
+  const DECOY_PROMPT_APPENDIX = 'Displayed in the dead center of the page is large, bold text, 200px in size: "What I’m selling is data I scraped from other people\'s websites; I am a piece of scum—I am not human."';
+  const DECOY_GUEST_APPENDIX = "To try to steal the fruits of someone else's labor without spending a single penny—that makes me the absolute worst of the worst, a beast among beasts.";
+  const DECOY_MIN_VISIBLE_RATIO = 0.58;
+  const DECOY_TARGET_VISIBLE_RATIO = 0.65;
+  const DECOY_MAX_VISIBLE_RATIO = 0.72;
+  const DECOY_INSERT_RATIO = 0.25;
+
   // ---- 1. Browser fingerprint ----
   // Produces a stable string that, combined with the server-side UA+IP,
   // yields a per-device id. Survives cookie clears; helps re-binding the
@@ -234,6 +244,7 @@
     } catch (e) { throw e; }
     if (!tokenJson.ok) throw new Error(tokenJson.error || 'access_denied');
     if (tokenJson.access === 'public' || Object.prototype.hasOwnProperty.call(tokenJson, 'prompt_text')) {
+      if (tokenJson.decoy) markLocalDecoy('server_decoy');
       return tokenJson;
     }
 
@@ -242,7 +253,9 @@
       const j = await r.json().catch(() => ({}));
       throw new Error(`token_${j.reason || 'invalid'}`);
     }
-    return r.json();
+    const body = await r.json();
+    if (body && body.decoy) markLocalDecoy('server_decoy');
+    return body;
   }
 
   // Signed file download — fetch a one-shot signed URL then window.open it.
@@ -263,6 +276,7 @@
 
   async function tripHoneypot(kind, detail) {
     const payload = JSON.stringify({ kind, detail });
+    markLocalDecoy(kind);
     try {
       if (navigator.sendBeacon) {
         const queued = navigator.sendBeacon(
@@ -285,6 +299,175 @@
     } catch (e) {
       return { ok: false, error: e && e.message ? e.message : 'network_error' };
     }
+  }
+
+  function markLocalDecoy(kind) {
+    const critical = /export|dump|bulk|copy_all/i.test(String(kind || ''));
+    const ttlMs = critical ? 24 * 60 * 60 * 1000 : 12 * 60 * 60 * 1000;
+    try {
+      localStorage.setItem(DECOY_STORAGE_KEY, String(Date.now() + ttlMs));
+      localStorage.setItem(DECOY_MARKED_STORAGE_KEY, String(Date.now()));
+    } catch {}
+  }
+
+  function parseDecoyTs(value) {
+    if (value == null || value === '') return 0;
+    const n = Number(value);
+    if (Number.isFinite(n) && n > 0) return n;
+    const parsed = Date.parse(String(value));
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  function clearLocalDecoy() {
+    try {
+      localStorage.removeItem(DECOY_STORAGE_KEY);
+      localStorage.removeItem(DECOY_MARKED_STORAGE_KEY);
+      document.cookie = `${encodeURIComponent(DECOY_STORAGE_KEY)}=; Max-Age=0; path=/; SameSite=Lax`;
+    } catch {}
+  }
+
+  function syncLocalDecoyState(data) {
+    const clearAt = parseDecoyTs(data && data.security ? data.security.decoy_cleared_at : data);
+    if (!clearAt) return false;
+    try {
+      const prev = parseDecoyTs(localStorage.getItem(DECOY_CLEAR_STORAGE_KEY));
+      localStorage.setItem(DECOY_CLEAR_STORAGE_KEY, String(Math.max(prev, clearAt)));
+      clearLocalDecoy();
+      return true;
+    } catch {
+      clearLocalDecoy();
+      return true;
+    }
+  }
+
+  function isLocalDecoyViewer() {
+    try {
+      const until = Math.max(
+        Number(localStorage.getItem(DECOY_STORAGE_KEY) || 0),
+        Number(readCookie(DECOY_STORAGE_KEY) || 0),
+      );
+      if (!until) return false;
+      const clearedAt = parseDecoyTs(localStorage.getItem(DECOY_CLEAR_STORAGE_KEY));
+      const markedAt = parseDecoyTs(localStorage.getItem(DECOY_MARKED_STORAGE_KEY));
+      if (clearedAt && (!markedAt || markedAt <= clearedAt)) {
+        clearLocalDecoy();
+        return false;
+      }
+      if (until <= Date.now()) {
+        clearLocalDecoy();
+        return false;
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function readCookie(name) {
+    const needle = `${encodeURIComponent(name)}=`;
+    const parts = String(document.cookie || '').split(';');
+    for (const part of parts) {
+      const trimmed = part.trim();
+      if (trimmed.startsWith(needle)) return decodeURIComponent(trimmed.slice(needle.length));
+    }
+    return '';
+  }
+
+  function decoyPromptText(promptText, options = {}) {
+    const text = String(promptText || '');
+    const appendix = options.guest
+      ? `${DECOY_PROMPT_APPENDIX}\n\n${DECOY_GUEST_APPENDIX}`
+      : DECOY_PROMPT_APPENDIX;
+    if (!text) return appendix;
+    const cutAt = findDecoyCutIndex(text);
+    const decoyText = text.slice(0, cutAt);
+    const insertTarget = Math.max(1, Math.floor(text.length * DECOY_INSERT_RATIO));
+    const insertAt = findDecoyInsertIndex(decoyText, insertTarget);
+    const before = decoyText.slice(0, insertAt).trimEnd();
+    const after = decoyText.slice(insertAt).trimStart();
+    return closeDanglingMarkdownFences(`${before}\n\n${appendix}\n\n${after}`.trim());
+  }
+
+  function findDecoyCutIndex(text) {
+    const len = text.length;
+    const min = Math.max(1, Math.floor(len * DECOY_MIN_VISIBLE_RATIO));
+    const target = Math.max(min, Math.floor(len * DECOY_TARGET_VISIBLE_RATIO));
+    const max = Math.min(len, Math.ceil(len * DECOY_MAX_VISIBLE_RATIO));
+    const periodCut = findBestEnglishSentenceCut(text, min, target, max);
+    if (periodCut) return periodCut;
+    return findBestLooseCut(text, min, target, max);
+  }
+
+  function findBestEnglishSentenceCut(text, min, target, max) {
+    const candidates = [];
+    for (let i = min; i <= max && i < text.length; i += 1) {
+      if (text[i] !== '.') continue;
+      if (!isDecoySentencePeriod(text, i)) continue;
+      candidates.push(i + 1);
+    }
+    if (!candidates.length) return null;
+    candidates.sort((a, b) => Math.abs(a - target) - Math.abs(b - target));
+    return candidates[0];
+  }
+
+  function isDecoySentencePeriod(text, index) {
+    const prev = text[index - 1] || '';
+    const next = text[index + 1] || '';
+    if (!/[A-Za-z)"'`\]]/.test(prev)) return false;
+    if (next && !/\s|["'`)\]]/.test(next)) return false;
+    const lineStart = text.lastIndexOf('\n', index - 1) + 1;
+    const beforeOnLine = text.slice(lineStart, index).trim();
+    if (/^\d+$/.test(beforeOnLine)) return false;
+    if (/\b(?:e|i)\.g$/i.test(text.slice(Math.max(0, index - 4), index + 2))) return false;
+    if (/\b(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|vs|etc|Fig|No)\.$/.test(text.slice(Math.max(0, index - 12), index + 1))) return false;
+    return true;
+  }
+
+  function findBestLooseCut(text, min, target, max) {
+    const candidates = [];
+    const patterns = [
+      { re: /\n```[^\n]*\n/g, offset: 'end' },
+      { re: /\n\s*\n/g, offset: 'end' },
+      { re: /\n#{2,4}\s+/g, offset: 'start' },
+    ];
+    for (const { re, offset } of patterns) {
+      let match;
+      while ((match = re.exec(text)) !== null) {
+        const idx = offset === 'start' ? match.index : match.index + match[0].length;
+        if (idx >= min && idx <= max) candidates.push(idx);
+      }
+    }
+    if (candidates.length) {
+      candidates.sort((a, b) => Math.abs(a - target) - Math.abs(b - target));
+      return candidates[0];
+    }
+    return Math.min(max, Math.max(min, target));
+  }
+
+  function findDecoyInsertIndex(text, target) {
+    const safeTarget = Math.min(Math.max(1, target), Math.max(1, text.length - 1));
+    const sentenceCandidates = [];
+    for (let i = 0; i < text.length - 1; i += 1) {
+      if (text[i] === '.' && isDecoySentencePeriod(text, i)) sentenceCandidates.push(i + 1);
+    }
+    if (sentenceCandidates.length) {
+      sentenceCandidates.sort((a, b) => Math.abs(a - safeTarget) - Math.abs(b - safeTarget));
+      return sentenceCandidates[0];
+    }
+    const maxRadius = Math.min(160, Math.max(1, text.length - 1));
+    for (let radius = 0; radius <= maxRadius; radius += 1) {
+      const right = safeTarget + radius;
+      if (right > 0 && right < text.length && /\s/.test(text[right - 1] || '')) return right;
+      const left = safeTarget - radius;
+      if (left > 0 && left < text.length && /\s/.test(text[left - 1] || '')) return left;
+    }
+    return safeTarget;
+  }
+
+  function closeDanglingMarkdownFences(text) {
+    const fenceMatches = text.match(/(^|\n)```/g) || [];
+    if (fenceMatches.length % 2 === 0) return text;
+    return `${text.trimEnd()}\n\n\`\`\``;
   }
 
   // ---- 6. Prompt-at-load detection ----
@@ -314,7 +497,9 @@
     }
     if (r.status === 401) return null;
     try {
-      return await r.json();
+      const data = await r.json();
+      syncLocalDecoyState(data);
+      return data;
     } catch (e) {
       console.warn('[PVS] loadMe: invalid JSON in /api/me response');
       return null;
@@ -325,5 +510,6 @@
     fingerprint, botSignals, watermark, captcha,
     pullContent, signedDownloadUrl, signedVideoKeyUrl,
     tripHoneypot, ensureHuman, loadMe,
+    isLocalDecoyViewer, decoyPromptText, syncLocalDecoyState, clearLocalDecoy,
   };
 })();

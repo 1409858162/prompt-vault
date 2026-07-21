@@ -114,7 +114,9 @@ const DDL = [
     payload         JSON NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uniq_user_device (user_id, device_id),
-    KEY idx_user_device_user (user_id)
+    KEY idx_user_device_user (user_id),
+    KEY idx_user_device_device (device_id),
+    KEY idx_user_device_ip (ip)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 
   `CREATE TABLE IF NOT EXISTS user_session (
@@ -240,6 +242,52 @@ const DDL = [
     updated_at      DATETIME NULL,
     PRIMARY KEY (id)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  `CREATE TABLE IF NOT EXISTS user_messages (
+    id              VARCHAR(64) NOT NULL,
+    user_id         VARCHAR(64) NOT NULL,
+    kind            VARCHAR(32) NOT NULL DEFAULT 'info',
+    title           VARCHAR(255) NOT NULL,
+    body            TEXT NOT NULL,
+    read_at         DATETIME NULL,
+    created_by      VARCHAR(64),
+    created_at      DATETIME,
+    updated_at      DATETIME NULL,
+    PRIMARY KEY (id),
+    KEY idx_user_messages_user (user_id),
+    KEY idx_user_messages_created (created_at),
+    KEY idx_user_messages_read (read_at)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  `CREATE TABLE IF NOT EXISTS idea_prompts (
+    id                 VARCHAR(191) NOT NULL,
+    kind               VARCHAR(32)  NOT NULL,
+    original_id        VARCHAR(191) NULL,
+    title              VARCHAR(255) NOT NULL,
+    category           VARCHAR(191) NULL,
+    type               VARCHAR(64)  NULL,
+    page_type          VARCHAR(191) NULL,
+    sort_order         INT NOT NULL DEFAULT 0,
+    source             VARCHAR(64) NULL,
+    prompt_text        LONGTEXT NOT NULL,
+    prompt_text_length INT NOT NULL DEFAULT 0,
+    heat               INT NOT NULL DEFAULT 0,
+    tags               JSON NULL,
+    summary            TEXT NULL,
+    preview_image_url  TEXT NULL,
+    preview_thumb_url  TEXT NULL,
+    cover_url          TEXT NULL,
+    preview_video_url  TEXT NULL,
+    playable_video_url TEXT NULL,
+    raw                JSON NULL,
+    active             TINYINT(1) NOT NULL DEFAULT 1,
+    created_at         DATETIME NOT NULL,
+    updated_at         DATETIME NULL,
+    PRIMARY KEY (id),
+    KEY idx_idea_prompts_kind_active_sort (kind, active, sort_order),
+    KEY idx_idea_prompts_original (original_id),
+    KEY idx_idea_prompts_title (title)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
 
 async function ensureColumn(conn, table, column, definition) {
@@ -274,6 +322,14 @@ async function main() {
   await ensureColumn(conn, 'accounts', 'revoked_at', 'DATETIME NULL');
   await ensureColumn(conn, 'codes', 'code_fingerprint', 'VARCHAR(64) NULL');
   await ensureIndex(conn, 'codes', 'uniq_codes_code_fingerprint', 'UNIQUE INDEX `uniq_codes_code_fingerprint` (`code_fingerprint`)');
+  await ensureIndex(conn, 'user_device', 'idx_user_device_device', 'INDEX `idx_user_device_device` (`device_id`)');
+  await ensureIndex(conn, 'user_device', 'idx_user_device_ip', 'INDEX `idx_user_device_ip` (`ip`)');
+  await ensureIndex(conn, 'user_messages', 'idx_user_messages_user', 'INDEX `idx_user_messages_user` (`user_id`)');
+  await ensureIndex(conn, 'user_messages', 'idx_user_messages_created', 'INDEX `idx_user_messages_created` (`created_at`)');
+  await ensureIndex(conn, 'user_messages', 'idx_user_messages_read', 'INDEX `idx_user_messages_read` (`read_at`)');
+  await ensureIndex(conn, 'idea_prompts', 'idx_idea_prompts_kind_active_sort', 'INDEX `idx_idea_prompts_kind_active_sort` (`kind`, `active`, `sort_order`)');
+  await ensureIndex(conn, 'idea_prompts', 'idx_idea_prompts_original', 'INDEX `idx_idea_prompts_original` (`original_id`)');
+  await ensureIndex(conn, 'idea_prompts', 'idx_idea_prompts_title', 'INDEX `idx_idea_prompts_title` (`title`)');
   await conn.end();
   console.log(`[init] ${DDL.length} tables ensured (indexes included)`);
 }

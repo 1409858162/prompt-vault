@@ -25,6 +25,7 @@
     --border: #2a2a35;
     --text: #f3f3f7;
     --text-dim: #9a9aa8;
+    --text-faint: #6a6a78;
     --accent: #6366f1;
     --accent-hover: #818cf8;
     --pink: #f472b6;
@@ -92,6 +93,26 @@
     color: #fbcfe8;
     box-shadow: inset 0 0 0 1px rgba(244,114,182,.45);
   }
+  .nav-tab.active.shorts {
+    background: rgba(20,184,166,.12);
+    color: #99f6e4;
+    box-shadow: inset 0 0 0 1px rgba(20,184,166,.45);
+  }
+  .nav-tab.active.image-ideas {
+    background: rgba(56,189,248,.12);
+    color: #bae6fd;
+    box-shadow: inset 0 0 0 1px rgba(56,189,248,.45);
+  }
+  .nav-tab.active.video-ideas {
+    background: rgba(168,85,247,.12);
+    color: #e9d5ff;
+    box-shadow: inset 0 0 0 1px rgba(168,85,247,.45);
+  }
+  .nav-tab.active.one-company {
+    background: rgba(251,191,36,.12);
+    color: #fde68a;
+    box-shadow: inset 0 0 0 1px rgba(251,191,36,.42);
+  }
   .nav-tab .count {
     font-size: 11px; font-weight: 500;
     padding: 1px 7px; border-radius: 999px;
@@ -105,6 +126,18 @@
   }
   .nav-tab.active.favorites .count {
     background: rgba(244,114,182,.22); color: #fbcfe8;
+  }
+  .nav-tab.active.shorts .count {
+    background: rgba(20,184,166,.22); color: #99f6e4;
+  }
+  .nav-tab.active.image-ideas .count {
+    background: rgba(56,189,248,.22); color: #bae6fd;
+  }
+  .nav-tab.active.video-ideas .count {
+    background: rgba(168,85,247,.22); color: #e9d5ff;
+  }
+  .nav-tab.active.one-company .count {
+    background: rgba(251,191,36,.2); color: #fde68a;
   }
   /* === Shiny attention ring on the blindbox tab === */
   /* Slowly-rotating conic gradient border + soft halo pulse + emoji glow.
@@ -322,6 +355,69 @@
     margin-left: auto;
     display: flex; align-items: center; gap: 8px;
   }
+  .sysmsg-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 36px;
+    padding: 7px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    color: var(--text-dim);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color .12s, color .12s, background .12s, box-shadow .12s, transform .12s;
+  }
+  .sysmsg-btn:hover {
+    color: var(--text);
+    border-color: rgba(129,140,248,.38);
+    background: rgba(255,255,255,.05);
+    box-shadow: 0 10px 24px -18px rgba(99,102,241,.45);
+  }
+  .sysmsg-btn .icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #dbe4ff;
+    background: linear-gradient(180deg, rgba(99,102,241,.22), rgba(99,102,241,.1));
+    border: 1px solid rgba(129,140,248,.2);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+    flex: 0 0 auto;
+  }
+  .sysmsg-btn .icon svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+    stroke: currentColor;
+  }
+  .sysmsg-btn:hover .icon {
+    color: #eef2ff;
+    border-color: rgba(129,140,248,.34);
+    background: linear-gradient(180deg, rgba(99,102,241,.28), rgba(99,102,241,.14));
+  }
+  .sysmsg-btn .count {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: 999px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(99,102,241,.18);
+    border: 1px solid rgba(129,140,248,.3);
+    color: #c7d2fe;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .sysmsg-btn.has-unread .count {
+    display: inline-flex;
+  }
   .me b { color: var(--text); font-weight: 600; }
   .me-expiry {
     font-size: 11px;
@@ -345,7 +441,7 @@
 
   /* PM hero removed */
 
-  main { max-width: 1600px; margin: 24px auto 60px; padding: 0 28px; }
+  main { max-width: 1720px; margin: 22px auto 64px; padding: 0 24px; }
   .toolbar {
     display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
     margin-bottom: 18px;
@@ -356,23 +452,35 @@
   }
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(248px, 248px));
+    gap: 18px;
+    align-items: start;
+    justify-content: start;
+    grid-auto-flow: dense;
   }
   .card {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background:
+      linear-gradient(180deg, rgba(17,21,31,.98), rgba(10,12,19,.98));
+    border: 1px solid rgba(255,255,255,.075);
+    border-radius: 18px;
     overflow: hidden;
     cursor: pointer;
-    transition: transform .12s, border-color .12s, box-shadow .12s;
+    box-shadow:
+      0 18px 40px -30px rgba(0,0,0,.9),
+      0 0 0 1px rgba(255,255,255,.02) inset;
+    transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
     content-visibility: auto;
-    contain-intrinsic-size: 340px;
+    contain-intrinsic-size: 430px;
   }
   .card:hover {
-    transform: translateY(-2px);
-    border-color: var(--accent);
-    box-shadow: 0 12px 28px -16px rgba(99,102,241,.5);
+    transform: translateY(-4px);
+    border-color: rgba(255,255,255,.16);
+    box-shadow:
+      0 28px 56px -34px rgba(0,0,0,.98),
+      0 0 0 1px rgba(129,140,248,.14) inset;
   }
   .card.locked {
     border-color: rgba(245,158,11,.28);
@@ -382,46 +490,96 @@
   }
   .card .preview {
     position: relative;
-    aspect-ratio: 16 / 10;
-    background: #0c0c10;
+    aspect-ratio: 4 / 5;
+    background: #090b11;
     overflow: hidden;
+    border-bottom: 1px solid rgba(255,255,255,.065);
+  }
+  .card .preview::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0 0;
+    height: 42%;
+    background: linear-gradient(180deg, rgba(5,7,12,0), rgba(5,7,12,.1) 36%, rgba(5,7,12,.78));
+    pointer-events: none;
+    z-index: 1;
   }
   .card .preview img, .card .preview video {
     width: 100%; height: 100%; object-fit: cover; display: block;
-    transition: transform .3s;
+    transition: transform .45s ease, opacity .2s ease;
   }
-  .card:hover .preview img { transform: scale(1.05); }
+  .card:hover .preview img,
+  .card:hover .preview video,
+  .card:hover .preview .ph-img { transform: scale(1.035); }
   .card .preview .badges {
-    position: absolute; top: 8px; left: 8px; right: 8px;
-    display: flex; justify-content: space-between; gap: 6px; pointer-events: none;
+    position: absolute; top: 12px; left: 12px; right: 12px;
+    display: flex; justify-content: space-between; gap: 8px; pointer-events: none;
+    z-index: 3;
   }
-  .badges-left { display: flex; gap: 4px; flex-wrap: wrap; max-width: 80%; }
-  .badge { font-size: 10px; padding: 3px 7px; border-radius: 999px; font-weight: 600; letter-spacing: .02em;
-    background: rgba(0,0,0,.55); color: #fff; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-    border: 1px solid rgba(255,255,255,.08);
+  .badges-left { display: flex; gap: 6px; flex-wrap: wrap; max-width: 100%; }
+  .badge { font-size: 11px; padding: 5px 9px; border-radius: 999px; font-weight: 600; letter-spacing: 0;
+    background: rgba(7,10,18,.74); color: #fff; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,.11);
+    box-shadow: 0 10px 20px -18px rgba(0,0,0,.95);
   }
   .badge.cat { color: #e5e7eb; }
   .badge.meta { color: #93c5fd; border-color: rgba(147,197,253,.35); background: rgba(15,30,55,.7); }
   .badge.orig { color: #a78bfa; border-color: rgba(167,139,250,.35); background: rgba(25,18,55,.7); font-weight: 500; }
-  .card .body { padding: 12px 14px; }
-  .card h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .card .snippet { font-size: 12px; color: var(--text-dim); line-height: 1.45;
-    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 34px; }
-  .card .footer { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 11px; color: var(--text-dim); }
-  .card .arrow { color: var(--accent-hover); font-weight: 600; }
+  .card .body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 14px 15px;
+    background:
+      linear-gradient(180deg, rgba(12,15,22,.94), rgba(8,10,16,.98));
+  }
+  .card h3 {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.42;
+    font-weight: 600;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    min-height: 42px;
+  }
+  .card .snippet {
+    font-size: 12.5px;
+    color: rgba(226,232,240,.72);
+    line-height: 1.58;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 40px;
+  }
+  .card .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-top: auto;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255,255,255,.065);
+    font-size: 11.5px;
+    color: rgba(148,163,184,.84);
+  }
+  .card .arrow { color: #f8fafc; font-weight: 600; white-space: nowrap; }
   .card .favorite-btn {
-    position: absolute; right: 8px; bottom: 8px;
-    min-width: 34px; height: 34px; border-radius: 999px;
-    padding: 0 10px;
+    position: absolute; right: 12px; bottom: 12px;
+    min-width: 38px; height: 38px; border-radius: 999px;
+    padding: 0 11px;
     display: flex; align-items: center; justify-content: center;
     gap: 5px;
-    border: 1px solid rgba(255,255,255,.14);
-    background: rgba(0,0,0,.55);
+    border: 1px solid rgba(255,255,255,.16);
+    background: rgba(8,11,18,.74);
     color: #fff;
     font-size: 18px; line-height: 1;
     cursor: pointer;
     z-index: 4;
-    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
     transition: transform .12s, border-color .12s, background .12s, color .12s;
   }
   .card .favorite-btn .favorite-count {
@@ -431,7 +589,7 @@
   }
   .card .favorite-btn:hover { transform: scale(1.06); border-color: rgba(244,114,182,.75); }
   .card .favorite-btn.active { color: #f9a8d4; background: rgba(83,20,52,.82); border-color: rgba(244,114,182,.7); }
-  .row-span-2 { grid-row: span 2; min-height: 280px; }
+  .row-span-2 { grid-row: span 1; min-height: 0; }
   .row-span-2 .preview { aspect-ratio: 4 / 5; }
 
   /* Blind-box placeholder: real photo, soft zoom on hover */
@@ -444,14 +602,14 @@
     width: 100%; height: 100%; object-fit: cover; display: block;
     transition: transform .3s;
   }
-  .card:hover .preview .ph-img { transform: scale(1.05); }
   .card .preview .ph-tag {
-    position: absolute; bottom: 6px; right: 6px;
-    font-size: 10px; padding: 3px 7px; border-radius: 999px;
-    background: rgba(0,0,0,.6); color: #fde68a;
+    position: absolute; bottom: 12px; left: 12px;
+    font-size: 11px; padding: 5px 9px; border-radius: 999px;
+    background: rgba(7,10,18,.8); color: #fde68a;
     border: 1px solid rgba(245,158,11,.45);
-    backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
-    font-weight: 600; letter-spacing: .03em;
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    font-weight: 600; letter-spacing: 0;
+    z-index: 3;
   }
 
   /* Modal preview also uses manghe.png as fallback */
@@ -463,6 +621,410 @@
   .badge.blindbox {
     color: #fde68a; border-color: rgba(245,158,11,.45);
     background: rgba(60,40,10,.7);
+  }
+
+  .card.short-card {
+    min-height: 0;
+    background:
+      linear-gradient(180deg, rgba(20,184,166,.06), transparent 44%),
+      linear-gradient(180deg, rgba(17,21,31,.98), rgba(10,12,19,.98));
+  }
+  .card.short-card .preview {
+    aspect-ratio: 4 / 5;
+    min-height: 0;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background:
+      radial-gradient(circle at 12% 16%, rgba(20,184,166,.22), transparent 34%),
+      linear-gradient(140deg, #10151d, #0b1014 58%, #101018);
+  }
+  .short-topline,
+  .short-tags {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .short-index {
+    min-width: 40px;
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font: 700 11px/1 'JetBrains Mono', ui-monospace, monospace;
+    color: #99f6e4;
+    background: rgba(7,10,18,.74);
+    border: 1px solid rgba(20,184,166,.28);
+    box-shadow: 0 10px 18px -16px rgba(0,0,0,.96);
+  }
+  .short-heat {
+    margin-left: auto;
+    font-size: 11px;
+    color: #c7d2fe;
+    padding: 5px 9px;
+    border-radius: 999px;
+    border: 1px solid rgba(129,140,248,.28);
+    background: rgba(7,10,18,.72);
+  }
+  .short-summary {
+    margin-top: 12px;
+    color: rgba(226,232,240,.82);
+    font-size: 13px;
+    line-height: 1.58;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .short-tag {
+    font-size: 10.5px;
+    color: #d7fbef;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(7,10,18,.72);
+    border: 1px solid rgba(16,185,129,.22);
+  }
+  .short-card .body h3 {
+    min-height: 42px;
+  }
+  .card.idea-placeholder {
+    cursor: default;
+    border-style: dashed;
+  }
+  .card.idea-placeholder:hover {
+    transform: none;
+    border-color: var(--border);
+    box-shadow: none;
+  }
+  .card.idea-placeholder.image-card .preview {
+    background:
+      radial-gradient(circle at 14% 18%, rgba(56,189,248,.24), transparent 34%),
+      linear-gradient(140deg, #0e1720, #0b1018 58%, #101018);
+  }
+  .card.idea-placeholder.video-card .preview {
+    background:
+      radial-gradient(circle at 14% 18%, rgba(168,85,247,.22), transparent 34%),
+      linear-gradient(140deg, #141020, #0d1018 58%, #101018);
+  }
+  .idea-status {
+    font-size: 11px;
+    color: #d1d5db;
+    padding: 5px 9px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.12);
+    background: rgba(7,10,18,.72);
+  }
+  .idea-card .idea-visual {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 12px;
+    background:
+      radial-gradient(circle at 12% 16%, rgba(56,189,248,.26), transparent 34%),
+      linear-gradient(140deg, #0e1720, #0b1018 58%, #101018);
+  }
+  .idea-card.video-card .idea-visual {
+    background:
+      radial-gradient(circle at 14% 18%, rgba(168,85,247,.24), transparent 34%),
+      linear-gradient(140deg, #171023, #0d1018 58%, #101018);
+  }
+  .idea-card.lesson-card .idea-visual {
+    background:
+      radial-gradient(circle at 14% 18%, rgba(251,191,36,.22), transparent 34%),
+      linear-gradient(140deg, #18131f, #111827 58%, #101018);
+  }
+  .idea-card.lesson-card .preview {
+    aspect-ratio: 4 / 5;
+    min-height: 0;
+  }
+  .idea-card.video-card .preview {
+    aspect-ratio: 4 / 5;
+    min-height: 0;
+  }
+  .idea-card .idea-visual .short-summary {
+    margin-top: 0;
+    -webkit-line-clamp: 3;
+  }
+  .idea-timeline {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    height: 16px;
+    padding-right: 52px;
+  }
+  .idea-timeline i {
+    display: block;
+    flex: 1;
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(216,180,254,.28);
+  }
+  .idea-timeline i:nth-child(2),
+  .idea-timeline i:nth-child(4) {
+    flex: .58;
+    background: rgba(45,212,191,.42);
+  }
+  .idea-card.video-card .body .snippet {
+    -webkit-line-clamp: 2;
+  }
+  .idea-card.video-card .preview .short-tags {
+    padding-right: 52px;
+  }
+  .idea-card.video-card .preview .short-summary {
+    padding-right: 42px;
+  }
+  .idea-card.video-card .body h3 {
+    min-height: 42px;
+  }
+  .idea-card .body .short-tags {
+    margin-top: 0;
+  }
+  .idea-card .body .snippet {
+    min-height: 60px;
+    -webkit-line-clamp: 3;
+  }
+  .card.promo-card {
+    --promo-angle: 0deg;
+    position: relative;
+    isolation: isolate;
+    cursor: default;
+    border: 1.5px solid transparent;
+    background:
+      radial-gradient(circle at 14% 12%, rgba(244,114,182,.16), transparent 32%) padding-box,
+      radial-gradient(circle at 82% 8%, rgba(56,189,248,.16), transparent 30%) padding-box,
+      linear-gradient(180deg, rgba(15,18,31,.99), rgba(8,10,19,.99)) padding-box,
+      conic-gradient(from var(--promo-angle),
+        rgba(251,191,36,.98),
+        rgba(244,114,182,.98),
+        rgba(168,85,247,.98),
+        rgba(34,211,238,.98),
+        rgba(96,165,250,.98),
+        rgba(251,191,36,.98)) border-box;
+    animation: promoBorderSpin 5s linear infinite, promoCardPulse 4.6s ease-in-out infinite;
+    box-shadow:
+      0 18px 40px -30px rgba(0,0,0,.9),
+      0 0 0 1px rgba(255,255,255,.02) inset;
+  }
+  .card.promo-card::after {
+    content: "";
+    position: absolute;
+    inset: -10px;
+    border-radius: 26px;
+    background:
+      radial-gradient(circle at 20% 18%, rgba(244,114,182,.18), transparent 28%),
+      radial-gradient(circle at 78% 18%, rgba(34,211,238,.15), transparent 26%),
+      radial-gradient(circle at 50% 100%, rgba(251,191,36,.12), transparent 30%);
+    filter: blur(18px);
+    opacity: .9;
+    z-index: -1;
+    pointer-events: none;
+  }
+  .card.promo-card > * {
+    position: relative;
+    z-index: 1;
+  }
+  .card.promo-card:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 24px 50px -36px rgba(0,0,0,.98),
+      0 0 0 1px rgba(167,139,250,.18) inset,
+      0 0 24px rgba(168,85,247,.12);
+  }
+  .promo-card .preview {
+    position: relative;
+    background:
+      radial-gradient(circle at 18% 18%, rgba(192,132,252,.42), transparent 26%),
+      radial-gradient(circle at 74% 20%, rgba(34,211,238,.24), transparent 24%),
+      radial-gradient(circle at 50% 86%, rgba(251,191,36,.14), transparent 22%),
+      linear-gradient(145deg, #18142b 0%, #11182d 44%, #0a0e19 100%);
+  }
+  .promo-card .preview::before {
+    content: "";
+    position: absolute;
+    inset: -18%;
+    z-index: 0;
+    background:
+      radial-gradient(circle at 18% 20%, rgba(244,114,182,.32), transparent 20%),
+      radial-gradient(circle at 78% 18%, rgba(34,211,238,.24), transparent 18%),
+      radial-gradient(circle at 58% 74%, rgba(251,191,36,.16), transparent 16%),
+      radial-gradient(circle at 34% 78%, rgba(168,85,247,.22), transparent 18%);
+    filter: blur(18px) saturate(120%);
+    opacity: .95;
+    mix-blend-mode: screen;
+    transform-origin: 50% 50%;
+    animation: promoGlowFloat 9s ease-in-out infinite alternate;
+    pointer-events: none;
+  }
+  .promo-card .preview::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background:
+      radial-gradient(circle at 50% 52%,
+        rgba(255,255,255,.12) 0%,
+        rgba(244,114,182,.22) 10%,
+        rgba(168,85,247,.18) 18%,
+        rgba(34,211,238,.14) 28%,
+        rgba(251,191,36,.08) 36%,
+        rgba(255,255,255,0) 52%),
+      linear-gradient(180deg, rgba(7,10,18,0), rgba(7,10,18,.12) 34%, rgba(7,10,18,.88));
+    mix-blend-mode: screen;
+    animation: promoCenterPulse 3.8s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .promo-visual {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    padding: 16px 16px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .promo-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .promo-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #eef2ff;
+    background: rgba(8,11,19,.62);
+    border: 1px solid rgba(196,181,253,.26);
+    box-shadow: 0 0 18px rgba(168,85,247,.12);
+  }
+  .promo-code {
+    font: 700 11px/1 'JetBrains Mono', ui-monospace, monospace;
+    color: rgba(226,232,240,.7);
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(7,10,18,.42);
+    border: 1px solid rgba(255,255,255,.07);
+    box-shadow: 0 0 14px rgba(34,211,238,.08);
+  }
+  .promo-stack {
+    display: grid;
+    gap: 10px;
+    max-width: 82%;
+  }
+  .promo-stack strong {
+    display: block;
+    font-size: clamp(30px, 2.8vw, 40px);
+    line-height: .92;
+    color: rgba(248,250,252,.98);
+    letter-spacing: 0;
+    text-shadow: 0 10px 28px rgba(10,12,20,.38);
+  }
+  .promo-stack span {
+    font-size: 14px;
+    line-height: 1.5;
+    color: rgba(236,241,255,.82);
+    max-width: 260px;
+  }
+  .promo-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .promo-chip {
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    color: #eff6ff;
+    background: rgba(8,11,19,.66);
+    border: 1px solid rgba(191,219,254,.12);
+  }
+  .promo-card .body {
+    gap: 10px;
+  }
+  .promo-title {
+    margin: 0;
+    font-size: 19px;
+    line-height: 1.34;
+    min-height: 52px;
+    color: #f8fafc;
+  }
+  .promo-copy {
+    font-size: 14px;
+    line-height: 1.6;
+    color: rgba(226,232,240,.84);
+    min-height: 44px;
+  }
+  .promo-footer-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    color: #c7d2fe;
+    background: rgba(99,102,241,.12);
+    border: 1px solid rgba(99,102,241,.18);
+  }
+  @property --promo-angle {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+  }
+  @keyframes promoBorderSpin {
+    to { --promo-angle: 360deg; }
+  }
+  @keyframes promoCardPulse {
+    0%, 100% {
+      box-shadow:
+        0 18px 40px -30px rgba(0,0,0,.9),
+        0 0 0 1px rgba(255,255,255,.02) inset,
+        0 0 18px rgba(168,85,247,.08);
+    }
+    50% {
+      box-shadow:
+        0 22px 46px -30px rgba(0,0,0,.96),
+        0 0 0 1px rgba(255,255,255,.03) inset,
+        0 0 26px rgba(244,114,182,.16),
+        0 0 38px rgba(34,211,238,.1);
+    }
+  }
+  @keyframes promoGlowFloat {
+    0% {
+      transform: translate3d(-4%, -3%, 0) scale(1) rotate(0deg);
+      opacity: .82;
+    }
+    50% {
+      transform: translate3d(4%, 2%, 0) scale(1.08) rotate(10deg);
+      opacity: 1;
+    }
+    100% {
+      transform: translate3d(-2%, 5%, 0) scale(1.04) rotate(-8deg);
+      opacity: .9;
+    }
+  }
+  @keyframes promoCenterPulse {
+    0%, 100% {
+      transform: scale(.92);
+      opacity: .54;
+      filter: blur(0px) saturate(110%);
+    }
+    50% {
+      transform: scale(1.12);
+      opacity: .9;
+      filter: blur(2px) saturate(132%);
+    }
   }
 
   .empty { text-align: center; padding: 80px 20px; color: var(--text-dim); }
@@ -512,6 +1074,39 @@
     color: var(--text-dim);
     padding: 0 4px;
     user-select: none;
+  }
+  .pager-jump {
+    display: inline-flex;
+    align-items: center;
+    margin: 0 4px;
+    padding: 0 8px;
+    height: 32px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--card);
+  }
+  .pager-jump input {
+    width: 60px;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text);
+    font-size: 13px;
+    text-align: center;
+    padding: 0;
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+  .pager-jump input::-webkit-outer-spin-button,
+  .pager-jump input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .pager-jump input::placeholder { color: var(--text-dim); }
+  .pager-jump input:disabled,
+  .pager-jump.disabled input {
+    cursor: not-allowed;
+    opacity: .55;
   }
   .pager-hint { font-size: 12px; color: var(--text-dim); }
 
@@ -577,11 +1172,175 @@
   .modal .actions button.favorite-active { color: #fbcfe8; border-color: rgba(244,114,182,.55); background: rgba(83,20,52,.55); }
   .modal .actions button.primary { background: linear-gradient(135deg, var(--accent), var(--pink)); border: none; color: white; }
 
+  .sysmsg-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    background: rgba(0,0,0,.74);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(12px, 3vh, 24px);
+  }
+  .sysmsg-backdrop.open { display: flex; }
+  .sysmsg-card {
+    width: min(760px, 100%);
+    max-height: min(760px, calc(100dvh - 32px));
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,.08);
+    background: linear-gradient(180deg, rgba(22,22,29,.98), rgba(14,14,18,.98));
+    box-shadow: 0 28px 90px rgba(0,0,0,.52), 0 0 0 1px rgba(255,255,255,.03) inset;
+  }
+  .sysmsg-head {
+    padding: 20px 22px 16px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+  }
+  .sysmsg-head h2 {
+    margin: 0;
+    font-size: 22px;
+    color: var(--text);
+  }
+  .sysmsg-head p {
+    margin: 6px 0 0;
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .sysmsg-close {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.04);
+    color: var(--text-dim);
+    font-size: 18px;
+    cursor: pointer;
+    flex: 0 0 auto;
+  }
+  .sysmsg-close:hover { color: var(--text); border-color: var(--accent); }
+  .sysmsg-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 18px 22px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .sysmsg-empty {
+    padding: 28px 16px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1.7;
+    border: 1px dashed rgba(255,255,255,.08);
+    border-radius: 14px;
+    background: rgba(255,255,255,.02);
+  }
+  .msg-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: rgba(255,255,255,.03);
+    padding: 14px 15px;
+  }
+  .msg-card.unread {
+    border-color: rgba(99,102,241,.55);
+    box-shadow: 0 0 0 1px rgba(99,102,241,.16);
+  }
+  .msg-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .msg-title {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.45;
+  }
+  .msg-body {
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1.72;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .msg-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 10px;
+    color: var(--text-faint);
+    font-size: 12px;
+  }
+  .msg-read {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 5px 9px;
+    white-space: nowrap;
+  }
+  .msg-read:hover {
+    color: var(--text);
+    border-color: rgba(255,255,255,.18);
+  }
+
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
     background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
     padding: 10px 16px; border-radius: 10px; font-size: 13px; z-index: 200;
     opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .ban-backdrop {
+    position: fixed; inset: 0; z-index: 500; display: none; align-items: center; justify-content: center;
+    padding: 22px; background: rgba(0,0,0,.72); backdrop-filter: blur(18px);
+  }
+  .ban-backdrop.open { display: flex; }
+  .ban-card {
+    width: min(640px, 100%); max-height: min(760px, calc(100dvh - 44px)); overflow: auto;
+    border: 1px solid rgba(248,113,113,.26); border-radius: 18px;
+    background: linear-gradient(180deg, rgba(31,20,26,.98), rgba(14,14,18,.98));
+    box-shadow: 0 28px 90px rgba(0,0,0,.58), 0 0 0 1px rgba(255,255,255,.04) inset;
+  }
+  .ban-card header {
+    padding: 24px 26px 16px; border-bottom: 1px solid rgba(255,255,255,.08);
+    display: flex; align-items: flex-start; gap: 14px;
+  }
+  .ban-mark {
+    width: 38px; height: 38px; border-radius: 12px; flex: 0 0 auto;
+    display: grid; place-items: center; color: #fecaca; font-weight: 900;
+    background: rgba(248,113,113,.14); border: 1px solid rgba(248,113,113,.32);
+  }
+  .ban-card h2 { margin: 0; font-size: 22px; letter-spacing: 0; color: #fff; }
+  .ban-card .sub { margin-top: 6px; color: #fca5a5; font-size: 13px; }
+  .ban-body { padding: 20px 26px 8px; display: grid; gap: 13px; }
+  .ban-body p { margin: 0; color: #e5e7eb; font-size: 14px; line-height: 1.78; }
+  .ban-meta {
+    margin: 12px 26px 0; padding: 12px 14px; border-radius: 12px;
+    background: rgba(255,255,255,.045); border: 1px solid rgba(255,255,255,.08);
+    color: #a1a1aa; font-size: 12px; line-height: 1.6;
+  }
+  .ban-actions { padding: 18px 26px 24px; display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+  .ban-actions button, .ban-actions a {
+    border-radius: 10px; padding: 10px 15px; font-size: 13px; font-weight: 700;
+    cursor: pointer; text-decoration: none; border: 1px solid rgba(255,255,255,.12);
+    color: #f4f4f5; background: rgba(255,255,255,.06);
+  }
+  .ban-actions .primary { background: #f87171; border-color: #f87171; color: #1b0b0b; }
 
   ::-webkit-scrollbar { width: 10px; height: 10px; }
   ::-webkit-scrollbar-track { background: transparent; }
@@ -591,10 +1350,10 @@
   @media (max-width: 600px) {
     header.topbar { padding: 12px 14px; }
     main { padding: 14px; }
-    .grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
-    .card .preview { aspect-ratio: 4 / 3; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 12px; }
+    .card .preview { aspect-ratio: 4 / 5; }
     .row-span-2 { grid-row: span 1; min-height: 240px; }
-    .row-span-2 .preview { aspect-ratio: 4 / 3; }
+    .row-span-2 .preview { aspect-ratio: 4 / 5; }
     .modal-backdrop { padding: 0; }
     .modal { border-radius: 0; max-height: 100dvh; height: 100dvh; max-width: none; }
     .modal .preview-big { height: clamp(150px, 34dvh, 300px); }
@@ -603,6 +1362,23 @@
     .modal .actions { padding: 10px 14px; flex-wrap: wrap; }
     .modal .actions button { flex: 1 1 130px; }
     .topbar-inner .search input { width: 100%; }
+    .ban-card { border-radius: 14px; }
+    .ban-card header, .ban-body, .ban-actions { padding-left: 18px; padding-right: 18px; }
+    .ban-card h2 { font-size: 20px; }
+    .topbar-right {
+      width: 100%;
+      flex-wrap: wrap;
+      justify-content: space-between;
+    }
+    .sysmsg-btn {
+      flex: 1 1 100%;
+      justify-content: center;
+    }
+    .sysmsg-card {
+      max-height: 100dvh;
+      border-radius: 0;
+    }
+    .sysmsg-list { padding: 16px; }
   }
 
   @media (max-height: 760px) and (min-width: 601px) {
@@ -630,13 +1406,30 @@
     </div>
     <nav class="nav-tabs" role="tablist" aria-label="视图切换">
       <button class="nav-tab" id="tabAll" type="button" role="tab" aria-selected="true">
-        <span>全部</span>
+        <span>motionsites</span>
         <span class="count" id="tabAllCount">–</span>
       </button>
-      <button class="nav-tab blindbox" id="tabBlindbox" type="button" role="tab" aria-selected="false" title="盲盒 UI 提示词专题 · 好奇就点一下">
+      <button class="nav-tab blindbox" id="tabBlindbox" type="button" role="tab" aria-selected="false" title="免费盲盒专题 · 好奇就点一下">
         <span class="bb-emoji">📦</span>
-        <span>盲盒 UI</span>
+        <span>免费盲盒</span>
         <span class="count" id="blindboxCount">0</span>
+      </button>
+      <button class="nav-tab shorts" id="tabShorts" type="button" role="tab" aria-selected="false" title="短提示词灵感库">
+        <span>AI</span>
+        <span>灵感库</span>
+        <span class="count" id="shortsCount">200</span>
+      </button>
+      <button class="nav-tab image-ideas" id="tabImageIdeas" type="button" role="tab" aria-selected="false" title="图片生成灵感库">
+        <span>IMG AI</span>
+        <span class="count" id="imageIdeasCount">…</span>
+      </button>
+      <button class="nav-tab video-ideas" id="tabVideoIdeas" type="button" role="tab" aria-selected="false" title="视频生成灵感库">
+        <span>VID AI</span>
+        <span class="count" id="videoIdeasCount">…</span>
+      </button>
+      <button class="nav-tab one-company" id="tabSoloCompany" type="button" role="tab" aria-selected="false" title="一人公司创业教学">
+        <span>一人公司</span>
+        <span class="count" id="soloCompanyCount">…</span>
       </button>
       <button class="nav-tab favorites" id="tabFavorites" type="button" role="tab" aria-selected="false" title="个人收藏 UI 库">
         <span>♡</span>
@@ -644,11 +1437,17 @@
         <span class="count" id="favoritesCount">0</span>
       </button>
     </nav>
-    <div class="stat-pills">
-      <span class="pill" id="pillTotal"><b>–</b> total</span>
-      <span class="pill" id="pillCover"><b>–</b> with cover</span>
-    </div>
     <div class="topbar-right">
+      <button class="sysmsg-btn" id="systemMsgBtn" type="button" aria-haspopup="dialog" aria-controls="systemMsgModal">
+        <span class="icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 6.5h16a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 20 17.5H4A1.5 1.5 0 0 1 2.5 16V8A1.5 1.5 0 0 1 4 6.5Z"/>
+            <path d="m4 8 8 6 8-6"/>
+          </svg>
+        </span>
+        <span>系统消息</span>
+        <span class="count" id="systemMsgUnread">0</span>
+      </button>
       <a class="me" id="mePill" href="/me" title="个人中心" style="text-decoration:none;color:inherit;">
         <span>👤</span>
         <b id="meLabel">载入中…</b>
@@ -719,6 +1518,39 @@
   </div>
 </div>
 
+<div class="sysmsg-backdrop" id="systemMsgModal" role="dialog" aria-modal="true" aria-labelledby="systemMsgTitle">
+  <div class="sysmsg-card">
+    <div class="sysmsg-head">
+      <div>
+        <h2 id="systemMsgTitle">系统消息</h2>
+        <p id="systemMsgSummary">登录后可查看管理员发送给你的通知。</p>
+      </div>
+      <button class="sysmsg-close" id="systemMsgClose" type="button" aria-label="关闭">×</button>
+    </div>
+    <div class="sysmsg-list" id="systemMsgList">
+      <div class="sysmsg-empty">正在加载系统消息…</div>
+    </div>
+  </div>
+</div>
+
+<div class="ban-backdrop" id="banNotice" role="dialog" aria-modal="true" aria-labelledby="banNoticeTitle">
+  <div class="ban-card">
+    <header>
+      <div class="ban-mark">!</div>
+      <div>
+        <h2 id="banNoticeTitle">你的账号已被封禁</h2>
+        <div class="sub">账号访问权限已被限制</div>
+      </div>
+    </header>
+    <div class="ban-body" id="banNoticeBody"></div>
+    <div class="ban-meta" id="banNoticeMeta" style="display:none"></div>
+    <div class="ban-actions">
+      <button type="button" id="banNoticeClose">我知道了</button>
+      <a class="primary" href="/login" id="banNoticeLogout">返回登录页</a>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast">已复制</div>
 <div
   aria-hidden="true"
@@ -733,6 +1565,12 @@
 
 <script>
 let DATA = [];
+let SHORT_PROMPTS = [];
+let IMAGE_IDEAS = [];
+let VIDEO_IDEAS = [];
+let SOLO_COMPANY = [];
+let SYSTEM_MESSAGES = [];
+let SYSTEM_UNREAD = 0;
 // Pagination state.
 // We fetch the catalog page-by-page from /api/prompts. The user-visible page
 // is `currentPage`; we maintain a 1-based `nextPageToFetch` (the next page of
@@ -755,17 +1593,539 @@ let backgroundCatalogLoading = false;
 // Used to avoid re-fetching when switching tabs (all ↔ blindbox) or reloading.
 const pageCache = new Map(); // pageNum -> { total, has_more, items }
 const PAGE_CACHE_MAX = 32;
+const renderedGridPageCache = new Map(); // renderKey -> { nodes }
+const RENDERED_GRID_PAGE_CACHE_MAX = 24;
 // Tracks which page numbers the user has *rendered* (visited in the pager)
 // so we only auto-fetch the server pages needed to satisfy the current view.
 // Without this, changing a filter and landing on page 5 would silently fetch
 // pages 2-5 even when the user never paginated past page 1.
 const visitedPages = new Set([1]);
-const PAGE_SIZE = 20;
+const PROMO_CARDS_PER_PAGE = 1;
+const PAGE_SIZE = 20 - PROMO_CARDS_PER_PAGE;
 const SERVER_PAGE_SIZE = 96;
-const CATALOG_CACHE_KEY = 'prompt-vault:catalog:v3';
+const CATALOG_CACHE_KEY = 'prompt-vault:catalog:v4';
 const CATALOG_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const FAVORITES_KEY = 'prompt-vault:favorites:v1';
+const IDEA_LIBRARY_ENDPOINTS = {
+  shorts: '/api/idea-libraries/shorts',
+  imageIdeas: '/api/idea-libraries/imageIdeas',
+  videoIdeas: '/api/idea-libraries/videoIdeas',
+  soloCompany: '/api/idea-libraries/soloCompany',
+};
+const REMOVED_IDEA_TITLES = new Set([
+  '无限制的 ChatGPT（降权）',
+]);
+function isRemovedIdeaRecord(raw) {
+  const title = String(raw?.title || raw?.name || '').trim();
+  if (REMOVED_IDEA_TITLES.has(title)) return true;
+  const summary = String(raw?.summary || raw?.description || '').trim();
+  return title.includes('无限制的 ChatGPT')
+    && summary.includes('2023.06.10')
+    && summary.includes('被降权');
+}
 let FAVORITES = {};
+
+function clearRenderedGridPageCache() {
+  renderedGridPageCache.clear();
+}
+
+function touchRenderedGridPageCache(key, snapshot) {
+  if (!key || !snapshot) return;
+  if (renderedGridPageCache.has(key)) renderedGridPageCache.delete(key);
+  renderedGridPageCache.set(key, snapshot);
+  if (renderedGridPageCache.size > RENDERED_GRID_PAGE_CACHE_MAX) {
+    const oldest = renderedGridPageCache.keys().next().value;
+    if (oldest) renderedGridPageCache.delete(oldest);
+  }
+}
+
+function currentGridRenderCacheKey() {
+  return JSON.stringify({
+    view: VIEW,
+    page: currentPage,
+    q: FILTERS.q,
+    cat: FILTERS.cat,
+    text: FILTERS.text,
+    sort: FILTERS.sort,
+  });
+}
+
+function buildShortPromptLibrary() {
+  const categories = [
+    ['营销文案', ['卖点提炼', '小红书种草', '短视频脚本', '直播话术', '私域转化', '广告标题', '朋友圈文案', '产品命名', '活动策划', '复购唤醒']],
+    ['电商运营', ['详情页结构', '用户评价改写', '爆款主图文案', '客服回复', '商品对比', '优惠机制', '上新公告', '买家疑虑处理', '套餐组合', '售后安抚']],
+    ['内容创作', ['选题扩展', '文章大纲', '开头钩子', '结尾号召', '标题改写', '观点拆解', '故事脚本', '科普解释', '访谈提纲', '社群日报']],
+    ['设计灵感', ['落地页方向', '仪表盘文案', '组件命名', '视觉关键词', '动效说明', '配色描述', '空状态文案', '信息架构', '品牌调性', '交互微文案']],
+    ['办公效率', ['会议纪要', '周报总结', '邮件润色', '任务拆解', '风险清单', '复盘模板', 'OKR 草案', '需求澄清', '简历优化', '面试问题']],
+    ['AI 绘图', ['人物设定', '产品海报', '场景构图', '材质光影', '镜头语言', '风格混合', 'Logo 草图', '包装概念', '空间氛围', '角色海报']],
+    ['学习研究', ['概念解释', '论文摘要', '知识卡片', '对比表格', '学习计划', '错题分析', '阅读提问', '案例拆解', '术语词典', '考试复习']],
+    ['产品增长', ['用户画像', '功能定位', '竞品分析', '留存策略', '定价测试', '转化漏斗', '用户访谈', '公告发布', '增长实验', '路线图整理']],
+    ['自媒体矩阵', ['账号定位', '脚本分镜', '评论回复', '爆款复盘', '口播稿', '封面标题', '栏目规划', '粉丝互动', '热点借势', '内容日历']],
+    ['商业分析', ['行业扫描', '商业模式', '成本拆解', '机会判断', '客户分层', '销售话术', '方案摘要', '汇报结构', '预算说明', '决策备忘']]
+  ];
+  const tones = ['清晰直接', '专业克制', '有画面感', '适合快速执行', '偏转化导向', '适合团队协作'];
+  const outputs = ['表格', '分点清单', '可直接发布文案', '执行步骤', '多版本方案', '结构化模板'];
+  const items = [];
+  let n = 1;
+  for (const [category, topics] of categories) {
+    for (const topic of topics) {
+      const tone = tones[(n - 1) % tones.length];
+      const output = outputs[(n + 1) % outputs.length];
+      items.push({
+        id: `short-${String(n).padStart(3, '0')}`,
+        title: `${topic} · ${category}提示词`,
+        category,
+        type: 'Short Prompt',
+        page_type: topic,
+        sort_order: n,
+        source: 'shorts',
+        has_prompt_text: true,
+        prompt_text_length: 0,
+        heat: 980 - n * 3,
+        tags: [topic, tone, output],
+        summary: `用于快速生成${category}里的「${topic}」内容，强调${tone}、信息完整和可直接落地。`,
+        prompt_text: '',
+      });
+      n++;
+    }
+  }
+  const variants = ['进阶优化', '反向检查', '多平台改写', '高转化版本', '轻量模板'];
+  const base = items.slice();
+  while (items.length < 200) {
+    const seed = base[items.length % base.length];
+    const variant = variants[Math.floor(items.length / base.length) % variants.length];
+    const idx = items.length + 1;
+    items.push({
+      ...seed,
+      id: `short-${String(idx).padStart(3, '0')}`,
+      title: `${seed.page_type} · ${variant}`,
+      sort_order: idx,
+      heat: Math.max(120, 980 - idx * 3),
+      tags: [seed.page_type, variant, seed.tags[2]],
+      summary: `${seed.summary} 这个版本更侧重${variant}，适合已有初稿后继续打磨。`,
+      prompt_text: '',
+    });
+  }
+  return items;
+}
+
+function normalizeShortPrompts(input) {
+  const arr = Array.isArray(input)
+    ? input
+    : (Array.isArray(input?.items) ? input.items
+      : Array.isArray(input?.prompts) ? input.prompts
+      : Array.isArray(input?.data) ? input.data
+      : []);
+  return arr.map((raw, index) => {
+    if (isRemovedIdeaRecord(raw)) return null;
+    const promptText = String(raw.prompt_text || raw.prompt || raw.content || raw.text || '').trim();
+    const hasPromptText = raw.has_prompt_text !== undefined ? !!raw.has_prompt_text : !!promptText;
+    const title = String(raw.title || raw.name || `提示词 ${index + 1}`).trim();
+    const category = String(raw.category || raw.group || raw.type || '未分类').trim();
+    const pageType = String(raw.page_type || raw.topic || raw.scene || category).trim();
+    const tags = Array.isArray(raw.tags)
+      ? raw.tags.map(tag => String(tag).trim()).filter(Boolean)
+      : String(raw.tags || '').split(/[,，、\s]+/).map(tag => tag.trim()).filter(Boolean);
+    return {
+      ...raw,
+      id: String(raw.id || `short-${String(index + 1).padStart(3, '0')}`),
+      title,
+      category,
+      type: String(raw.type || 'Short Prompt'),
+      page_type: pageType,
+      sort_order: Number.isFinite(Number(raw.sort_order)) ? Number(raw.sort_order) : index + 1,
+      source: 'shorts',
+      has_prompt_text: hasPromptText,
+      prompt_text_length: Number(raw.prompt_text_length) || promptText.length || 0,
+      heat: Number.isFinite(Number(raw.heat)) ? Number(raw.heat) : Math.max(120, 980 - index * 3),
+      tags,
+      summary: String(raw.summary || raw.description || snippet(promptText, 120) || title).trim(),
+      prompt_text: '',
+    };
+  }).filter(item => item && item.title && (item.has_prompt_text || item.summary));
+}
+
+SHORT_PROMPTS = normalizeShortPrompts(buildShortPromptLibrary());
+
+function buildIdeaPlaceholders(kind) {
+  const isVideo = kind === 'video';
+  const prefix = isVideo ? 'video' : 'image';
+  const category = isVideo ? '视频生成灵感' : '图片生成灵感';
+  const topics = isVideo
+    ? ['产品展示镜头', '人物口播开场', '场景转场', '品牌短片', '动态海报', '教程步骤', '情绪氛围片', '社媒广告']
+    : ['产品海报', '人物写真', '电商主图', '社媒封面', '品牌视觉', '空间场景', '角色设定', '概念海报'];
+  return topics.map((topic, index) => ({
+    id: `${prefix}-idea-${String(index + 1).padStart(3, '0')}`,
+    title: `${topic} · 待导入`,
+    category,
+    type: isVideo ? 'Video Idea Placeholder' : 'Image Idea Placeholder',
+    page_type: topic,
+    sort_order: index + 1,
+    source: isVideo ? 'video_ideas' : 'image_ideas',
+    placeholder: true,
+    has_prompt_text: false,
+    prompt_text_length: 0,
+    heat: 0,
+    tags: [topic, '占位', isVideo ? '镜头' : '画面'],
+    summary: `这里预留「${topic}」的卡片位置，后续导入真实${category}数据后会显示完整提示词。`,
+    prompt_text: '',
+  }));
+}
+
+let IMAGE_IDEAS_LOADING = true;
+let VIDEO_IDEAS_LOADING = true;
+let SOLO_COMPANY_LOADING = true;
+let IMAGE_IDEAS_ERROR = '';
+let VIDEO_IDEAS_ERROR = '';
+let SOLO_COMPANY_ERROR = '';
+
+function isStructuredPromptText(text) {
+  return /^[\s\n]*[\[{]/.test(String(text || ''));
+}
+
+function collectStructuredPromptStrings(value, keys = [], out = []) {
+  if (!value || out.length >= 8) return out;
+  if (typeof value === 'string') {
+    const clean = value.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (clean.length > 24) out.push(clean);
+    return out;
+  }
+  if (Array.isArray(value)) {
+    value.slice(0, 5).forEach(entry => collectStructuredPromptStrings(entry, keys, out));
+    return out;
+  }
+  if (typeof value === 'object') {
+    for (const key of keys) {
+      if (Object.prototype.hasOwnProperty.call(value, key)) collectStructuredPromptStrings(value[key], keys, out);
+      if (out.length >= 8) return out;
+    }
+    for (const entry of Object.values(value).slice(0, 12)) {
+      collectStructuredPromptStrings(entry, keys, out);
+      if (out.length >= 8) return out;
+    }
+  }
+  return out;
+}
+
+function readableIdeaSummary(raw, promptText, title, isVideo) {
+  const rawSummary = String(raw.summary || raw.description || '').trim();
+  if (rawSummary && !isStructuredPromptText(rawSummary)) return snippet(rawSummary, isVideo ? 130 : 140);
+  const keys = isVideo
+    ? ['objective', 'description', 'prompt', 'scene', 'action', 'motion', 'camera', 'style', 'task']
+    : ['prompt', 'description', 'objective', 'scene', 'subject', 'style', 'composition', 'lighting'];
+  if (isStructuredPromptText(promptText)) {
+    try {
+      const parsed = JSON.parse(promptText);
+      const picked = collectStructuredPromptStrings(parsed, keys, []);
+      if (picked.length) return snippet(picked.join(' '), isVideo ? 135 : 145);
+    } catch {}
+  }
+  const firstSentence = String(promptText || '')
+    .replace(/[{}"[\],]/g, ' ')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return snippet(firstSentence || title, isVideo ? 135 : 145);
+}
+
+const VIDEO_TITLE_CN = {
+  'prompts-chat-video-001': '360 度产品旋转视频',
+  'prompts-chat-video-002': '赛博黑色电影三联画',
+  'prompts-chat-video-003': '曼哈顿鸡尾酒电影短片',
+  'prompts-chat-video-004': '代基里鸡尾酒电影短片',
+  'prompts-chat-video-005': '超写实足球比赛转播',
+  'prompts-chat-video-006': '破碎灵魂的中世纪骑士',
+  'prompts-chat-video-007': '随性女生夜晚自拍',
+  'prompts-chat-video-008': '尘土碗年代女飞行员',
+  'prompts-chat-video-009': '电影解说导演脚本',
+  'prompts-chat-video-010': '皮克斯感小狗短片',
+  'prompts-chat-video-011': '跨界艺术混合风格',
+  'prompts-chat-video-012': '美式漫画英雄风',
+  'prompts-chat-video-013': '乡村一日电影三联画',
+  'prompts-chat-video-014': '静谧草地人像三联画',
+  'prompts-chat-video-015': '分镜板九宫格',
+  'prompts-chat-video-016': '午夜线人电影场景',
+  'prompts-chat-video-017': '玻璃中的另一个自己',
+  'prompts-chat-video-018': '终端极速坠落',
+  'prompts-chat-video-019': '维多利亚旅人的时空惊慌',
+  'prompts-chat-video-020': '六格分镜叙事模板',
+  'prompts-chat-video-021': '复古迷幻舞台短片',
+  'prompts-chat-video-022': 'Gary Frank 风格墨线插画',
+  'prompts-chat-video-023': '黄金时刻副驾自拍',
+  'prompts-chat-video-024': '蓝调酒吧的阴影',
+  'prompts-chat-video-025': '迷雾中的秘密交易',
+  'prompts-chat-video-026': '时间褶皱奇幻场景',
+  'prompts-chat-video-027': '黑色电影低语',
+  'prompts-chat-video-028': '学生查分庆祝瞬间',
+  'prompts-chat-video-029': '雨中猩红华尔兹',
+  'prompts-chat-video-030': '霓虹小巷专辑封面风',
+  'prompts-chat-video-031': '水下 Veo 3 电影感视频',
+  'prompts-chat-video-032': 'Prompts.chat 宣传短片',
+  'prompts-chat-video-033': '图片分析报告模板',
+  'prompts-chat-video-034': '巨人观察者与微缩城市',
+  'prompts-chat-video-035': '低调电影感人像摄影',
+  'prompts-chat-video-036': '日落船景电影镜头',
+  'prompts-chat-video-037': '雪原孤影数字绘画',
+  'prompts-chat-video-038': '猩红虚空海盗',
+  'prompts-chat-video-039': '以太工坊奇幻场景',
+  'prompts-chat-video-040': '锈蚀时代回声',
+  'prompts-chat-video-041': '咖啡馆窗边特写',
+  'prompts-chat-video-042': '日本旅行氛围短片',
+  'prompts-chat-video-043': '午夜旋律谜案',
+  'prompts-chat-video-044': '月光街道宁静插画',
+  'prompts-chat-video-045': '安卡拉土耳其女性超现实人像',
+  'prompts-chat-video-046': '电影感近景人像',
+  'prompts-chat-video-047': '时装与环境写实画面',
+  'prompts-chat-video-048': '光轨中的低语',
+  'prompts-chat-video-049': '冷战阴影：1962 交换',
+  'prompts-chat-video-050': '2084 协议巷战黑客',
+  'prompts-chat-video-051': '屋顶日落回眸半身照',
+  'prompts-chat-video-052': '文化超级英雄电影海报',
+  'prompts-chat-video-053': '幻影突袭动作场景',
+  'prompts-chat-video-054': '终端漂移科幻镜头',
+  'prompts-chat-video-055': '机场走廊全身街拍',
+  'prompts-chat-video-056': '最后的柔板',
+  'prompts-chat-video-057': '创意点子生成器',
+  'prompts-chat-video-058': '社媒鸡尾酒网页贴文',
+  'prompts-chat-video-059': '孤独哭泣情绪镜头',
+  'prompts-chat-video-060': '醉酒女性电影场景',
+  'prompts-chat-video-061': '3D 卡通小兔冒险',
+  'prompts-chat-video-062': '情人节鸡尾酒短片',
+  'prompts-chat-video-063': '超写实冬季电影摄影',
+  'prompts-chat-video-064': '趋势研究分析器',
+  'prompts-chat-video-065': '卧室镜面自拍分析',
+  'prompts-chat-video-066': '90 年代鱼眼镜头',
+  'prompts-chat-video-067': '混合媒介人像插画',
+  'prompts-chat-video-068': '雄鹰 3D 写实渲染',
+  'prompts-chat-video-069': '屋顶生活方式人像',
+  'prompts-chat-video-070': '网红睡前随手自拍',
+  'prompts-chat-video-071': '奥斯曼风 3D 等距杰作',
+  'prompts-chat-video-072': '暖灯植物花束静物',
+  'prompts-chat-video-073': '咖啡馆人像描述',
+  'prompts-chat-video-074': '加拉塔塔黑白老照片',
+  'prompts-chat-video-075': '电梯镜面全身穿搭',
+  'prompts-chat-video-076': '宁静傍晚划船插画',
+  'prompts-chat-video-077': '草地少女梦幻艺术照',
+  'prompts-chat-video-078': '地铁站台情绪街拍',
+  'prompts-chat-video-079': '漫画团队群像插画',
+  'prompts-chat-video-080': '冬季杂志海报拼贴',
+  'prompts-chat-video-081': '印象派城市孤独感',
+  'prompts-chat-video-082': '极简监控风插画',
+  'prompts-chat-video-083': 'Ryo Takemasa 风极简风景',
+  'prompts-chat-video-084': '雪夜街头温暖穿搭',
+  'prompts-chat-video-085': '电影光影马匹剪影',
+  'prompts-chat-video-086': '真实镜面自拍场景',
+  'prompts-chat-video-087': '水晶舞会以太王子',
+  'prompts-chat-video-088': '复古公路旅行胶片照',
+  'prompts-chat-video-089': '蘑菇帽上的黏土动画冒险',
+  'prompts-chat-video-090': '夜晚霓虹小巷半身照',
+  'prompts-chat-video-091': '雨伞街头全身照',
+  'prompts-chat-video-092': 'GoPro 运动镜头',
+  'prompts-chat-video-093': '安卡拉夜晚阳台场景',
+  'prompts-chat-video-094': '暖钨丝灯沙发特写',
+  'prompts-chat-video-095': '3x3 焦段电影镜头网格',
+  'prompts-chat-video-096': '曼哈顿幻景',
+  'prompts-chat-video-097': '蓝调时刻桥上全身照',
+  'prompts-chat-video-098': '空灵梦境人像摄影',
+  'prompts-chat-video-099': '巴黎夜晚电影场景',
+  'prompts-chat-video-100': '抽象实验视频提示词',
+};
+
+function ideaDisplayTitle(raw, title, promptText, isVideo) {
+  if (isVideo) {
+    const rawId = String(raw.id || '').trim();
+    if (VIDEO_TITLE_CN[rawId]) return VIDEO_TITLE_CN[rawId];
+  }
+  if (!isVideo || !isStructuredPromptText(promptText)) return title;
+  const normalized = title.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return normalized.replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function normalizeIdeaPrompts(input, kind) {
+  const arr = Array.isArray(input)
+    ? input
+    : (Array.isArray(input?.items) ? input.items
+      : Array.isArray(input?.prompts) ? input.prompts
+      : Array.isArray(input?.data) ? input.data
+      : []);
+  const isVideo = kind === 'video';
+  const source = isVideo ? 'video_ideas' : 'image_ideas';
+  const idPrefix = isVideo ? 'vid' : 'img';
+  return arr.map((raw, index) => {
+    const promptText = String(raw.prompt_text || raw.prompt || raw.content || raw.text || '').trim();
+    const hasPromptText = raw.has_prompt_text !== undefined ? !!raw.has_prompt_text : !!promptText;
+    const rawTitle = String(raw.title || raw.name || `${isVideo ? '视频' : '图片'}灵感 ${index + 1}`).trim();
+    const title = ideaDisplayTitle(raw, rawTitle, promptText, isVideo);
+    const category = String(raw.category || raw.group || (isVideo ? '视频生成灵感' : '图片生成灵感')).trim();
+    const pageType = String(raw.page_type || raw.topic || raw.scene || category).trim();
+    const coverUrl = String(raw.cover_url || raw.image_url || raw.thumbnail || raw.preview_image_url || '').trim();
+    const videoUrl = String(raw.video_url || raw.preview_video_url || raw.playable_video_url || '').trim();
+    const tags = Array.isArray(raw.tags)
+      ? raw.tags.map(tag => String(tag).trim()).filter(Boolean)
+      : String(raw.tags || '').split(/[,，、\s]+/).map(tag => tag.trim()).filter(Boolean);
+    const heatValue = Number(raw.heat ?? raw.likes ?? raw.views);
+    const rawId = String(raw.id || `${idPrefix}-${String(index + 1).padStart(3, '0')}`);
+    return {
+      ...raw,
+      id: `${source}-${rawId}`,
+      original_id: rawId,
+      title,
+      category,
+      type: String(raw.type || (isVideo ? 'Video Idea' : 'Image Idea')),
+      page_type: pageType,
+      sort_order: Number.isFinite(Number(raw.sort_order)) ? Number(raw.sort_order) : index + 1,
+      source,
+      placeholder: false,
+      has_prompt_text: hasPromptText,
+      prompt_text_length: Number(raw.prompt_text_length) || promptText.length || 0,
+      heat: Number.isFinite(heatValue) ? heatValue : Math.max(120, 980 - index * 3),
+      tags,
+      summary: readableIdeaSummary(raw, promptText, title, isVideo),
+      prompt_text: '',
+      preview_image_url: coverUrl,
+      preview_thumb_url: coverUrl,
+      cover_url: coverUrl,
+      playable_video_url: videoUrl,
+      preview_video_url: videoUrl,
+    };
+  }).filter(item => item.title && (item.has_prompt_text || item.summary));
+}
+
+
+function normalizeSoloCompanyPrompts(input) {
+  const arr = Array.isArray(input)
+    ? input
+    : (Array.isArray(input?.items) ? input.items
+      : Array.isArray(input?.prompts) ? input.prompts
+      : Array.isArray(input?.data) ? input.data
+      : []);
+  return arr.map((raw, index) => {
+    const promptText = String(raw.prompt_text || raw.prompt || raw.content || raw.text || '').trim();
+    const hasPromptText = raw.has_prompt_text !== undefined ? !!raw.has_prompt_text : !!promptText;
+    const title = String(raw.title || raw.name || `一人公司教学 ${index + 1}`).trim();
+    const category = String(raw.category || raw.group || '一人公司').trim();
+    const pageType = String(raw.page_type || raw.topic || raw.scene || '创业教学').trim();
+    const coverUrl = String(raw.cover_url || raw.image_url || raw.thumbnail || raw.preview_image_url || '').trim();
+    const tags = Array.isArray(raw.tags)
+      ? raw.tags.map(tag => String(tag).trim()).filter(Boolean)
+      : String(raw.tags || '').split(/[,，、\s]+/).map(tag => tag.trim()).filter(Boolean);
+    const heatValue = Number(raw.heat ?? raw.likes ?? raw.views);
+    return {
+      ...raw,
+      id: String(raw.id || `solo-${String(index + 1).padStart(3, '0')}`),
+      title,
+      category,
+      type: String(raw.type || 'Solo Company Lesson'),
+      page_type: pageType,
+      sort_order: Number.isFinite(Number(raw.sort_order)) ? Number(raw.sort_order) : index + 1,
+      source: 'one_company',
+      placeholder: false,
+      has_prompt_text: hasPromptText,
+      prompt_text_length: Number(raw.prompt_text_length) || promptText.length || 0,
+      heat: Number.isFinite(heatValue) ? heatValue : Math.max(120, 980 - index * 3),
+      tags,
+      summary: String(raw.summary || raw.description || snippet(promptText, 150) || title).trim(),
+      prompt_text: '',
+      preview_image_url: coverUrl,
+      preview_thumb_url: coverUrl,
+      cover_url: coverUrl,
+      playable_video_url: '',
+      preview_video_url: '',
+    };
+  }).filter(item => item.title && (item.has_prompt_text || item.summary));
+}
+
+async function loadSoloCompany() {
+  SOLO_COMPANY_LOADING = true;
+  SOLO_COMPANY_ERROR = '';
+  syncTopBarStats();
+  try {
+    const r = await fetch(IDEA_LIBRARY_ENDPOINTS.soloCompany, { cache: 'no-store' });
+    if (!r.ok) throw new Error('solo company http ' + r.status);
+    const data = await r.json();
+    const imported = normalizeSoloCompanyPrompts(Array.isArray(data.items) ? data.items : []);
+    if (!imported.length) throw new Error('solo company empty');
+    SOLO_COMPANY = imported;
+    SOLO_COMPANY_ERROR = '';
+    clearRenderedGridPageCache();
+  } catch (e) {
+    SOLO_COMPANY = [];
+    SOLO_COMPANY_ERROR = e && e.message ? e.message : 'solo company import failed';
+    clearRenderedGridPageCache();
+    console.warn('[Prompt Vault] solo company import failed:', SOLO_COMPANY_ERROR);
+  } finally {
+    SOLO_COMPANY_LOADING = false;
+    syncTopBarStats();
+    if (VIEW === 'soloCompany' || VIEW === 'favorites') render();
+  }
+}
+
+async function loadShortPrompts() {
+  try {
+    const r = await fetch(IDEA_LIBRARY_ENDPOINTS.shorts, { cache: 'no-store' });
+    if (!r.ok) throw new Error('short prompts http ' + r.status);
+    const data = await r.json();
+    const imported = normalizeShortPrompts(Array.isArray(data.items) ? data.items : []);
+    if (!imported.length) throw new Error('short prompts empty');
+    SHORT_PROMPTS = imported;
+    clearRenderedGridPageCache();
+    syncTopBarStats();
+    if (VIEW === 'shorts' || VIEW === 'favorites') render();
+  } catch (e) {
+    console.warn('[Prompt Vault] short prompts import failed, using fallback:', e && e.message ? e.message : e);
+    syncTopBarStats();
+  }
+}
+
+async function loadImageIdeas() {
+  IMAGE_IDEAS_LOADING = true;
+  IMAGE_IDEAS_ERROR = '';
+  syncTopBarStats();
+  try {
+    const r = await fetch(IDEA_LIBRARY_ENDPOINTS.imageIdeas, { cache: 'no-store' });
+    if (!r.ok) throw new Error('image ideas http ' + r.status);
+    const data = await r.json();
+    const imported = normalizeIdeaPrompts(Array.isArray(data.items) ? data.items : [], 'image');
+    if (!imported.length) throw new Error('image ideas empty');
+    IMAGE_IDEAS = imported;
+    IMAGE_IDEAS_ERROR = '';
+    clearRenderedGridPageCache();
+  } catch (e) {
+    IMAGE_IDEAS = [];
+    IMAGE_IDEAS_ERROR = e && e.message ? e.message : 'image ideas import failed';
+    clearRenderedGridPageCache();
+    console.warn('[Prompt Vault] image ideas import failed:', IMAGE_IDEAS_ERROR);
+  } finally {
+    IMAGE_IDEAS_LOADING = false;
+    syncTopBarStats();
+    if (VIEW === 'imageIdeas' || VIEW === 'favorites') render();
+  }
+}
+
+async function loadVideoIdeas() {
+  VIDEO_IDEAS_LOADING = true;
+  VIDEO_IDEAS_ERROR = '';
+  syncTopBarStats();
+  try {
+    const r = await fetch(IDEA_LIBRARY_ENDPOINTS.videoIdeas, { cache: 'no-store' });
+    if (!r.ok) throw new Error('video ideas http ' + r.status);
+    const data = await r.json();
+    const imported = normalizeIdeaPrompts(Array.isArray(data.items) ? data.items : [], 'video');
+    if (!imported.length) throw new Error('video ideas empty');
+    VIDEO_IDEAS = imported;
+    VIDEO_IDEAS_ERROR = '';
+    clearRenderedGridPageCache();
+  } catch (e) {
+    VIDEO_IDEAS = [];
+    VIDEO_IDEAS_ERROR = e && e.message ? e.message : 'video ideas import failed';
+    clearRenderedGridPageCache();
+    console.warn('[Prompt Vault] video ideas import failed:', VIDEO_IDEAS_ERROR);
+  } finally {
+    VIDEO_IDEAS_LOADING = false;
+    syncTopBarStats();
+    if (VIEW === 'videoIdeas' || VIEW === 'favorites') render();
+  }
+}
 
 function loadFavorites() {
   try {
@@ -830,6 +2190,7 @@ function toggleFavorite(id) {
     showToast('已加入收藏库');
   }
   saveFavorites();
+  clearRenderedGridPageCache();
   syncTopBarStats();
   render();
   syncModalFavoriteButton();
@@ -838,14 +2199,169 @@ function toggleFavorite(id) {
 // Update the top-of-page pills. Boot loads the full metadata catalog, so these
 // counts are exact after the first successful load.
 function syncTopBarStats() {
-  document.getElementById('pillTotal').innerHTML = `<b>${TOTAL}</b> total`;
-  // Cover = any non-null preview image or video URL (including playable_video_url).
-  document.getElementById('pillCover').innerHTML =
-    `<b>${DATA.filter(x => !!(x.preview_image_url || x.preview_video_url || x.playable_video_url)).length}</b> with cover`;
-  const blindCount = DATA.filter(usesManghePlaceholder).length;
+  const blindCount = DATA.filter(isBlindboxEligible).length;
+  const allVisibleCount = Math.max(0, TOTAL - DATA.filter(usesManghePlaceholder).length);
   document.getElementById('blindboxCount').textContent = blindCount;
-  document.getElementById('tabAllCount').textContent = Math.max(0, TOTAL - blindCount);
+  document.getElementById('tabAllCount').textContent = allVisibleCount;
+  document.getElementById('shortsCount').textContent = SHORT_PROMPTS.length;
+  document.getElementById('imageIdeasCount').textContent = IMAGE_IDEAS_LOADING ? '…' : IMAGE_IDEAS.length;
+  document.getElementById('videoIdeasCount').textContent = VIDEO_IDEAS_LOADING ? '…' : VIDEO_IDEAS.length;
+  document.getElementById('soloCompanyCount').textContent = SOLO_COMPANY_LOADING ? '…' : SOLO_COMPANY.length;
   document.getElementById('favoritesCount').textContent = favoriteTotal();
+}
+
+const MSG_KIND_LABEL = { info: '通知', warn: '提醒', success: '结果' };
+
+function syncBodyScrollLock() {
+  const shouldLock =
+    document.getElementById('modal')?.classList.contains('open') ||
+    document.getElementById('systemMsgModal')?.classList.contains('open') ||
+    document.getElementById('banNotice')?.classList.contains('open');
+  document.body.style.overflow = shouldLock ? 'hidden' : '';
+}
+
+function formatMessageDate(value) {
+  if (!value) return '';
+  try {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  } catch {
+    return '';
+  }
+}
+
+function updateSystemMessageBadge(unread) {
+  const btn = document.getElementById('systemMsgBtn');
+  const badge = document.getElementById('systemMsgUnread');
+  if (!btn || !badge) return;
+  const count = Math.max(0, Number(unread) || 0);
+  SYSTEM_UNREAD = count;
+  badge.textContent = count > 99 ? '99+' : String(count);
+  btn.classList.toggle('has-unread', count > 0);
+}
+
+function renderSystemMessages(rows) {
+  const listEl = document.getElementById('systemMsgList');
+  const summaryEl = document.getElementById('systemMsgSummary');
+  if (!listEl || !summaryEl) return;
+  const rowsSafe = Array.isArray(rows) ? rows : [];
+  listEl.innerHTML = '';
+  if (!VIEWER.authenticated) {
+    summaryEl.textContent = '登录后可查看管理员发送给你的通知。';
+    listEl.innerHTML = '<div class="sysmsg-empty">请先登录后查看系统消息。</div>';
+    updateSystemMessageBadge(0);
+    return;
+  }
+  summaryEl.textContent = SYSTEM_UNREAD > 0
+    ? `你有 ${SYSTEM_UNREAD} 条未读消息`
+    : (rowsSafe.length ? `共 ${rowsSafe.length} 条消息` : '暂时还没有新的系统消息');
+  if (!rowsSafe.length) {
+    listEl.innerHTML = '<div class="sysmsg-empty">暂无站内消息。</div>';
+    return;
+  }
+  for (const msg of rowsSafe) {
+    const card = document.createElement('div');
+    card.className = 'msg-card' + (msg.read ? '' : ' unread');
+    const kind = MSG_KIND_LABEL[msg.kind] || '通知';
+    card.innerHTML = `
+      <div class="msg-top">
+        <div>
+          <div class="msg-title">${escapeHtml(msg.title || '来自管理员的消息')}</div>
+          <div style="margin-top:4px">
+            <span class="pill">${escapeHtml(kind)}</span>
+            ${msg.read ? '' : '<span class="pill" style="margin-left:6px">未读</span>'}
+          </div>
+        </div>
+      </div>
+      <div class="msg-body">${escapeHtml(msg.body || '')}</div>
+      <div class="msg-meta">
+        <span>${escapeHtml(formatMessageDate(msg.created_at))}</span>
+        ${msg.read ? '<span>已读</span>' : '<button class="msg-read" type="button" data-id="' + escapeHtml(msg.id) + '">标记已读</button>'}
+      </div>
+    `;
+    listEl.appendChild(card);
+  }
+  listEl.querySelectorAll('.msg-read').forEach((btn) => {
+    btn.addEventListener('click', () => markSystemMessageRead(btn.getAttribute('data-id')));
+  });
+}
+
+async function loadSystemMessages(options = {}) {
+  const { quiet = false } = options || {};
+  const listEl = document.getElementById('systemMsgList');
+  const summaryEl = document.getElementById('systemMsgSummary');
+  if (!listEl || !summaryEl) return;
+  if (!VIEWER.authenticated) {
+    SYSTEM_MESSAGES = [];
+    updateSystemMessageBadge(0);
+    renderSystemMessages([]);
+    return;
+  }
+  if (!quiet) {
+    listEl.innerHTML = '<div class="sysmsg-empty">正在加载系统消息…</div>';
+  }
+  try {
+    const r = await fetch('/api/messages', { credentials: 'same-origin' });
+    if (r.status === 401) {
+      SYSTEM_MESSAGES = [];
+      VIEWER.authenticated = false;
+      renderSystemMessages([]);
+      return;
+    }
+    const j = await r.json();
+    if (!r.ok || !j.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    SYSTEM_MESSAGES = Array.isArray(j.messages) ? j.messages : [];
+    updateSystemMessageBadge(Number(j.unread_count || 0));
+    renderSystemMessages(SYSTEM_MESSAGES);
+  } catch (err) {
+    if (!quiet) {
+      summaryEl.textContent = '系统消息暂时加载失败';
+      listEl.innerHTML = '<div class="sysmsg-empty">消息加载失败，请稍后重试。</div>';
+    }
+  }
+}
+
+async function markSystemMessageRead(id) {
+  if (!id) return;
+  try {
+    const r = await fetch('/api/messages/' + encodeURIComponent(id) + '/read', {
+      method: 'POST',
+      credentials: 'same-origin',
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) throw new Error(j.error || ('HTTP ' + r.status));
+    await loadSystemMessages({ quiet: true });
+    showToast('已标记为已读');
+  } catch {
+    showToast('操作失败，请稍后重试');
+  }
+}
+
+function openSystemMessageModal() {
+  if (!VIEWER.authenticated) {
+    location.href = loginNextUrl();
+    return;
+  }
+  const host = document.getElementById('systemMsgModal');
+  if (!host) return;
+  host.classList.add('open');
+  syncBodyScrollLock();
+  loadSystemMessages();
+}
+
+function closeSystemMessageModal() {
+  const host = document.getElementById('systemMsgModal');
+  if (!host) return;
+  host.classList.remove('open');
+  syncBodyScrollLock();
 }
 
 function saveCatalogCache() {
@@ -885,7 +2401,15 @@ function hydrateCatalogFromCache() {
 
 // ---- Auth UI ----
 let VIEWER = { authenticated: false };
-let MEMBERSHIP = { is_member: false, expires_label: '', reason: 'guest' };
+let MEMBERSHIP = { is_member: false, expires_label: '', reason: 'unauthorized' };
+const DEFAULT_BAN_NOTICE_LINES = [
+  '系统检测到该账号存在批量读取、自动化抓取、绕过访问限制或触发蜜罐检测等异常行为。',
+  '本站内容不是供人无偿爬取、搬运、倒卖的数据仓库。这里的提示词经过长期整理、筛选、归类和维护，本身已经以很低的价格开放给大家使用，目的就是让更多人用得起高质量提示词。',
+  '整理这些内容需要投入大量时间和精力，服务器维护也需要持续成本。我们收取的费用只是为了覆盖基本运营，让这个站点可以继续稳定更新下去，而不是给恶意抓取、批量复制和倒卖行为提供便利。',
+  '试图绕过规则获取他人劳动成果，不是聪明，也不是本事，而是对创作者、整理者和正常付费用户的不尊重。',
+  '因此，该账号已被限制访问，无法继续查看或复制提示词正文。',
+  '如认为封禁有误，请联系管理员申请复核。',
+];
 
 function loginNextUrl() {
   return '/login?next=' + encodeURIComponent(location.pathname + location.search);
@@ -896,40 +2420,66 @@ function isFreePromptItem(item) {
 }
 
 function canAccessPrompts(item = null) {
-  return isFreePromptItem(item) || (!!VIEWER.authenticated && MEMBERSHIP.is_member === true);
+  return !!VIEWER.authenticated && (isFreePromptItem(item) || MEMBERSHIP.is_member === true);
+}
+
+function lockedPromptHint(item = null) {
+  const len = Number(item && item.prompt_text_length) || Number((item && item.prompt_text ? item.prompt_text.length : 0)) || 0;
+  return `预览模式 · 会员可查看完整提示词${len ? `（${len} 字符）` : ''}`;
 }
 
 function membershipRequiredMessage() {
-  if (!VIEWER.authenticated || MEMBERSHIP.reason === 'guest') {
-    return '游客可直接查看和复制盲盒 UI，其他提示词需要登录会员后才能查看、复制完整内容。';
+  if (!VIEWER.authenticated || MEMBERSHIP.reason === 'guest' || MEMBERSHIP.reason === 'unauthorized') {
+    return '请先登录账号。登录后，会员可查看和复制完整提示词正文。';
   }
   if (MEMBERSHIP.reason === 'revoked') {
     return '账户或邀请码已吊销，无法查看和复制提示词。如有疑问请联系卖家。';
   }
   if (MEMBERSHIP.reason === 'registered' || MEMBERSHIP.reason === 'not_found' || MEMBERSHIP.reason === 'unknown') {
-    return '当前账号还不是会员：盲盒 UI 可直接查看复制，其他提示词需要会员权限。';
+    return '当前账号还不是会员，无法查看和复制提示词正文。请开通会员后继续使用。';
   }
   return '会员已到期，无法查看和复制提示词。如需续费请联系卖家（闲鱼）。';
 }
 
 function applyGuestViewer() {
   VIEWER = { authenticated: false };
-  MEMBERSHIP = { is_member: false, expires_label: '', reason: 'guest' };
+  MEMBERSHIP = { is_member: false, expires_label: '', reason: 'unauthorized' };
+  location.href = loginNextUrl();
+}
+
+function renderLoggedOutViewer() {
   const mePill = document.getElementById('mePill');
   const expiryEl = document.getElementById('meExpiry');
-  document.getElementById('meLabel').textContent = '游客预览';
+  document.getElementById('meLabel').textContent = '请先登录';
   if (mePill) {
     mePill.classList.add('guest');
     mePill.href = loginNextUrl();
-    mePill.title = '登录或开通会员';
+    mePill.title = '登录';
   }
   if (expiryEl) {
-    expiryEl.textContent = '会员可复制';
+    expiryEl.textContent = '登录后使用';
     expiryEl.classList.add('expired');
     expiryEl.style.display = '';
   }
   const logoutBtn = document.getElementById('logoutBtn');
   if (logoutBtn) logoutBtn.textContent = '登录';
+}
+
+function syncDecoyClearFromMe(data) {
+  const value = data && data.security ? data.security.decoy_cleared_at : null;
+  if (!value) return;
+  if (window.PVS && typeof window.PVS.syncLocalDecoyState === 'function') {
+    window.PVS.syncLocalDecoyState(data);
+    return;
+  }
+  const parsed = Number(value) || Date.parse(String(value));
+  if (!Number.isFinite(parsed) || parsed <= 0) return;
+  try {
+    localStorage.setItem('pv_decoy_cleared_at', String(parsed));
+    localStorage.removeItem('pv_decoy_until');
+    localStorage.removeItem('pv_decoy_marked_at');
+    document.cookie = 'pv_decoy_until=; Max-Age=0; path=/; SameSite=Lax';
+  } catch {}
 }
 
 function syncViewerFromCatalog(data) {
@@ -939,16 +2489,15 @@ function syncViewerFromCatalog(data) {
 
 async function loadMe() {
   try {
-    const r = await fetch('/api/me?optional=1');
+    const r = await fetch('/api/me', { cache: 'no-store' });
     if (r.status === 401) {
       applyGuestViewer();
-      if (DATA.length) render();
       return null;
     }
     const data = await r.json();
+    syncDecoyClearFromMe(data);
     if (data.authenticated === false) {
       applyGuestViewer();
-      if (DATA.length) render();
       return null;
     }
     VIEWER = { authenticated: true };
@@ -963,6 +2512,9 @@ async function loadMe() {
     const codeId = code.id || '';
     document.getElementById('meLabel').textContent = code.label || (codeId ? ('码 #' + codeId.slice(-6)) : '已登录');
     MEMBERSHIP = data.membership || { is_member: false, expires_label: code.expires_label || '', reason: 'unknown' };
+    if (data.banned || MEMBERSHIP.reason === 'revoked') {
+      showBanNotice(data.ban_notice || {});
+    }
     const expiryEl = document.getElementById('meExpiry');
     const label = MEMBERSHIP.expires_label || code.expires_label || '';
     if (label) {
@@ -974,9 +2526,11 @@ async function loadMe() {
       expiryEl.style.display = 'none';
     }
     if (DATA.length) render();
+    loadSystemMessages({ quiet: true });
     return data;
   } catch (e) {
-    applyGuestViewer();
+    renderLoggedOutViewer();
+    renderSystemMessages([]);
     return null;
   }
 }
@@ -1132,6 +2686,7 @@ async function doLoadPrompts(opts = {}) {
   // make sure page 1 is loaded so the user sees *something* immediately.
   if (opts.reset === undefined) opts.reset = true;
   if (opts.reset) {
+    clearRenderedGridPageCache();
     DATA = [];
     TOTAL = 0;
     nextPageToFetch = 1;
@@ -1233,6 +2788,7 @@ async function refreshCatalogFromNetwork() {
   try {
     const fresh = await fetchFreshCatalogSnapshot();
     if (!fresh) return;
+    clearRenderedGridPageCache();
     DATA = fresh.items;
     TOTAL = fresh.total;
     hasMore = false;
@@ -1537,6 +3093,62 @@ async function fetchPromptBody(id) {
   return body;
 }
 
+function ideaKindFromSource(source) {
+  if (source === 'shorts') return 'shorts';
+  if (source === 'image_ideas') return 'imageIdeas';
+  if (source === 'video_ideas') return 'videoIdeas';
+  if (source === 'one_company') return 'soloCompany';
+  return '';
+}
+
+async function fetchIdeaBody(item) {
+  const kind = ideaKindFromSource(item && item.source);
+  if (!kind) throw new Error('unknown_idea_library');
+  const cacheKey = `idea:${kind}:${item.id}`;
+  const cached = _bodyCache.get(cacheKey);
+  if (cached && Date.now() - cached.ts < _BODY_CACHE_TTL_MS) return cached.body;
+  const access = await fetch(`/api/idea-libraries/${encodeURIComponent(kind)}/${encodeURIComponent(item.id)}/access`, {
+    cache: 'no-store',
+  });
+  const accessBody = await access.json().catch(() => ({}));
+  if (!access.ok || !accessBody.ok) {
+    throw new Error(accessBody.error || `access_${access.status}`);
+  }
+  const detail = await fetch(`/api/idea-libraries/${encodeURIComponent(kind)}/${encodeURIComponent(item.id)}?content_token=${encodeURIComponent(accessBody.content_token)}`, {
+    cache: 'no-store',
+  });
+  const body = await detail.json().catch(() => ({}));
+  if (!detail.ok || !body.ok) {
+    throw new Error(body.error || body.reason || `detail_${detail.status}`);
+  }
+  if (_bodyCache.size >= _BODY_CACHE_MAX) {
+    const oldestKey = _bodyCache.keys().next().value;
+    _bodyCache.delete(oldestKey);
+  }
+  _bodyCache.set(cacheKey, { body, ts: Date.now() });
+  return body;
+}
+
+async function assertContentActionAllowed(item, action='copy', extra={}) {
+  const r = await fetch('/api/content/copy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id: item?.id || null,
+      source: item?.source || 'motionsites',
+      library: ideaKindFromSource(item && item.source) || null,
+      action,
+      ...extra,
+    }),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok || !data.ok) throw new Error(data.message || data.error || `copy_${r.status}`);
+}
+
+async function assertCopyAllowed(item) {
+  return assertContentActionAllowed(item, 'copy');
+}
+
 function snippet(text, max=220) {
   const t = (text || '').replace(/\s+/g, ' ').trim();
   return t.length > max ? t.slice(0, max).trimEnd() + '…' : t;
@@ -1571,20 +3183,39 @@ function optimizedCoverUrl(src, mode='card') {
   }
 }
 
+function cachedCoverUrl(src, mode='card') {
+  const value = String(src || '').trim();
+  if (!value) return '';
+  try {
+    const url = new URL(value, window.location.origin);
+    if (url.origin === window.location.origin) return url.href;
+    if (!/^https?:$/.test(url.protocol)) return value;
+    return `/api/cover-proxy?v=2&mode=${encodeURIComponent(mode)}&url=${encodeURIComponent(value)}`;
+  } catch {
+    return value;
+  }
+}
+
 function hasPreviewCover(p) {
   return !!(p.preview_image_url || p.preview_video_url || p.playable_video_url);
 }
 
+const BLINDBOX_MIN_PROMPT_LENGTH = 2000;
+
 // Single source of truth for the blind-box fallback. "盲盒 UI" is no longer a
 // content category; it is the bucket for cards that truly have no cover URL.
 function usesManghePlaceholder(p) {
-  return !hasPreviewCover(p);
+  return !!p && (p.special_collection === 'blind_box' || !hasPreviewCover(p));
+}
+
+function isBlindboxEligible(p) {
+  return usesManghePlaceholder(p) && Number(p?.prompt_text_length || 0) >= BLINDBOX_MIN_PROMPT_LENGTH;
 }
 
 function previewHtml(item) {
   if (item.preview_image_url) {
-    const thumbUrl = item.preview_thumb_url || optimizedCoverUrl(item.preview_image_url, 'card');
-    return `<img src="${escapeHtml(thumbUrl)}" alt="${escapeHtml(item.title)}" width="640" height="400" loading="lazy" decoding="async" fetchpriority="low" />`;
+    const thumbUrl = cachedCoverUrl(item.preview_thumb_url || item.preview_image_url, 'card');
+    return `<img src="${escapeHtml(thumbUrl)}" alt="${escapeHtml(item.title)}" width="640" height="400" loading="eager" decoding="async" fetchpriority="auto" />`;
   }
   // playable_video_url is the canonical field; preview_video_url is a legacy alias.
   const videoUrl = item.preview_video_url || item.playable_video_url;
@@ -1600,12 +3231,16 @@ function previewHtml(item) {
   // never drifts from the view / count / filter logic.
   const isManghe = usesManghePlaceholder(item);
   return `<div class="ph">
-    <img class="ph-img" src="/static/manghe.png" alt="${isManghe ? '盲盒占位图' : '占位图'}" width="640" height="400" loading="lazy" decoding="async" fetchpriority="low" />
+    <img class="ph-img" src="/static/manghe.png" alt="${isManghe ? '盲盒占位图' : '占位图'}" width="640" height="400" loading="eager" decoding="async" fetchpriority="auto" />
     ${isManghe ? '<span class="ph-tag">盲盒</span>' : ''}
   </div>`;
 }
 
 function cardHtml(item) {
+  if (item.source === 'shorts') return shortPromptCardHtml(item);
+  if (item.source === 'image_ideas' || item.source === 'video_ideas' || item.source === 'one_company') {
+    return item.placeholder ? ideaPlaceholderCardHtml(item) : ideaPromptCardHtml(item);
+  }
   const freeItem = isFreePromptItem(item);
   const locked = !canAccessPrompts(item);
   const cls = (item.row_span === 2 ? 'card row-span-2' : 'card') + (locked ? ' locked' : '');
@@ -1657,8 +3292,205 @@ function cardHtml(item) {
     </article>`;
 }
 
+function ideaPromptCardHtml(item) {
+  const isVideo = item.source === 'video_ideas';
+  const isLesson = item.source === 'one_company';
+  const favActive = isFavorite(item.id);
+  const favCount = favoriteCount(item.id);
+  const tags = (item.tags || []).slice(0, 3).map(tag => `<span class="short-tag">${escapeHtml(tag)}</span>`).join('');
+  const heatLabel = isLesson
+    ? (item.page_type || '教学')
+    : (Number(item.likes || item.heat || 0) ? `${Number(item.likes || item.heat || 0)} likes` : '灵感');
+  const model = item.model ? `<span class="badge meta">${escapeHtml(item.model)}</span>` : '';
+  const accessible = canAccessPrompts(item);
+  const bodySnippet = item.summary || (accessible ? snippet(item.prompt_text, 160) : lockedPromptHint(item));
+  const visual = hasPreviewCover(item) ? previewHtml(item) : (isVideo ? `
+        <div class="idea-visual">
+          <div class="short-topline">
+            <span class="short-index">VID</span>
+            <span class="idea-status">${escapeHtml(item.page_type || 'Video Prompt')}</span>
+          </div>
+          <div class="idea-timeline"><i></i><i></i><i></i><i></i><i></i></div>
+        </div>` : isLesson ? `
+        <div class="idea-visual">
+          <div class="short-topline">
+            <span class="short-index">SOLO</span>
+            <span class="idea-status">${escapeHtml(item.page_type || '创业教学')}</span>
+          </div>
+          <p class="short-summary">${escapeHtml(item.summary || (accessible ? snippet(item.prompt_text, 140) : lockedPromptHint(item)))}</p>
+          <div class="short-tags">${tags}</div>
+        </div>` : `
+        <div class="idea-visual">
+          <div class="short-topline">
+            <span class="short-index">IMG</span>
+            <span class="idea-status">${escapeHtml(item.page_type || 'Prompt')}</span>
+          </div>
+          <p class="short-summary">${escapeHtml(item.summary || (accessible ? snippet(item.prompt_text, 140) : lockedPromptHint(item)))}</p>
+          <div class="short-tags">${tags}</div>
+        </div>`);
+  const footerLabel = escapeHtml(item.page_type || item.category || (isVideo ? '视频灵感' : isLesson ? '一人公司' : '图片灵感'));
+  const heatChip = `<span class="short-heat">${escapeHtml(heatLabel)}</span>`;
+  return `
+    <article class="card idea-card ${isVideo ? 'video-card' : isLesson ? 'lesson-card' : 'image-card'}" data-id="${escapeHtml(item.id)}" tabindex="0">
+      <div class="preview">
+        ${hasPreviewCover(item) ? `<div class="badges">
+          <div class="badges-left">
+            <span class="badge cat">${escapeHtml(item.category || '')}</span>
+            ${model}
+            ${heatChip}
+          </div>
+        </div>` : ''}
+        ${visual}
+        <button class="favorite-btn ${favActive ? 'active' : ''}" type="button" data-favorite-id="${escapeHtml(item.id)}" aria-label="${favActive ? '取消收藏' : '收藏'}" title="${favActive ? '取消收藏' : '收藏到个人 UI 库'}">
+          <span>${favActive ? '♥' : '♡'}</span>
+          ${favCount > 0 ? `<span class="favorite-count">${favCount}</span>` : ''}
+        </button>
+      </div>
+      <div class="body">
+        <h3>${escapeHtml(item.title)}</h3>
+        <div class="snippet">${escapeHtml(bodySnippet)}</div>
+        ${tags ? `<div class="short-tags">${tags}</div>` : ''}
+        <div class="footer">
+          <span>${footerLabel}</span>
+          <span class="arrow">${accessible ? (isLesson ? '阅读 →' : '查看 →') : '会员解锁'}</span>
+        </div>
+      </div>
+    </article>`;
+}
+
+function ideaPlaceholderCardHtml(item) {
+  const isVideo = item.source === 'video_ideas';
+  const tags = (item.tags || []).slice(0, 3).map(tag => `<span class="short-tag">${escapeHtml(tag)}</span>`).join('');
+  return `
+    <article class="card short-card idea-placeholder ${isVideo ? 'video-card' : 'image-card'}" data-id="${escapeHtml(item.id)}" tabindex="0" aria-disabled="true">
+      <div class="preview">
+        <div class="short-topline">
+          <span class="short-index">${isVideo ? 'VID' : 'IMG'}</span>
+          <span class="badge cat">${escapeHtml(item.category || '')}</span>
+          <span class="idea-status">待导入</span>
+        </div>
+        <p class="short-summary">${escapeHtml(item.summary || '')}</p>
+        <div class="short-tags">${tags}</div>
+      </div>
+      <div class="body">
+        <h3>${escapeHtml(item.title)}</h3>
+        <div class="snippet">${escapeHtml(isVideo ? '预留视频生成提示词、镜头描述、时长节奏和运镜参数。' : '预留图片生成提示词、画面主体、风格参考和构图参数。')}</div>
+        <div class="footer">
+          <span>#${escapeHtml(item.id)}</span>
+          <span class="arrow">占位中</span>
+        </div>
+      </div>
+    </article>`;
+}
+
+function shortPromptCardHtml(item) {
+  const favActive = isFavorite(item.id);
+  const favCount = favoriteCount(item.id);
+  const tags = (item.tags || []).slice(0, 3).map(tag => `<span class="short-tag">${escapeHtml(tag)}</span>`).join('');
+  const accessible = canAccessPrompts(item);
+  const bodySnippet = item.summary || (accessible ? snippet(item.prompt_text, 170) : lockedPromptHint(item));
+  return `
+    <article class="card short-card" data-id="${escapeHtml(item.id)}" tabindex="0">
+      <div class="preview">
+        <div class="short-topline">
+          <span class="short-index">${String(item.sort_order).padStart(3, '0')}</span>
+          <span class="badge cat">${escapeHtml(item.category || '')}</span>
+          <span class="short-heat">热度 ${escapeHtml(item.heat || 0)}</span>
+        </div>
+        <p class="short-summary">${escapeHtml(item.summary || '')}</p>
+        <div class="short-tags">${tags}</div>
+        <button class="favorite-btn ${favActive ? 'active' : ''}" type="button" data-favorite-id="${escapeHtml(item.id)}" aria-label="${favActive ? '取消收藏' : '收藏'}" title="${favActive ? '取消收藏' : '收藏到个人 UI 库'}">
+          <span>${favActive ? '♥' : '♡'}</span>
+          ${favCount > 0 ? `<span class="favorite-count">${favCount}</span>` : ''}
+        </button>
+      </div>
+      <div class="body">
+        <h3>${escapeHtml(item.title)}</h3>
+        <div class="snippet">${escapeHtml(bodySnippet)}</div>
+        <div class="footer">
+          <span>#${escapeHtml(item.id)} · ${escapeHtml(item.type || 'Short Prompt')}</span>
+          <span class="arrow">${accessible ? '查看 →' : '会员解锁'}</span>
+        </div>
+      </div>
+    </article>`;
+}
+
+const PROMO_CARD_VARIANTS = [
+  {
+    id: 'promo-slot-1',
+    badge: '合作展示位',
+    code: 'VIBE / 01',
+    hero: '曝光位',
+    heroSub: '把你的作品放进整站卡片流里，自然一点被看见。',
+    title: '想宣传你的 VibeCoding 作品？',
+    copy: '进群后私信我，合适的项目可以安排首页展示。',
+    chips: ['首页展示', '统一风格'],
+    footer: '支持作品卡片合作'
+  },
+  {
+    id: 'promo-slot-2',
+    badge: '精选推荐位',
+    code: 'VIBE / 02',
+    hero: '推荐位',
+    heroSub: '网站、工具、模板，都可以做成统一风格的展示卡片。',
+    title: '好作品，也值得一个好位置',
+    copy: '提供封面和简介，我来帮你整理成站内推荐卡片。',
+    chips: ['网站', '工具'],
+    footer: '可做阶段排期'
+  },
+  {
+    id: 'promo-slot-3',
+    badge: '群内合作位',
+    code: 'VIBE / 03',
+    hero: '合作位',
+    heroSub: '不是硬广，是和整站内容一起自然出现的曝光卡。',
+    title: '有作品想被更多人看到？',
+    copy: '欢迎进群私信我聊，适合的内容会安排展示。',
+    chips: ['自然露出', '高匹配用户'],
+    footer: '先看内容，再定展示'
+  }
+];
+
+function promoCardHtml(variant, index = 0) {
+  const item = variant || PROMO_CARD_VARIANTS[index % PROMO_CARD_VARIANTS.length];
+  const chips = (item.chips || []).map(tag => `<span class="promo-chip">${escapeHtml(tag)}</span>`).join('');
+  return `
+    <article class="card promo-card" data-ad-slot="true" tabindex="-1" aria-disabled="true">
+      <div class="preview">
+        <div class="promo-visual">
+          <div class="promo-top">
+            <span class="promo-kicker">${escapeHtml(item.badge)}</span>
+            <span class="promo-code">${escapeHtml(item.code)}</span>
+          </div>
+          <div class="promo-stack">
+            <strong>${escapeHtml(item.hero)}</strong>
+            <span>${escapeHtml(item.heroSub)}</span>
+          </div>
+          <div class="promo-chips">${chips}</div>
+        </div>
+      </div>
+      <div class="body">
+        <h3 class="promo-title">${escapeHtml(item.title)}</h3>
+        <div class="promo-copy">${escapeHtml(item.copy)}</div>
+        <div class="footer">
+          <span class="promo-footer-note">${escapeHtml(item.footer)}</span>
+          <span class="arrow">宣传位</span>
+        </div>
+      </div>
+    </article>`;
+}
+
+function withPromoCard(rows) {
+  if (!rows.length) return [];
+  const html = rows.map(cardHtml);
+  const variantIndex = Math.max(0, currentPage - 1) % PROMO_CARD_VARIANTS.length;
+  const insertAt = rows.length <= 3 ? rows.length : Math.min(rows.length, Math.max(3, Math.ceil(rows.length / 2)));
+  html.splice(insertAt, 0, promoCardHtml(PROMO_CARD_VARIANTS[variantIndex], variantIndex));
+  return html;
+}
+
 // ---- View state (mirrored to URL) ----
-//   view: 'all' (default, blind-box hidden) | 'blindbox' | 'favorites'
+//   view: 'all' (default, blind-box hidden) | 'blindbox' | 'shorts' | 'imageIdeas' | 'videoIdeas' | 'soloCompany' | 'favorites'
 //   filters: q / cat / text / sort — apply on top of the active view
 let VIEW = 'all';
 const FILTERS = { q: '', cat: '', text: '', sort: '' };
@@ -1680,12 +3512,24 @@ function applyViewAndFiltersToUI() {
   // Sync the top-nav tabs
   const allBtn = document.getElementById('tabAll');
   const bbBtn  = document.getElementById('tabBlindbox');
+  const shortsBtn = document.getElementById('tabShorts');
+  const imageIdeasBtn = document.getElementById('tabImageIdeas');
+  const videoIdeasBtn = document.getElementById('tabVideoIdeas');
+  const soloCompanyBtn = document.getElementById('tabSoloCompany');
   const favBtn = document.getElementById('tabFavorites');
   allBtn.classList.toggle('active', VIEW === 'all');
   bbBtn.classList.toggle('active',  VIEW === 'blindbox');
+  shortsBtn.classList.toggle('active', VIEW === 'shorts');
+  imageIdeasBtn.classList.toggle('active', VIEW === 'imageIdeas');
+  videoIdeasBtn.classList.toggle('active', VIEW === 'videoIdeas');
+  soloCompanyBtn.classList.toggle('active', VIEW === 'soloCompany');
   favBtn.classList.toggle('active', VIEW === 'favorites');
   allBtn.setAttribute('aria-selected', VIEW === 'all' ? 'true' : 'false');
   bbBtn.setAttribute('aria-selected',  VIEW === 'blindbox' ? 'true' : 'false');
+  shortsBtn.setAttribute('aria-selected', VIEW === 'shorts' ? 'true' : 'false');
+  imageIdeasBtn.setAttribute('aria-selected', VIEW === 'imageIdeas' ? 'true' : 'false');
+  videoIdeasBtn.setAttribute('aria-selected', VIEW === 'videoIdeas' ? 'true' : 'false');
+  soloCompanyBtn.setAttribute('aria-selected', VIEW === 'soloCompany' ? 'true' : 'false');
   favBtn.setAttribute('aria-selected', VIEW === 'favorites' ? 'true' : 'false');
 
   // Blind-box is meaningless in default view — hide its category from the dropdown
@@ -1697,6 +3541,10 @@ function applyViewAndFiltersToUI() {
 function toQuery() {
   const p = new URLSearchParams();
   if (VIEW === 'blindbox') p.set('view', 'blindbox');
+  if (VIEW === 'shorts') p.set('view', 'shorts');
+  if (VIEW === 'imageIdeas') p.set('view', 'imageIdeas');
+  if (VIEW === 'videoIdeas') p.set('view', 'videoIdeas');
+  if (VIEW === 'soloCompany') p.set('view', 'soloCompany');
   if (VIEW === 'favorites') p.set('view', 'favorites');
   if (FILTERS.q)        p.set('q', FILTERS.q);
   if (FILTERS.cat)      p.set('cat', FILTERS.cat);
@@ -1707,7 +3555,8 @@ function toQuery() {
 
 function readViewAndFiltersFromQuery() {
   const p = new URLSearchParams(location.search);
-  VIEW = p.get('view') === 'blindbox' ? 'blindbox' : (p.get('view') === 'favorites' ? 'favorites' : 'all');
+  const view = p.get('view');
+  VIEW = ['blindbox', 'shorts', 'imageIdeas', 'videoIdeas', 'soloCompany', 'favorites'].includes(view) ? view : 'all';
   FILTERS.q    = p.get('q')    || '';
   FILTERS.cat  = p.get('cat')  || '';
   FILTERS.text = p.get('text') || '';
@@ -1730,11 +3579,12 @@ function isAnyFilterActive() {
 function estimatedCurrentViewTotal(filteredCount) {
   if (isAnyFilterActive()) return filteredCount;
   if (catalogFullyLoaded) return filteredCount;
+  if (VIEW === 'shorts' || VIEW === 'imageIdeas' || VIEW === 'videoIdeas' || VIEW === 'soloCompany') return filteredCount;
   if (VIEW === 'all') {
     return Math.max(filteredCount, TOTAL - DATA.filter(usesManghePlaceholder).length);
   }
   if (VIEW === 'favorites') return filteredCount;
-  return Math.max(filteredCount, DATA.filter(usesManghePlaceholder).length);
+  return Math.max(filteredCount, DATA.filter(isBlindboxEligible).length);
 }
 
 function currentViewLoadedRows() {
@@ -1750,7 +3600,7 @@ function clearAllFilters() {
 }
 
 function switchView(v) {
-  if (v !== 'all' && v !== 'blindbox' && v !== 'favorites') v = 'all';
+  if (!['all', 'blindbox', 'shorts', 'imageIdeas', 'videoIdeas', 'soloCompany', 'favorites'].includes(v)) v = 'all';
   if (VIEW === v) return;
   VIEW = v;
   currentPage = 1;
@@ -1762,20 +3612,38 @@ function switchView(v) {
 function getRows() {
   const q = FILTERS.q.toLowerCase();
   const tokens = q ? q.split(/\s+/).filter(Boolean) : [];
-  return DATA.filter(p => {
+  const pool = VIEW === 'shorts'
+    ? SHORT_PROMPTS
+    : VIEW === 'imageIdeas'
+      ? IMAGE_IDEAS
+    : VIEW === 'videoIdeas'
+      ? VIDEO_IDEAS
+    : VIEW === 'soloCompany'
+      ? SOLO_COMPANY
+    : (VIEW === 'favorites' ? DATA.concat(SHORT_PROMPTS, IMAGE_IDEAS, VIDEO_IDEAS, SOLO_COMPANY) : DATA);
+  return pool.filter(p => {
     if (VIEW === 'all' && usesManghePlaceholder(p)) return false;
-    if (VIEW === 'blindbox' && !usesManghePlaceholder(p)) return false;
+    if (VIEW === 'blindbox' && !isBlindboxEligible(p)) return false;
     if (VIEW === 'favorites' && !isFavorite(p.id)) return false;
     if (FILTERS.cat && p.category !== FILTERS.cat) return false;
     if (FILTERS.text === 'yes' && !p.has_prompt_text) return false;
     if (FILTERS.text === 'no'  && p.has_prompt_text)  return false;
     if (tokens.length) {
       const hay = (p.title + ' ' + (p.prompt_text || '') + ' ' +
+                   (p.summary || '') + ' ' + (p.tags || []).join(' ') + ' ' +
                    (p.category || '') + ' ' + (p.id || '')).toLowerCase();
       for (const t of tokens) if (!hay.includes(t)) return false;
     }
     return true;
   }).sort((a, b) => {
+    if (VIEW === 'soloCompany' && FILTERS.sort === '') {
+      return (a.sort_order || 0) - (b.sort_order || 0);
+    }
+    if (VIEW === 'imageIdeas' && FILTERS.sort === '') {
+      const hasCoverA = hasPreviewCover(a) ? 1 : 0;
+      const hasCoverB = hasPreviewCover(b) ? 1 : 0;
+      if (hasCoverA !== hasCoverB) return hasCoverB - hasCoverA;
+    }
     if (FILTERS.sort === 'favorite_count') {
       const fa = favoriteCount(a.id), fb = favoriteCount(b.id);
       if (fa !== fb) return fb - fa;
@@ -1784,6 +3652,10 @@ function getRows() {
       const fa = favoriteMeta(a.id)?.last_at || 0;
       const fb = favoriteMeta(b.id)?.last_at || 0;
       if (fa !== fb) return fb - fa;
+    }
+    if ((VIEW === 'shorts' || VIEW === 'imageIdeas' || VIEW === 'videoIdeas' || VIEW === 'soloCompany') && FILTERS.sort === '') {
+      const ha = Number(a.heat || 0), hb = Number(b.heat || 0);
+      if (ha !== hb) return hb - ha;
     }
     const sa = a.sort_order || 9999, sb = b.sort_order || 9999;
     if (sa !== sb) return sa - sb;
@@ -1830,9 +3702,15 @@ function renderResultCount(filteredCount, pageStart, pageEnd) {
   // duplicate it here.
   const el = document.getElementById('resultCount');
   const totalInView = (VIEW === 'blindbox')
-    ? DATA.filter(usesManghePlaceholder).length
+    ? DATA.filter(isBlindboxEligible).length
+    : (VIEW === 'shorts')
+      ? SHORT_PROMPTS.length
+    : (VIEW === 'imageIdeas')
+      ? IMAGE_IDEAS.length
+    : (VIEW === 'videoIdeas')
+      ? VIDEO_IDEAS.length
     : (VIEW === 'favorites')
-      ? DATA.filter(p => isFavorite(p.id)).length
+      ? DATA.concat(SHORT_PROMPTS, IMAGE_IDEAS, VIDEO_IDEAS).filter(p => isFavorite(p.id)).length
     : DATA.filter(p => !usesManghePlaceholder(p)).length;
   // If the user is mid-pagination and hasn't fetched every server page yet,
   // the in-views estimate undercounts. Prefer the server's TOTAL when it
@@ -1853,6 +3731,7 @@ function renderResultCount(filteredCount, pageStart, pageEnd) {
 function renderGrid(rows) {
   const grid = document.getElementById('grid');
   const emptyEl = document.getElementById('empty');
+  const cacheKey = currentGridRenderCacheKey();
   if (!rows.length) {
     grid.innerHTML = '';
     emptyEl.style.display = 'block';
@@ -1861,6 +3740,31 @@ function renderGrid(rows) {
     if (VIEW === 'favorites') {
       emptyH.textContent = '收藏库还是空的';
       emptyP.textContent = '点卡片上的心形按钮，把常用 UI 提示词收进来。';
+    } else if (VIEW === 'shorts') {
+      emptyH.textContent = '灵感库里没找到匹配的提示词';
+      emptyP.textContent = '换个关键词，或清空筛选后继续浏览。';
+    } else if (VIEW === 'imageIdeas') {
+      if (IMAGE_IDEAS_LOADING) {
+        emptyH.textContent = '图片生成灵感加载中';
+        emptyP.textContent = '正在读取本地图片提示词数据。';
+      } else if (IMAGE_IDEAS_ERROR) {
+        emptyH.textContent = '图片生成灵感加载失败';
+        emptyP.textContent = '请刷新页面重试，或检查本地 JSON 文件是否可访问。';
+      } else {
+        emptyH.textContent = '图片生成灵感里没找到匹配的提示词';
+        emptyP.textContent = '换个关键词，或清空筛选后继续浏览。';
+      }
+    } else if (VIEW === 'videoIdeas') {
+      if (VIDEO_IDEAS_LOADING) {
+        emptyH.textContent = '视频生成灵感加载中';
+        emptyP.textContent = '正在读取本地视频提示词数据。';
+      } else if (VIDEO_IDEAS_ERROR) {
+        emptyH.textContent = '视频生成灵感加载失败';
+        emptyP.textContent = '请刷新页面重试，或检查本地 JSON 文件是否可访问。';
+      } else {
+        emptyH.textContent = '视频生成灵感里没找到匹配的提示词';
+        emptyP.textContent = '换个关键词，或清空筛选后继续浏览。';
+      }
     } else if (VIEW === 'blindbox') {
       emptyH.textContent = '盲盒里没找到匹配的提示词';
       emptyP.textContent = '试试不同的搜索词或在「全部」视图浏览所有提示词。';
@@ -1871,20 +3775,28 @@ function renderGrid(rows) {
     return;
   }
   emptyEl.style.display = 'none';
-  grid.innerHTML = rows.map(cardHtml).join('');
+  const cachedPage = renderedGridPageCache.get(cacheKey);
+  if (cachedPage?.nodes?.length) {
+    touchRenderedGridPageCache(cacheKey, cachedPage);
+    grid.replaceChildren(...cachedPage.nodes);
+    lazyHydrateVideos(grid);
+    return;
+  }
+  grid.innerHTML = withPromoCard(rows).join('');
   grid.querySelectorAll('[data-favorite-id]').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
       toggleFavorite(btn.dataset.favoriteId);
     });
   });
-  grid.querySelectorAll('.card').forEach(el => {
+  grid.querySelectorAll('.card:not([data-ad-slot])').forEach(el => {
     el.addEventListener('click', () => { openModal(el.dataset.id); });
     el.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(el.dataset.id); }
     });
   });
   lazyHydrateVideos(grid);
+  touchRenderedGridPageCache(cacheKey, { nodes: Array.from(grid.children) });
 }
 
 // --- Video lazy hydration ----------------------------------------------
@@ -1896,15 +3808,53 @@ function renderGrid(rows) {
 // <video> nodes are gone and IntersectionObserver would hold dangling
 // references otherwise.
 let _videoObserver = null;
+let _videoHydrationTimer = null;
 function lazyHydrateVideos(grid) {
   if (_videoObserver) { _videoObserver.disconnect(); _videoObserver = null; }
-  let hydratedThisRender = 0;
+  if (_videoHydrationTimer) {
+    clearTimeout(_videoHydrationTimer);
+    _videoHydrationTimer = null;
+  }
+  const pending = [];
+  const pendingSet = new WeakSet();
+  const playPreview = (v) => {
+    if (!v || !v.src) return;
+    const p = v.play();
+    if (p && p.catch) p.catch(() => {});
+  };
+  const pausePreview = (v) => {
+    if (!v || !v.src) return;
+    v.pause();
+    try { v.currentTime = 0; } catch {}
+  };
   const hydrate = (v) => {
     const url = v.dataset.src;
     if (!url || v.src) return false;
+    v.preload = 'auto';
     v.src = url;
     v.removeAttribute('data-src');
+    v.load();
     return true;
+  };
+  const pumpPending = () => {
+    _videoHydrationTimer = null;
+    let hydrated = 0;
+    while (pending.length && hydrated < 4) {
+      const v = pending.shift();
+      if (!v || !v.isConnected || !v.dataset.src) continue;
+      if (hydrate(v)) hydrated++;
+    }
+    if (pending.length) {
+      _videoHydrationTimer = setTimeout(pumpPending, 120);
+    }
+  };
+  const enqueue = (v) => {
+    if (!v || !v.dataset.src || pendingSet.has(v)) return;
+    pending.push(v);
+    pendingSet.add(v);
+    if (!_videoHydrationTimer) {
+      _videoHydrationTimer = setTimeout(pumpPending, 80);
+    }
   };
   if (!('IntersectionObserver' in window)) {
     // Fallback: hydrate everything synchronously. Old browser, but at least
@@ -1914,15 +3864,32 @@ function lazyHydrateVideos(grid) {
   }
   _videoObserver = new IntersectionObserver((entries, obs) => {
     for (const entry of entries) {
-      if (!entry.isIntersecting) continue;
       const v = entry.target;
-      // Keep the first paint responsive: hydrating every visible remote video
-      // at once can saturate the browser process. Later videos hydrate on hover.
-      if (hydratedThisRender >= 6) continue;
-      if (hydrate(v)) {
-        hydratedThisRender++;
-        obs.unobserve(v);
+      if (!entry.isIntersecting) {
+        pausePreview(v);
+        continue;
       }
+      // Keep first paint responsive: hydrate the first visible batch right
+      // away, then continue the rest in small timed batches so cards don't
+      // stay blank until hover.
+      if (pending.length === 0 && !_videoHydrationTimer) {
+        if (hydrate(v)) {
+          playPreview(v);
+          obs.unobserve(v);
+          continue;
+        }
+      }
+      enqueue(v);
+      const onReady = () => {
+        v.removeEventListener('loadeddata', onReady);
+        playPreview(v);
+      };
+      if (v.src && v.readyState >= 2) {
+        playPreview(v);
+      } else {
+        v.addEventListener('loadeddata', onReady, { once: true });
+      }
+      obs.unobserve(v);
     }
   }, { rootMargin: '200px 0px', threshold: 0.01 });
   grid.querySelectorAll('video[data-src]').forEach(v => _videoObserver.observe(v));
@@ -1931,9 +3898,17 @@ function lazyHydrateVideos(grid) {
 function populateCategorySelect() {
   // Build categories based on what the current view can actually select.
   const pool = (VIEW === 'blindbox')
-    ? DATA.filter(usesManghePlaceholder)
+    ? DATA.filter(isBlindboxEligible)
+    : (VIEW === 'shorts')
+      ? SHORT_PROMPTS
+    : (VIEW === 'imageIdeas')
+      ? IMAGE_IDEAS
+    : (VIEW === 'videoIdeas')
+      ? VIDEO_IDEAS
+    : (VIEW === 'soloCompany')
+      ? SOLO_COMPANY
     : (VIEW === 'favorites')
-      ? DATA.filter(p => isFavorite(p.id))
+      ? DATA.concat(SHORT_PROMPTS, IMAGE_IDEAS, VIDEO_IDEAS, SOLO_COMPANY).filter(p => isFavorite(p.id))
       : DATA.filter(p => !usesManghePlaceholder(p));
   // Cache key changes when view changes — recompute every time in blindbox mode
   // (in all mode the blind-box category is impossible anyway, so cheaper to skip)
@@ -1956,9 +3931,17 @@ function render() {
   // Now we ask the data: is this category reachable in this view?
   if (FILTERS.cat) {
     const pool = (VIEW === 'blindbox')
-      ? DATA.filter(usesManghePlaceholder)
+      ? DATA.filter(isBlindboxEligible)
+      : (VIEW === 'shorts')
+        ? SHORT_PROMPTS
+      : (VIEW === 'imageIdeas')
+        ? IMAGE_IDEAS
+      : (VIEW === 'videoIdeas')
+        ? VIDEO_IDEAS
+      : (VIEW === 'soloCompany')
+        ? SOLO_COMPANY
       : (VIEW === 'favorites')
-        ? DATA.filter(p => isFavorite(p.id))
+        ? DATA.concat(SHORT_PROMPTS, IMAGE_IDEAS, VIDEO_IDEAS, SOLO_COMPANY).filter(p => isFavorite(p.id))
         : DATA.filter(p => !usesManghePlaceholder(p));
     const validCats = new Set(
       pool.map(p => p.category).filter(Boolean)
@@ -1969,7 +3952,11 @@ function render() {
   document.getElementById('searchWrap').classList.toggle('has-value', !!FILTERS.q);
   // Brand subtitle reflects the current view
   document.querySelector('.brand small').textContent =
-    VIEW === 'blindbox' ? '· 盲盒 UI 提示词专题'
+    VIEW === 'blindbox' ? '· 免费盲盒专题'
+      : VIEW === 'shorts' ? '· 灵感提示词库'
+      : VIEW === 'imageIdeas' ? '· 图片生成灵感'
+      : VIEW === 'videoIdeas' ? '· 视频生成灵感'
+      : VIEW === 'soloCompany' ? '· 一人公司'
       : (VIEW === 'favorites' ? '· 个人收藏 UI 库' : '· 全部提示词');
   populateCategorySelect();
   document.getElementById('categorySelect').value = FILTERS.cat;
@@ -1999,6 +3986,12 @@ function setPagerBusy(busy) {
   wrap.querySelectorAll('button').forEach(b => {
     if (b.classList.contains('active')) return; // active page is always non-interactive
     b.disabled = busy;
+  });
+  wrap.querySelectorAll('.pager-jump').forEach(el => {
+    el.classList.toggle('disabled', busy);
+  });
+  wrap.querySelectorAll('.pager-jump input').forEach(input => {
+    input.disabled = busy;
   });
 }
 
@@ -2060,37 +4053,40 @@ function buildPagerButtons(cur, total) {
     }
     return b;
   };
-  const num = (page) => {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.textContent = String(page);
-    b.dataset.page = String(page);
-    if (page === cur) {
-      b.classList.add('active');
-      b.disabled = true;
-    }
-    return b;
-  };
-  const dots = () => {
-    const s = document.createElement('span');
-    s.className = 'ellipsis';
-    s.textContent = '…';
-    return s;
-  };
-  // Prev / next chevrons always present.
   out.push(nav('‹ 上一页', Math.max(1, cur - 1)));
-  // Windowed numbers: always show 1, last, and cur ± 1.
-  const pageSet = new Set([1, total, cur, cur - 1, cur + 1]);
-  const pages = [...pageSet].filter(p => p >= 1 && p <= total).sort((a, b) => a - b);
-  // Insert ellipsis between non-consecutive ints.
-  let prev = null;
-  for (const p of pages) {
-    if (prev !== null && p - prev > 1) out.push(dots());
-    out.push(num(p));
-    prev = p;
-  }
+  out.push(jump(cur, total));
   out.push(nav('下一页 ›', Math.min(total, cur + 1)));
   return out;
+
+  function jump(page, maxPage) {
+    const wrap = document.createElement('div');
+    wrap.className = 'pager-jump';
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.inputMode = 'numeric';
+    input.min = '1';
+    input.max = String(maxPage);
+    input.value = String(page);
+    input.setAttribute('aria-label', `输入页码，1 到 ${maxPage}`);
+    input.dataset.totalPages = String(maxPage);
+    wrap.appendChild(input);
+    return wrap;
+  }
+}
+
+function goToPage(p) {
+  if (!Number.isFinite(p) || p === currentPage) return;
+  currentPage = p;
+  setPagerBusy(true);
+  if (catalogFullyLoaded) {
+    render();
+    setPagerBusy(false);
+  } else if (VIEW === 'shorts' || VIEW === 'imageIdeas' || VIEW === 'videoIdeas' || VIEW === 'soloCompany') {
+    render();
+    setPagerBusy(false);
+  } else {
+    loadPrompts({ reset: false, targetServerPage: p, fillCurrentView: true });
+  }
 }
 
 // Wire the pager: delegated click → page jump. One listener handles every
@@ -2102,15 +4098,30 @@ function bindPagerClicks() {
     const t = e.target.closest('button[data-page]');
     if (!t || t.disabled) return;
     const p = parseInt(t.dataset.page, 10);
-    if (!Number.isFinite(p) || p === currentPage) return;
-    currentPage = p;
-    setPagerBusy(true);
-    if (catalogFullyLoaded) {
-      render();
-      setPagerBusy(false);
-    } else {
-      loadPrompts({ reset: false, targetServerPage: p, fillCurrentView: true });
+    goToPage(p);
+  });
+  const submitJump = (input) => {
+    if (!input || input.disabled) return;
+    const maxPage = parseInt(input.dataset.totalPages || '1', 10) || 1;
+    const raw = String(input.value || '').trim();
+    if (!raw) {
+      input.value = String(currentPage);
+      return;
     }
+    const nextPage = Math.min(maxPage, Math.max(1, parseInt(raw, 10)));
+    input.value = String(nextPage);
+    goToPage(nextPage);
+  };
+  pager.addEventListener('keydown', (e) => {
+    const input = e.target.closest('.pager-jump input');
+    if (!input || e.key !== 'Enter') return;
+    e.preventDefault();
+    submitJump(input);
+  });
+  pager.addEventListener('change', (e) => {
+    const input = e.target.closest('.pager-jump input');
+    if (!input) return;
+    submitJump(input);
   });
 }
 bindPagerClicks();
@@ -2142,6 +4153,10 @@ document.getElementById('searchClear').addEventListener('click', () => {
 // Top-nav tabs
 document.getElementById('tabAll').addEventListener('click', () => switchView('all'));
 document.getElementById('tabBlindbox').addEventListener('click', () => switchView('blindbox'));
+document.getElementById('tabShorts').addEventListener('click', () => switchView('shorts'));
+document.getElementById('tabImageIdeas').addEventListener('click', () => switchView('imageIdeas'));
+document.getElementById('tabVideoIdeas').addEventListener('click', () => switchView('videoIdeas'));
+document.getElementById('tabSoloCompany').addEventListener('click', () => switchView('soloCompany'));
 document.getElementById('tabFavorites').addEventListener('click', () => switchView('favorites'));
 
 // ---- Modal ----
@@ -2153,8 +4168,47 @@ const modalPrompt = document.getElementById('modalPrompt');
 const favoriteModalBtn = document.getElementById('favoriteModalBtn');
 let currentItem = null;
 
+function showBanNotice(notice = {}) {
+  const host = document.getElementById('banNotice');
+  const body = document.getElementById('banNoticeBody');
+  const title = document.getElementById('banNoticeTitle');
+  const meta = document.getElementById('banNoticeMeta');
+  if (!host || !body || !title || !meta) return;
+  title.textContent = notice.title || '你的账号已被封禁';
+  const lines = Array.isArray(notice.message_lines) && notice.message_lines.length
+    ? notice.message_lines
+    : (notice.message ? String(notice.message).split(/\n{2,}/) : DEFAULT_BAN_NOTICE_LINES);
+  body.innerHTML = '';
+  for (const line of lines) {
+    const p = document.createElement('p');
+    p.textContent = line;
+    body.appendChild(p);
+  }
+  const metaLines = [];
+  if (notice.revoked_reason) metaLines.push('封禁原因：' + notice.revoked_reason);
+  if (notice.revoked_at) metaLines.push('封禁时间：' + new Date(notice.revoked_at).toLocaleString());
+  meta.textContent = metaLines.join('\n');
+  meta.style.display = metaLines.length ? '' : 'none';
+  host.classList.add('open');
+  syncBodyScrollLock();
+}
+
+function closeBanNotice() {
+  const host = document.getElementById('banNotice');
+  if (!host) return;
+  host.classList.remove('open');
+  syncBodyScrollLock();
+}
+
 function syncModalFavoriteButton() {
   if (!favoriteModalBtn || !currentItem) return;
+  if (currentItem.placeholder) {
+    favoriteModalBtn.disabled = true;
+    favoriteModalBtn.classList.remove('favorite-active');
+    favoriteModalBtn.textContent = '暂不可收藏';
+    return;
+  }
+  favoriteModalBtn.disabled = false;
   const active = isFavorite(currentItem.id);
   const count = favoriteCount(currentItem.id);
   favoriteModalBtn.classList.toggle('favorite-active', active);
@@ -2163,13 +4217,204 @@ function syncModalFavoriteButton() {
     : `♡ 收藏${count ? ' · ' + count : ''}`;
 }
 
+function visiblePromptText(item) {
+  const text = item && item.prompt_text ? item.prompt_text : '';
+  if (window.PVS && typeof window.PVS.isLocalDecoyViewer === 'function' && window.PVS.isLocalDecoyViewer()) {
+    return window.PVS.decoyPromptText(text, { guest: !VIEWER.authenticated });
+  }
+  return text;
+}
+
+function renderWatermarkFooter(wm) {
+  if (!wm || !wm.masked_id) return;
+  modal.querySelectorAll('[data-pv-watermark-footer]').forEach(n => n.remove());
+  const footer = document.createElement('div');
+  footer.setAttribute('data-pv-watermark-footer', '');
+  footer.style.cssText = 'margin-top:12px;font-size:11px;color:#6a6a78;text-align:right;user-select:none;';
+  footer.textContent = `🔒 仅限 ${wm.masked_id} 查看 · ${new Date(wm.ts||Date.now()).toISOString().slice(0,16).replace('T',' ')}`;
+  modalPrompt.parentNode.insertBefore(footer, modalPrompt.nextSibling);
+}
+
 async function openModal(id) {
-  const item = DATA.find(x => x.id === id);
+  const item = DATA.concat(SHORT_PROMPTS, IMAGE_IDEAS, VIDEO_IDEAS, SOLO_COMPANY).find(x => x.id === id);
   if (!item) return;
   currentItem = item;
   syncModalFavoriteButton();
   modalTitle.textContent = item.title;
   modalMeta.innerHTML = '';
+  if (item.source === 'shorts') {
+    const pills = [['分类', item.category], ['类型', item.type], ['主题', item.page_type], ['热度', String(item.heat || 0)], ['ID', item.id]];
+    for (const [k, v] of pills) {
+      if (!v && v !== 0) continue;
+      const p = document.createElement('span'); p.className = 'pill';
+      p.innerHTML = `${escapeHtml(k)}: <b>${escapeHtml(String(v))}</b>`;
+      modalMeta.appendChild(p);
+    }
+    modalPreview.innerHTML = `
+      <div class="preview-big" style="height:clamp(150px,24dvh,240px);padding:24px;display:flex;flex-direction:column;justify-content:center;gap:12px;background:linear-gradient(135deg,#0d1518,#11111b 70%);">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">${(item.tags || []).map(tag => `<span class="short-tag">${escapeHtml(tag)}</span>`).join('')}</div>
+        <div style="font-size:15px;line-height:1.6;color:#d1d5db;max-width:760px;">${escapeHtml(item.summary || '')}</div>
+      </div>`;
+    modal.classList.add('open');
+    syncBodyScrollLock();
+    const copyBtn = document.getElementById('copyBtn');
+    const useBtn = document.getElementById('useBtn');
+    if (copyBtn) {
+      copyBtn.textContent = '复制提示词';
+      copyBtn.disabled = false;
+    }
+    if (useBtn) {
+      useBtn.textContent = '在 AI 中使用 →';
+      useBtn.disabled = false;
+    }
+    if (!canAccessPrompts(item)) {
+      item._visible_prompt_text = '';
+      modalPrompt.classList.add('pv-locked');
+      modalPrompt.textContent = membershipRequiredMessage();
+      if (copyBtn) copyBtn.disabled = true;
+      if (useBtn) {
+        useBtn.textContent = VIEWER.authenticated ? '联系续费' : '登录 / 开通会员';
+        useBtn.disabled = false;
+      }
+      showToast(VIEWER.authenticated ? (isLesson ? '这篇教学需要会员权限' : '这个提示词需要会员权限') : '请先登录后继续使用');
+      return;
+    }
+    modalPrompt.classList.add('pv-locked');
+    modalPrompt.textContent = item.has_prompt_text
+      ? `正在安全加载 ${item.prompt_text_length || ''} 字符的${isLesson ? '正文' : '提示词'}…`
+      : '';
+    try {
+      const body = await fetchIdeaBody(item);
+      item.prompt_text = body.prompt_text || '';
+      if (currentItem !== item || !modal.classList.contains('open')) return;
+      modalPrompt.classList.remove('pv-locked');
+      item._visible_prompt_text = body.prompt_text || '';
+      modalPrompt.textContent = item._visible_prompt_text;
+      renderWatermarkFooter(body.watermark || {});
+    } catch (e) {
+      if (currentItem !== item || !modal.classList.contains('open')) return;
+      item.prompt_text = '';
+      item._visible_prompt_text = '';
+      modalPrompt.classList.remove('pv-locked');
+      modalPrompt.textContent = e.message === 'membership_required'
+        ? membershipRequiredMessage()
+        : '加载失败：' + e.message;
+      if (copyBtn) copyBtn.disabled = true;
+      if (useBtn) useBtn.disabled = false;
+    }
+    return;
+  }
+  if ((item.source === 'image_ideas' || item.source === 'video_ideas' || item.source === 'one_company') && item.placeholder) {
+    const isVideo = item.source === 'video_ideas';
+    const pills = [['分类', item.category], ['类型', item.type], ['主题', item.page_type], ['状态', '待导入'], ['ID', item.id]];
+    for (const [k, v] of pills) {
+      if (!v && v !== 0) continue;
+      const p = document.createElement('span'); p.className = 'pill';
+      p.innerHTML = `${escapeHtml(k)}: <b>${escapeHtml(String(v))}</b>`;
+      modalMeta.appendChild(p);
+    }
+    modalPreview.innerHTML = `
+      <div class="preview-big" style="height:clamp(150px,24dvh,240px);padding:24px;display:flex;flex-direction:column;justify-content:center;gap:12px;background:linear-gradient(135deg,${isVideo ? '#171023,#101018 70%' : '#0e1720,#0b1018 70%'});">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">${(item.tags || []).map(tag => `<span class="short-tag">${escapeHtml(tag)}</span>`).join('')}</div>
+        <div style="font-size:15px;line-height:1.6;color:#d1d5db;max-width:760px;">${escapeHtml(item.summary || '')}</div>
+      </div>`;
+    modal.classList.add('open');
+    syncBodyScrollLock();
+    const copyBtn = document.getElementById('copyBtn');
+    const useBtn = document.getElementById('useBtn');
+    if (copyBtn) {
+      copyBtn.textContent = '待导入';
+      copyBtn.disabled = true;
+    }
+    if (useBtn) {
+      useBtn.textContent = '待导入';
+      useBtn.disabled = true;
+    }
+    modalPrompt.classList.add('pv-locked');
+    modalPrompt.textContent = isVideo
+      ? '这里会展示视频生成灵感的完整提示词，包括镜头、节奏、运镜、画面变化和输出参数。'
+      : '这里会展示图片生成灵感的完整提示词，包括主体、构图、材质、光线、风格和输出参数。';
+    return;
+  }
+  if (item.source === 'image_ideas' || item.source === 'video_ideas' || item.source === 'one_company') {
+    const isVideo = item.source === 'video_ideas';
+    const isLesson = item.source === 'one_company';
+    const pills = [
+      ['分类', item.category],
+      ['类型', item.type],
+      ['主题', item.page_type],
+      ['模型', item.model],
+      ['热度', String(item.likes || item.heat || '')],
+      ['ID', item.id],
+    ];
+    for (const [k, v] of pills) {
+      if (!v && v !== 0) continue;
+      const p = document.createElement('span'); p.className = 'pill';
+      p.innerHTML = `${escapeHtml(k)}: <b>${escapeHtml(String(v))}</b>`;
+      modalMeta.appendChild(p);
+    }
+    const playUrl = item.preview_video_url || item.playable_video_url;
+    if (playUrl) {
+      modalPreview.innerHTML = `<div class="preview-big"><video src="${escapeHtml(playUrl)}" controls muted playsinline></video></div>`;
+    } else if (item.preview_image_url || item.cover_url) {
+      const detailUrl = cachedCoverUrl(item.preview_image_url || item.cover_url, 'detail');
+      modalPreview.innerHTML = `<div class="preview-big"><img src="${escapeHtml(detailUrl)}" alt="${escapeHtml(item.title)}" width="1280" height="800" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>`;
+    } else {
+      modalPreview.innerHTML = `
+        <div class="preview-big" style="height:clamp(150px,24dvh,240px);padding:24px;display:flex;flex-direction:column;justify-content:center;gap:12px;background:linear-gradient(135deg,${isVideo ? '#171023,#101018 70%' : (isLesson ? '#13101d,#0f1827 70%' : '#0e1720,#0b1018 70%')});">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">${(item.tags || []).map(tag => `<span class="short-tag">${escapeHtml(tag)}</span>`).join('')}</div>
+          <div style="font-size:15px;line-height:1.6;color:#d1d5db;max-width:760px;">${escapeHtml(item.summary || '')}</div>
+        </div>`;
+    }
+    modal.classList.add('open');
+    syncBodyScrollLock();
+    const copyBtn = document.getElementById('copyBtn');
+    const useBtn = document.getElementById('useBtn');
+    if (copyBtn) {
+      copyBtn.textContent = isLesson ? '复制正文' : '复制提示词';
+      copyBtn.disabled = false;
+    }
+    if (useBtn) {
+      useBtn.textContent = isLesson ? '带去 AI 整理 →' : '在 AI 中使用 →';
+      useBtn.disabled = false;
+    }
+    if (!canAccessPrompts(item)) {
+      item._visible_prompt_text = '';
+      modalPrompt.classList.add('pv-locked');
+      modalPrompt.textContent = membershipRequiredMessage();
+      if (copyBtn) copyBtn.disabled = true;
+      if (useBtn) {
+        useBtn.textContent = VIEWER.authenticated ? '联系续费' : '登录 / 开通会员';
+        useBtn.disabled = false;
+      }
+      showToast(VIEWER.authenticated ? '这个提示词需要会员权限' : '请先登录后继续使用');
+      return;
+    }
+    modalPrompt.classList.add('pv-locked');
+    modalPrompt.textContent = item.has_prompt_text
+      ? `正在安全加载 ${item.prompt_text_length || ''} 字符的提示词…`
+      : '';
+    try {
+      const body = await fetchIdeaBody(item);
+      item.prompt_text = body.prompt_text || '';
+      if (currentItem !== item || !modal.classList.contains('open')) return;
+      modalPrompt.classList.remove('pv-locked');
+      item._visible_prompt_text = body.prompt_text || '';
+      modalPrompt.textContent = item._visible_prompt_text;
+      renderWatermarkFooter(body.watermark || {});
+    } catch (e) {
+      if (currentItem !== item || !modal.classList.contains('open')) return;
+      item.prompt_text = '';
+      item._visible_prompt_text = '';
+      modalPrompt.classList.remove('pv-locked');
+      modalPrompt.textContent = e.message === 'membership_required'
+        ? membershipRequiredMessage()
+        : '加载失败：' + e.message;
+      if (copyBtn) copyBtn.disabled = true;
+      if (useBtn) useBtn.disabled = false;
+    }
+    return;
+  }
   const isMangheFallback = usesManghePlaceholder(item);
   const pills = [['分类', item.category]];
   if (isMangheFallback && item.special_collection === 'blind_box' && item.original_category) {
@@ -2187,12 +4432,12 @@ async function openModal(id) {
     p.style.background = 'rgba(245,158,11,.15)';
     p.style.borderColor = 'rgba(245,158,11,.4)';
     p.style.color = '#fde68a';
-    p.innerHTML = '<b>📦 盲盒 UI 提示词</b>';
+    p.innerHTML = '<b>📦 免费盲盒</b>';
     modalMeta.appendChild(p);
   }
   const playUrl = item.playable_video_url || item.preview_video_url;
   if (item.preview_image_url) {
-    const detailUrl = optimizedCoverUrl(item.preview_image_url, 'detail');
+    const detailUrl = cachedCoverUrl(item.preview_image_url, 'detail');
     modalPreview.innerHTML = `<div class="preview-big"><img src="${escapeHtml(detailUrl)}" alt="${escapeHtml(item.title)}" width="1280" height="800" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>`;
   } else if (playUrl) {
     modalPreview.innerHTML = `<div class="preview-big"><video src="${escapeHtml(playUrl)}" controls muted playsinline></video></div>`;
@@ -2200,7 +4445,7 @@ async function openModal(id) {
     modalPreview.innerHTML = `<div class="preview-big"><img class="ph-img" src="/static/manghe.png" alt="盲盒占位图" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>`;
   }
   modal.classList.add('open');
-  document.body.style.overflow = 'hidden';
+  syncBodyScrollLock();
 
   const copyBtn = document.getElementById('copyBtn');
   const useBtn = document.getElementById('useBtn');
@@ -2223,7 +4468,7 @@ async function openModal(id) {
       useBtn.disabled = false;
       useBtn.textContent = VIEWER.authenticated ? '联系续费' : '登录 / 开通会员';
     }
-    showToast('这个提示词需要会员权限，盲盒 UI 可直接查看复制');
+    showToast(VIEWER.authenticated ? '这个提示词需要会员权限' : '请先登录后继续使用');
     return;
   }
   if (copyBtn) copyBtn.disabled = false;
@@ -2243,14 +4488,7 @@ async function openModal(id) {
     if (currentItem !== item || !modal.classList.contains('open')) return;
     modalPrompt.classList.remove('pv-locked');
     modalPrompt.textContent = body.prompt_text || '';
-    // Append watermark footer (visible only in DOM; survives screenshots)
-    if (wm.masked_id) {
-      const footer = document.createElement('div');
-      footer.setAttribute('data-pv-watermark-footer', '');
-      footer.style.cssText = 'margin-top:12px;font-size:11px;color:#6a6a78;text-align:right;user-select:none;';
-      footer.textContent = `🔒 仅限 ${wm.masked_id} 查看 · ${new Date(wm.ts||Date.now()).toISOString().slice(0,16).replace('T',' ')}`;
-      modalPrompt.parentNode.insertBefore(footer, modalPrompt.nextSibling);
-    }
+    renderWatermarkFooter(wm);
   } catch (e) {
     item.prompt_text = '';
     if (currentItem !== item || !modal.classList.contains('open')) return;
@@ -2273,7 +4511,7 @@ async function openModal(id) {
 
 function closeModal() {
   modal.classList.remove('open');
-  document.body.style.overflow = '';
+  syncBodyScrollLock();
   modalPreview.querySelectorAll('video').forEach(v => v.pause());
   // Remove the per-chapter watermark footer injected on body load.
   modal.querySelectorAll('[data-pv-watermark-footer]').forEach(n => n.remove());
@@ -2287,6 +4525,18 @@ function closeModal() {
 document.getElementById('modalClose').addEventListener('click', closeModal);
 modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && modal.classList.contains('open')) closeModal(); });
+document.getElementById('banNoticeClose')?.addEventListener('click', closeBanNotice);
+document.getElementById('banNotice')?.addEventListener('click', e => { if (e.target && e.target.id === 'banNotice') closeBanNotice(); });
+document.getElementById('systemMsgBtn')?.addEventListener('click', openSystemMessageModal);
+document.getElementById('systemMsgClose')?.addEventListener('click', closeSystemMessageModal);
+document.getElementById('systemMsgModal')?.addEventListener('click', e => {
+  if (e.target && e.target.id === 'systemMsgModal') closeSystemMessageModal();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('systemMsgModal')?.classList.contains('open')) {
+    closeSystemMessageModal();
+  }
+});
 
 document.getElementById('copyBtn').addEventListener('click', async () => {
   if (!currentItem) return;
@@ -2294,7 +4544,15 @@ document.getElementById('copyBtn').addEventListener('click', async () => {
     showToast('必须会员才能复制完整提示词');
     return;
   }
-  await copyText(currentItem.prompt_text, '已复制提示词');
+  if (!isFreePromptItem(currentItem)) {
+    try {
+      await assertCopyAllowed(currentItem);
+    } catch (e) {
+      showToast(e.message || '复制过于频繁，请稍后再试');
+      return;
+    }
+  }
+  await copyText(currentItem._visible_prompt_text || currentItem.prompt_text, '已复制提示词');
 });
 
 favoriteModalBtn.addEventListener('click', () => {
@@ -2309,9 +4567,18 @@ document.getElementById('useBtn').addEventListener('click', async () => {
     else showToast(membershipRequiredMessage());
     return;
   }
-  await copyText(currentItem.prompt_text, '已复制，请粘贴到 AI 对话框');
+  const promptText = currentItem._visible_prompt_text || currentItem.prompt_text;
+  const url = pickAIUrl(promptText);
+  if (!isFreePromptItem(currentItem)) {
+    try {
+      await assertContentActionAllowed(currentItem, 'ai_use', { ai_url: url });
+    } catch (e) {
+      showToast(e.message || '复制过于频繁，请稍后再试');
+      return;
+    }
+  }
+  await copyText(promptText, '已复制，请粘贴到 AI 对话框');
   setTimeout(() => {
-    const url = pickAIUrl(currentItem.prompt_text);
     window.open(url, '_blank', 'noopener');
   }, 400);
 });
@@ -2441,6 +4708,10 @@ loadMe();
 loadAnnouncements();
 readViewAndFiltersFromQuery();
 applyViewAndFiltersToUI();
+loadShortPrompts();
+loadImageIdeas();
+loadVideoIdeas();
+loadSoloCompany();
 bootCatalog().catch((e) => {
   console.warn('[Prompt Vault] bootCatalog failed:', e && e.message ? e.message : e);
   fatalErrorCleanup();

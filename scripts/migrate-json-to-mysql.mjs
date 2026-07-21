@@ -25,6 +25,38 @@ import mysql from 'mysql2/promise';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, '..', 'data');
+const STATIC_DIR = path.join(__dirname, '..', 'public', 'static');
+
+const IDEA_LIBRARY_SOURCES = {
+  shorts: {
+    label: 'AI 灵感库',
+    files: ['aishort-prompts-top200.json'],
+    source: 'shorts',
+    idPrefix: 'short',
+    defaultType: 'Short Prompt',
+    defaultCategory: 'AI 灵感库',
+  },
+  imageIdeas: {
+    label: 'IMG AI',
+    files: ['meigen-prompts-top102.json', 'prompts-chat-image-top100.json'],
+    source: 'image_ideas',
+    idPrefix: 'img',
+    defaultType: 'Image Idea',
+    defaultCategory: '图片生成灵感',
+  },
+  videoIdeas: {
+    label: 'VID AI',
+    files: ['prompts-chat-video-top100.json'],
+    source: 'video_ideas',
+    idPrefix: 'vid',
+    defaultType: 'Video Idea',
+    defaultCategory: '视频生成灵感',
+  },
+};
+
+const REMOVED_IDEA_TITLES = new Set([
+  '无限制的 ChatGPT（降权）',
+]);
 
 function readConfig() {
   const base = {
@@ -79,6 +111,102 @@ function readJson(name) {
     console.warn(`[migrate] WARN: failed to read ${p}: ${err.message}`);
     return [];
   }
+}
+
+function readStaticJson(file) {
+  const p = path.join(STATIC_DIR, file);
+  if (!fs.existsSync(p)) return [];
+  try {
+    const raw = JSON.parse(fs.readFileSync(p, 'utf8'));
+    return normalizeIdeaArray(raw);
+  } catch (err) {
+    console.warn(`[migrate] WARN: failed to read ${p}: ${err.message}`);
+    return [];
+  }
+}
+
+function normalizeIdeaArray(input) {
+  return Array.isArray(input)
+    ? input
+    : (Array.isArray(input?.items) ? input.items
+      : Array.isArray(input?.prompts) ? input.prompts
+        : Array.isArray(input?.data) ? input.data
+          : []);
+}
+
+function plainSnippet(value, max = 150) {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  if (text.length <= max) return text;
+  return `${text.slice(0, Math.max(0, max - 1)).trimEnd()}…`;
+}
+
+function normalizeTagList(value) {
+  if (Array.isArray(value)) return value.map(tag => String(tag).trim()).filter(Boolean);
+  return String(value || '').split(/[,，、\s]+/).map(tag => tag.trim()).filter(Boolean);
+}
+
+function ideaSummary(raw, promptText, title) {
+  const explicit = String(raw.summary || raw.description || '').trim();
+  if (explicit && !/^[\s\n]*[\[{]/.test(explicit)) return plainSnippet(explicit, 150);
+  return plainSnippet(promptText.replace(/[{}"[\],]/g, ' '), 150) || title;
+}
+
+function isRemovedIdeaRecord(raw) {
+  const title = String(raw?.title || raw?.name || '').trim();
+  if (REMOVED_IDEA_TITLES.has(title)) return true;
+  const summary = String(raw?.summary || raw?.description || '').trim();
+  return title.includes('无限制的 ChatGPT')
+    && summary.includes('2023.06.10')
+    && summary.includes('被降权');
+}
+
+function normalizeIdeaRecord(raw, index, kind, cfg, fileIndex) {
+  const promptText = String(raw.prompt_text || raw.prompt || raw.content || raw.text || '').trim();
+  const rawId = String(raw.id || `${cfg.idPrefix}-${String(index + 1).padStart(3, '0')}`).trim();
+  const stableId = `${cfg.source}-${fileIndex}-${rawId}`.replace(/[^a-z0-9:_-]/gi, '-');
+  const rawTitle = String(raw.title || raw.name || `${cfg.label} ${index + 1}`).trim();
+  const coverUrl = String(raw.cover_url || raw.image_url || raw.thumbnail || raw.preview_image_url || '').trim();
+  const videoUrl = String(raw.video_url || raw.preview_video_url || raw.playable_video_url || '').trim();
+  const heat = Number(raw.heat ?? raw.likes ?? raw.views);
+  return {
+    id: stableId,
+    kind,
+    original_id: rawId,
+    title: rawTitle,
+    category: String(raw.category || raw.group || cfg.defaultCategory).trim(),
+    type: String(raw.type || cfg.defaultType).trim(),
+    page_type: String(raw.page_type || raw.topic || raw.scene || raw.category || cfg.defaultCategory).trim(),
+    sort_order: Number.isFinite(Number(raw.sort_order)) ? Number(raw.sort_order) : index + 1,
+    source: cfg.source,
+    prompt_text: promptText,
+    prompt_text_length: promptText.length,
+    heat: Number.isFinite(heat) ? heat : Math.max(120, 980 - index * 3),
+    tags: normalizeTagList(raw.tags),
+    summary: ideaSummary(raw, promptText, rawTitle),
+    preview_image_url: coverUrl,
+    preview_thumb_url: String(raw.preview_thumb_url || coverUrl).trim(),
+    cover_url: coverUrl,
+    preview_video_url: videoUrl,
+    playable_video_url: videoUrl,
+    raw,
+    active: !isRemovedIdeaRecord(raw),
+  };
+}
+
+function readIdeaPromptRows() {
+  const out = [];
+  for (const [kind, cfg] of Object.entries(IDEA_LIBRARY_SOURCES)) {
+    const rawItems = [];
+    cfg.files.forEach((file, fileIndex) => {
+      const fileRows = readStaticJson(file);
+      fileRows.forEach((raw, index) => {
+        const item = normalizeIdeaRecord(raw, rawItems.length + index, kind, cfg, fileIndex);
+        if (item.title && item.prompt_text) rawItems.push(item);
+      });
+    });
+    out.push(...rawItems);
+  }
+  return out;
 }
 
 // Convert any datetime-ish field to MySQL `YYYY-MM-DD HH:mm:ss`. Numbers
@@ -427,6 +555,69 @@ function buildAnnouncements(rows) {
   return out;
 }
 
+function buildIdeaPrompts(rows) {
+  const out = [];
+  for (const r of rows) {
+    if (!r || !r.id || !r.kind || !r.title || !r.prompt_text) continue;
+    out.push({
+      sql: `INSERT INTO idea_prompts
+        (id, kind, original_id, title, category, type, page_type, sort_order,
+         source, prompt_text, prompt_text_length, heat, tags, summary,
+         preview_image_url, preview_thumb_url, cover_url, preview_video_url,
+         playable_video_url, raw, active, created_at, updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        ON DUPLICATE KEY UPDATE
+          kind=VALUES(kind),
+          original_id=VALUES(original_id),
+          title=VALUES(title),
+          category=VALUES(category),
+          type=VALUES(type),
+          page_type=VALUES(page_type),
+          sort_order=VALUES(sort_order),
+          source=VALUES(source),
+          prompt_text=VALUES(prompt_text),
+          prompt_text_length=VALUES(prompt_text_length),
+          heat=VALUES(heat),
+          tags=VALUES(tags),
+          summary=VALUES(summary),
+          preview_image_url=VALUES(preview_image_url),
+          preview_thumb_url=VALUES(preview_thumb_url),
+          cover_url=VALUES(cover_url),
+          preview_video_url=VALUES(preview_video_url),
+          playable_video_url=VALUES(playable_video_url),
+          raw=VALUES(raw),
+          active=VALUES(active),
+          updated_at=VALUES(updated_at)`,
+      params: [
+        String(r.id),
+        String(r.kind),
+        r.original_id != null ? String(r.original_id) : null,
+        String(r.title),
+        r.category != null ? String(r.category) : null,
+        r.type != null ? String(r.type) : null,
+        r.page_type != null ? String(r.page_type) : null,
+        Number(r.sort_order || 0),
+        r.source != null ? String(r.source) : null,
+        String(r.prompt_text || ''),
+        Number(r.prompt_text_length || String(r.prompt_text || '').length),
+        Number(r.heat || 0),
+        j(r.tags || []),
+        r.summary != null ? String(r.summary) : null,
+        r.preview_image_url != null ? String(r.preview_image_url) : null,
+        r.preview_thumb_url != null ? String(r.preview_thumb_url) : null,
+        r.cover_url != null ? String(r.cover_url) : null,
+        r.preview_video_url != null ? String(r.preview_video_url) : null,
+        r.playable_video_url != null ? String(r.playable_video_url) : null,
+        j(r.raw || {}),
+        b(r.active),
+        toMysqlDt(Date.now()),
+        toMysqlDt(Date.now()),
+      ],
+    });
+  }
+  return out;
+}
+
 // ---- Driver ----
 
 const PLAN = [
@@ -441,6 +632,7 @@ const PLAN = [
   { table: 'login_risk',        build: buildLoginRisk },
   { table: 'user_behavior_log', build: buildUserBehavior },
   { table: 'announcements',     build: buildAnnouncements },
+  { table: 'idea_prompts',      build: buildIdeaPrompts, read: readIdeaPromptRows },
 ];
 
 async function migrateTable(conn, table, stmts) {
@@ -453,7 +645,7 @@ async function migrateTable(conn, table, stmts) {
     for (const { sql, params } of stmts) {
       const [res] = await conn.execute(sql, params);
       if (res.affectedRows === 1) inserted++;
-      else skipped++; // INSERT IGNORE → 0 affected = duplicate id, skip
+      else skipped++; // INSERT IGNORE/UPSERT unchanged duplicate
     }
     await conn.commit();
   } catch (err) {
@@ -466,8 +658,8 @@ async function migrateTable(conn, table, stmts) {
 async function main() {
   const conn = await mysql.createConnection(cfg);
   const summary = [];
-  for (const { table, build } of PLAN) {
-    const rows = readJson(table);
+  for (const { table, build, read } of PLAN) {
+    const rows = read ? read() : readJson(table);
     if (!rows.length) {
       summary.push({ table, source: 0, inserted: 0, skipped: 0 });
       continue;
@@ -480,6 +672,13 @@ async function main() {
     const { inserted, skipped } = await migrateTable(conn, table, stmts);
     summary.push({ table, source: rows.length, inserted, skipped });
     console.log(`  ✓ ${table}: ${inserted} inserted, ${skipped} already present (source ${rows.length})`);
+  }
+  if (REMOVED_IDEA_TITLES.size) {
+    const [res] = await conn.query(
+      `UPDATE idea_prompts SET active = 0, updated_at = ? WHERE title IN (${[...REMOVED_IDEA_TITLES].map(() => '?').join(',')})`,
+      [toMysqlDt(Date.now()), ...REMOVED_IDEA_TITLES],
+    );
+    console.log(`  ✓ idea_prompts: ${res.affectedRows || 0} obsolete item(s) deactivated`);
   }
   await conn.end();
 

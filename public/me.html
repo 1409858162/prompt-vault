@@ -38,6 +38,51 @@
   .dev-row button:hover { color: #fca5a5; border-color: #ef4444; }
   .dev-row button:disabled { opacity: .4; cursor: not-allowed; }
   .dev-empty { font-size: 13px; color: var(--text-dim); padding: 12px 0; }
+  .msg-list { display: flex; flex-direction: column; gap: 10px; }
+  .msg-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--panel);
+    padding: 13px 14px;
+  }
+  .msg-card.unread {
+    border-color: rgba(99,102,241,.55);
+    box-shadow: 0 0 0 1px rgba(99,102,241,.16);
+  }
+  .msg-top {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 10px; margin-bottom: 8px;
+  }
+  .msg-title {
+    color: var(--text);
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.45;
+  }
+  .msg-body {
+    color: var(--text-dim);
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .msg-meta {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; margin-top: 10px;
+    color: var(--text-faint);
+    font-size: 12px;
+  }
+  .msg-read {
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 5px 9px;
+    white-space: nowrap;
+  }
+  .msg-read:hover { color: var(--text); border-color: #3a3a44; }
   .risk-banner {
     display:none; padding: 10px 14px; margin-bottom: 16px;
     background: rgba(239,68,68,.08); border: 1px solid rgba(239,68,68,.35);
@@ -468,6 +513,16 @@
 
       <div class="card soft" style="margin-top:16px">
         <div class="info-h">
+          <h2>站内消息</h2>
+          <span class="pill" id="msgCount">0 条</span>
+        </div>
+        <div class="msg-list" id="msgList">
+          <div class="dev-empty">正在加载消息...</div>
+        </div>
+      </div>
+
+      <div class="card soft" style="margin-top:16px">
+        <div class="info-h">
           <h2>会员升级 / 续期</h2>
           <span class="pill">邀请码</span>
         </div>
@@ -649,6 +704,90 @@
     return first ? first.toUpperCase() : 'U';
   }
 
+  const MSG_KIND_LABEL = { info: '通知', warn: '提醒', success: '结果' };
+
+  async function loadMessages() {
+    const listEl = $('#msgList');
+    const countEl = $('#msgCount');
+    if (!listEl || !countEl) return;
+    try {
+      const r = await fetch('/api/messages', { credentials: 'same-origin' });
+      if (r.status === 401) return;
+      const j = await r.json();
+      if (!r.ok || !j.ok) throw new Error(j.error || ('HTTP ' + r.status));
+      const rows = Array.isArray(j.messages) ? j.messages : [];
+      const unread = Number(j.unread_count || 0);
+      countEl.textContent = unread > 0 ? unread + ' 条未读' : rows.length + ' 条';
+      renderMessages(rows);
+    } catch (err) {
+      listEl.innerHTML = '<div class="dev-empty">消息加载失败，请稍后重试</div>';
+    }
+  }
+
+  function renderMessages(rows) {
+    const listEl = $('#msgList');
+    listEl.innerHTML = '';
+    if (!rows.length) {
+      listEl.innerHTML = '<div class="dev-empty">暂无站内消息</div>';
+      return;
+    }
+    for (const msg of rows) {
+      const card = document.createElement('div');
+      card.className = 'msg-card' + (msg.read ? '' : ' unread');
+      const kind = MSG_KIND_LABEL[msg.kind] || '通知';
+      card.innerHTML = `
+        <div class="msg-top">
+          <div>
+            <div class="msg-title">${escapeHtml(msg.title || '来自管理员的消息')}</div>
+            <div style="margin-top:4px"><span class="pill">${escapeHtml(kind)}</span>${msg.read ? '' : '<span class="pill" style="margin-left:6px">未读</span>'}</div>
+          </div>
+        </div>
+        <div class="msg-body">${escapeHtml(msg.body || '')}</div>
+        <div class="msg-meta">
+          <span>${escapeHtml(formatDate(msg.created_at))}</span>
+          ${msg.read ? '<span>已读</span>' : '<button class="msg-read" type="button" data-id="' + escapeHtml(msg.id) + '">标记已读</button>'}
+        </div>
+      `;
+      listEl.appendChild(card);
+    }
+    listEl.querySelectorAll('.msg-read').forEach((btn) => {
+      btn.addEventListener('click', () => markMessageRead(btn.getAttribute('data-id')));
+    });
+  }
+
+  async function markMessageRead(id) {
+    if (!id) return;
+    try {
+      const r = await fetch('/api/messages/' + encodeURIComponent(id) + '/read', {
+        method: 'POST',
+        credentials: 'same-origin',
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) throw new Error(j.error || ('HTTP ' + r.status));
+      await loadMessages();
+      showToast('已标记为已读');
+    } catch {
+      showToast('操作失败，请稍后重试');
+    }
+  }
+
+  function syncDecoyClearFromMe(data) {
+    const value = data && data.security ? data.security.decoy_cleared_at : null;
+    if (!value) return;
+    if (window.PVS && typeof window.PVS.syncLocalDecoyState === 'function') {
+      window.PVS.syncLocalDecoyState(data);
+      return;
+    }
+    const parsed = Number(value) || Date.parse(String(value));
+    if (!Number.isFinite(parsed) || parsed <= 0) return;
+    try {
+      localStorage.setItem('pv_decoy_cleared_at', String(parsed));
+      localStorage.removeItem('pv_decoy_until');
+      localStorage.removeItem('pv_decoy_marked_at');
+      document.cookie = 'pv_decoy_until=; Max-Age=0; path=/; SameSite=Lax';
+    } catch {}
+  }
+
   // ----- load me -----
   async function loadMe() {
     let r;
@@ -656,6 +795,7 @@
     catch { location.href = '/login'; return; }
     if (r.status === 401) { location.href = '/login'; return; }
     const data = await r.json();
+    syncDecoyClearFromMe(data);
     CURRENT_ME = data;
     const c = data.code || {};
     const m = data.membership || {};
@@ -830,6 +970,7 @@
   });
 
   loadMe();
+  loadMessages();
 </script>
 </body>
 </html>

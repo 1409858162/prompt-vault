@@ -1,0 +1,11 @@
+node_modules/
+data/
+.env
+.env.local
+*.log
+.DS_Store
+work/
+
+all-prompts-title-and-prompt.md
+te s t/
+test1

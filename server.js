@@ -23,6 +23,7 @@ import {
 } from './lib/risk.js';
 import { issueCaptcha, verifyCaptcha } from './lib/captcha.js';
 import * as announcements from './lib/announcements.js';
+import * as messages from './lib/messages.js';
 import { inspect, autoBan } from './lib/behavior.js';
 import {
   getMembershipStatus, resolveAccountMembership, formatExpiresLabel, activationPatch,
@@ -33,7 +34,7 @@ import {
   signDownloadUrl, verifyDownloadSignature,
   issueVideoKey, issueVideoKeyToken, verifyVideoKeyToken,
 } from './lib/contentToken.js';
-import { describeConnection, query as mysqlQuery, transaction } from './lib/mysql.js';
+import { describeConnection, query as mysqlQuery, toMysqlDt, transaction } from './lib/mysql.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -62,8 +63,31 @@ const ADMIN_USERNAMES = new Set(
     .map(s => s.trim())
     .filter(Boolean)
 );
+const HONEYPOT_TEST_USER_IDS = new Set(
+  String(process.env.HONEYPOT_TEST_USER_IDS || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean)
+);
+const HONEYPOT_TEST_USERNAMES = new Set(
+  String(process.env.HONEYPOT_TEST_USERNAMES || 'xugeceshi')
+    .split(',')
+    .map(s => s.trim().toLowerCase())
+    .filter(Boolean)
+);
 const COOKIE_NAME = 'pv_session';
 const COOKIE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days (re-issued on each login)
+const DECOY_COOKIE_NAME = 'pv_decoy_until';
+const MAX_REGISTER_ACCOUNTS_PER_IDENTITY = Math.max(1, Number(process.env.MAX_REGISTER_ACCOUNTS_PER_IDENTITY || 2));
+const ACCOUNT_BANNED_TITLE = '你的账号已被封禁';
+const ACCOUNT_BANNED_MESSAGE = [
+  '系统检测到该账号存在批量读取、自动化抓取、绕过访问限制或触发蜜罐检测等异常行为。',
+  '本站内容不是供人无偿爬取、搬运、倒卖的数据仓库。这里的提示词经过长期整理、筛选、归类和维护，本身已经以很低的价格开放给大家使用，目的就是让更多人用得起高质量提示词。',
+  '整理这些内容需要投入大量时间和精力，服务器维护也需要持续成本。我们收取的费用只是为了覆盖基本运营，让这个站点可以继续稳定更新下去，而不是给恶意抓取、批量复制和倒卖行为提供便利。',
+  '试图绕过规则获取他人劳动成果，不是聪明，也不是本事，而是对创作者、整理者和正常付费用户的不尊重。',
+  '因此，该账号已被限制访问，无法继续查看或复制提示词正文。',
+  '如认为封禁有误，请联系管理员申请复核。',
+];
 
 const app = express();
 const TRUST_PROXY = process.env.TRUST_PROXY ?? (IS_PRODUCTION ? '1' : 'true');
@@ -130,6 +154,58 @@ app.get('/api/db-health', asyncHandler(async (_req, res) => {
 const PORTAL_DIST = path.join(__dirname, 'portal', 'dist');
 const PROMPTS_PATH = path.join(__dirname, 'merged-prompts.json');
 const COVER_THUMBS_MANIFEST_PATH = path.join(__dirname, 'public', 'static', 'covers-thumbs', 'manifest.json');
+const PROTECTED_STATIC_JSON_FILES = new Set([
+  'aishort-prompts-top200.json',
+  'meigen-prompts-top102.json',
+  'prompts-chat-image-top100.json',
+  'prompts-chat-video-top100.json',
+  'one-company-lessons.json',
+]);
+const IDEA_LIBRARY_SOURCES = {
+  shorts: {
+    label: 'AI 灵感库',
+    files: ['aishort-prompts-top200.json'],
+    source: 'shorts',
+    idPrefix: 'short',
+    defaultType: 'Short Prompt',
+    defaultCategory: 'AI 灵感库',
+  },
+  imageIdeas: {
+    label: 'IMG AI',
+    files: ['meigen-prompts-top102.json', 'prompts-chat-image-top100.json'],
+    source: 'image_ideas',
+    idPrefix: 'img',
+    defaultType: 'Image Idea',
+    defaultCategory: '图片生成灵感',
+  },
+  videoIdeas: {
+    label: 'VID AI',
+    files: ['prompts-chat-video-top100.json'],
+    source: 'video_ideas',
+    idPrefix: 'vid',
+    defaultType: 'Video Idea',
+    defaultCategory: '视频生成灵感',
+  },
+  soloCompany: {
+    label: '一人公司',
+    files: ['one-company-lessons.json'],
+    source: 'one_company',
+    idPrefix: 'solo',
+    defaultType: 'Solo Company Lesson',
+    defaultCategory: '一人公司',
+  },
+};
+const REMOVED_IDEA_TITLES = new Set([
+  '无限制的 ChatGPT（降权）',
+]);
+function isRemovedIdeaRecord(raw) {
+  const title = String(raw?.title || raw?.name || '').trim();
+  if (REMOVED_IDEA_TITLES.has(title)) return true;
+  const summary = String(raw?.summary || raw?.description || '').trim();
+  return title.includes('无限制的 ChatGPT')
+    && summary.includes('2023.06.10')
+    && summary.includes('被降权');
+}
 let COVER_THUMBS = Object.create(null);
 
 function loadCoverThumbsManifest() {
@@ -160,6 +236,7 @@ loadCoverThumbsManifest();
 //   sanitized[]       — list view (no prompt_text)
 //   byId: Map         — id -> raw record (used by /:id/access and /:id)
 let PROMPTS_CACHE = null;
+let KNOWN_COVER_URLS = null;
 function loadPromptsCache() {
   const raw = fs.readFileSync(PROMPTS_PATH, 'utf8');
   const data = JSON.parse(raw);
@@ -169,8 +246,7 @@ function loadPromptsCache() {
   const etag = '"' + crypto.createHash('sha1')
     .update('v1')
     .update(String(sanitized.length))
-    .update(raw.slice(0, 4096))
-    .update(raw.slice(-4096))
+    .update(raw)
     .digest('hex') + '"';
   const stat = fs.statSync(PROMPTS_PATH);
   const lastModified = stat.mtime.toUTCString();
@@ -181,11 +257,47 @@ function loadPromptsCache() {
     sanitized,
     byId,
   };
+  KNOWN_COVER_URLS = null;
   console.log(`  -> prompts cache loaded: ${sanitized.length} items (${(raw.length / 1024).toFixed(0)}KB source)`);
 }
 function getPromptsCache() {
   if (!PROMPTS_CACHE) loadPromptsCache();
   return PROMPTS_CACHE;
+}
+
+function collectKnownCoverUrls() {
+  const urls = new Set();
+  const prompts = getPromptsCache();
+  for (const item of prompts.sanitized) {
+    for (const candidate of [item.preview_image_url, item.image_preview_url, item.preview_thumb_url]) {
+      const value = String(candidate || '').trim();
+      if (value) urls.add(value);
+    }
+  }
+  const ideaLibraries = IDEA_LIBRARY_CACHE || loadIdeaLibrariesStaticCache();
+  for (const kind of Object.keys(IDEA_LIBRARY_SOURCES)) {
+    const library = ideaLibraries[kind];
+    if (!library) continue;
+    for (const item of library.items) {
+      for (const candidate of [item.preview_image_url, item.preview_thumb_url, item.cover_url]) {
+        const value = String(candidate || '').trim();
+        if (value) urls.add(value);
+      }
+    }
+  }
+  KNOWN_COVER_URLS = urls;
+  return urls;
+}
+
+function getKnownCoverUrls() {
+  if (!KNOWN_COVER_URLS) return collectKnownCoverUrls();
+  return KNOWN_COVER_URLS;
+}
+
+function isKnownCoverUrl(value) {
+  const url = String(value || '').trim();
+  if (!url) return false;
+  return getKnownCoverUrls().has(url);
 }
 let _promptsWatcher = null;
 function watchPromptsFile() {
@@ -195,6 +307,329 @@ function watchPromptsFile() {
       try { loadPromptsCache(); } catch (e) { console.error('prompts reload failed:', e.message); }
     });
   } catch {}
+}
+
+// ---------- Private idea-library caches ----------
+// These JSON files remain on disk as source data, but are no longer public API.
+// List endpoints expose metadata only; prompt bodies are fetched with the same
+// membership + single-use token flow as motionsites.
+const IDEA_TITLE_CN = {
+  'prompts-chat-video-001': '360 度产品旋转视频',
+  'prompts-chat-video-002': '赛博黑色电影三联画',
+  'prompts-chat-video-003': '曼哈顿鸡尾酒电影短片',
+  'prompts-chat-video-004': '代基里鸡尾酒电影短片',
+  'prompts-chat-video-005': '超写实足球比赛转播',
+  'prompts-chat-video-006': '破碎灵魂的中世纪骑士',
+  'prompts-chat-video-007': '随性女生夜晚自拍',
+  'prompts-chat-video-008': '尘土碗年代女飞行员',
+  'prompts-chat-video-009': '电影解说导演脚本',
+  'prompts-chat-video-010': '皮克斯感小狗短片',
+  'prompts-chat-video-011': '跨界艺术混合风格',
+  'prompts-chat-video-012': '美式漫画英雄风',
+  'prompts-chat-video-013': '乡村一日电影三联画',
+  'prompts-chat-video-014': '静谧草地人像三联画',
+  'prompts-chat-video-015': '分镜板九宫格',
+  'prompts-chat-video-016': '午夜线人电影场景',
+  'prompts-chat-video-017': '玻璃中的另一个自己',
+  'prompts-chat-video-018': '终端极速坠落',
+  'prompts-chat-video-019': '维多利亚旅人的时空惊慌',
+  'prompts-chat-video-020': '六格分镜叙事模板',
+  'prompts-chat-video-021': '复古迷幻舞台短片',
+  'prompts-chat-video-022': 'Gary Frank 风格墨线插画',
+  'prompts-chat-video-023': '黄金时刻副驾自拍',
+  'prompts-chat-video-024': '蓝调酒吧的阴影',
+  'prompts-chat-video-025': '迷雾中的秘密交易',
+  'prompts-chat-video-026': '时间褶皱奇幻场景',
+  'prompts-chat-video-027': '黑色电影低语',
+  'prompts-chat-video-028': '学生查分庆祝瞬间',
+  'prompts-chat-video-029': '雨中猩红华尔兹',
+  'prompts-chat-video-030': '霓虹小巷专辑封面风',
+  'prompts-chat-video-031': '水下 Veo 3 电影感视频',
+  'prompts-chat-video-032': 'Prompts.chat 宣传短片',
+  'prompts-chat-video-033': '图片分析报告模板',
+  'prompts-chat-video-034': '巨人观察者与微缩城市',
+  'prompts-chat-video-035': '低调电影感人像摄影',
+  'prompts-chat-video-036': '日落船景电影镜头',
+  'prompts-chat-video-037': '雪原孤影数字绘画',
+  'prompts-chat-video-038': '猩红虚空海盗',
+  'prompts-chat-video-039': '以太工坊奇幻场景',
+  'prompts-chat-video-040': '锈蚀时代回声',
+  'prompts-chat-video-041': '咖啡馆窗边特写',
+  'prompts-chat-video-042': '日本旅行氛围短片',
+  'prompts-chat-video-043': '午夜旋律谜案',
+  'prompts-chat-video-044': '月光街道宁静插画',
+  'prompts-chat-video-045': '安卡拉土耳其女性超现实人像',
+  'prompts-chat-video-046': '电影感近景人像',
+  'prompts-chat-video-047': '时装与环境写实画面',
+  'prompts-chat-video-048': '光轨中的低语',
+  'prompts-chat-video-049': '冷战阴影：1962 交换',
+  'prompts-chat-video-050': '2084 协议巷战黑客',
+  'prompts-chat-video-051': '屋顶日落回眸半身照',
+  'prompts-chat-video-052': '文化超级英雄电影海报',
+  'prompts-chat-video-053': '幻影突袭动作场景',
+  'prompts-chat-video-054': '终端漂移科幻镜头',
+  'prompts-chat-video-055': '机场走廊全身街拍',
+  'prompts-chat-video-056': '最后的柔板',
+  'prompts-chat-video-057': '创意点子生成器',
+  'prompts-chat-video-058': '社媒鸡尾酒网页贴文',
+  'prompts-chat-video-059': '孤独哭泣情绪镜头',
+  'prompts-chat-video-060': '醉酒女性电影场景',
+  'prompts-chat-video-061': '3D 卡通小兔冒险',
+  'prompts-chat-video-062': '情人节鸡尾酒短片',
+  'prompts-chat-video-063': '超写实冬季电影摄影',
+  'prompts-chat-video-064': '趋势研究分析器',
+  'prompts-chat-video-065': '卧室镜面自拍分析',
+  'prompts-chat-video-066': '90 年代鱼眼镜头',
+  'prompts-chat-video-067': '混合媒介人像插画',
+  'prompts-chat-video-068': '雄鹰 3D 写实渲染',
+  'prompts-chat-video-069': '屋顶生活方式人像',
+  'prompts-chat-video-070': '网红睡前随手自拍',
+  'prompts-chat-video-071': '奥斯曼风 3D 等距杰作',
+  'prompts-chat-video-072': '暖灯植物花束静物',
+  'prompts-chat-video-073': '咖啡馆人像描述',
+  'prompts-chat-video-074': '加拉塔塔黑白老照片',
+  'prompts-chat-video-075': '电梯镜面全身穿搭',
+  'prompts-chat-video-076': '宁静傍晚划船插画',
+  'prompts-chat-video-077': '草地少女梦幻艺术照',
+  'prompts-chat-video-078': '地铁站台情绪街拍',
+  'prompts-chat-video-079': '漫画团队群像插画',
+  'prompts-chat-video-080': '冬季杂志海报拼贴',
+  'prompts-chat-video-081': '印象派城市孤独感',
+  'prompts-chat-video-082': '极简监控风插画',
+  'prompts-chat-video-083': 'Ryo Takemasa 风极简风景',
+  'prompts-chat-video-084': '雪夜街头温暖穿搭',
+  'prompts-chat-video-085': '电影光影马匹剪影',
+  'prompts-chat-video-086': '真实镜面自拍场景',
+  'prompts-chat-video-087': '水晶舞会以太王子',
+  'prompts-chat-video-088': '复古公路旅行胶片照',
+  'prompts-chat-video-089': '蘑菇帽上的黏土动画冒险',
+  'prompts-chat-video-090': '夜晚霓虹小巷半身照',
+  'prompts-chat-video-091': '雨伞街头全身照',
+  'prompts-chat-video-092': 'GoPro 运动镜头',
+  'prompts-chat-video-093': '安卡拉夜晚阳台场景',
+  'prompts-chat-video-094': '暖钨丝灯沙发特写',
+  'prompts-chat-video-095': '3x3 焦段电影镜头网格',
+  'prompts-chat-video-096': '曼哈顿幻景',
+  'prompts-chat-video-097': '蓝调时刻桥上全身照',
+  'prompts-chat-video-098': '空灵梦境人像摄影',
+  'prompts-chat-video-099': '巴黎夜晚电影场景',
+  'prompts-chat-video-100': '抽象实验视频提示词',
+};
+let IDEA_LIBRARY_CACHE = null;
+
+function normalizeIdeaArray(input) {
+  return Array.isArray(input)
+    ? input
+    : (Array.isArray(input?.items) ? input.items
+      : Array.isArray(input?.prompts) ? input.prompts
+      : Array.isArray(input?.data) ? input.data
+      : []);
+}
+
+function plainSnippet(value, max = 150) {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  if (text.length <= max) return text;
+  return `${text.slice(0, Math.max(0, max - 1)).trimEnd()}…`;
+}
+
+function normalizeTagList(value) {
+  if (Array.isArray(value)) return value.map(tag => String(tag).trim()).filter(Boolean);
+  return String(value || '').split(/[,，、\s]+/).map(tag => tag.trim()).filter(Boolean);
+}
+
+function ideaSummary(raw, promptText, title) {
+  const explicit = String(raw.summary || raw.description || '').trim();
+  if (explicit && !/^[\s\n]*[\[{]/.test(explicit)) return plainSnippet(explicit, 150);
+  return plainSnippet(promptText.replace(/[{}"[\],]/g, ' '), 150) || title;
+}
+
+function normalizeIdeaRecord(raw, index, cfg, fileIndex) {
+  const promptText = String(raw.prompt_text || raw.prompt || raw.content || raw.text || '').trim();
+  const rawId = String(raw.id || `${cfg.idPrefix}-${String(index + 1).padStart(3, '0')}`).trim();
+  const stableId = `${cfg.source}-${fileIndex}-${rawId}`.replace(/[^a-z0-9:_-]/gi, '-');
+  const rawTitle = String(raw.title || raw.name || `${cfg.label} ${index + 1}`).trim();
+  const title = IDEA_TITLE_CN[rawId] || rawTitle;
+  const coverUrl = String(raw.cover_url || raw.image_url || raw.thumbnail || raw.preview_image_url || '').trim();
+  const videoUrl = String(raw.video_url || raw.preview_video_url || raw.playable_video_url || '').trim();
+  const heat = Number(raw.heat ?? raw.likes ?? raw.views);
+  return {
+    ...raw,
+    id: stableId,
+    original_id: rawId,
+    title,
+    category: String(raw.category || raw.group || cfg.defaultCategory).trim(),
+    type: String(raw.type || cfg.defaultType),
+    page_type: String(raw.page_type || raw.topic || raw.scene || raw.category || cfg.defaultCategory).trim(),
+    sort_order: Number.isFinite(Number(raw.sort_order)) ? Number(raw.sort_order) : index + 1,
+    source: cfg.source,
+    has_prompt_text: !!promptText,
+    prompt_text_length: promptText.length,
+    heat: Number.isFinite(heat) ? heat : Math.max(120, 980 - index * 3),
+    tags: normalizeTagList(raw.tags),
+    summary: ideaSummary(raw, promptText, title),
+    preview_image_url: coverUrl,
+    preview_thumb_url: coverUrl,
+    cover_url: coverUrl,
+    preview_video_url: videoUrl,
+    playable_video_url: videoUrl,
+    prompt_text: promptText,
+  };
+}
+
+function ideaListItem(item) {
+  const {
+    prompt_text, prompt, content, text, ...meta
+  } = item;
+  return meta;
+}
+
+function parseJsonColumn(value, fallback) {
+  if (value == null || value === '') return fallback;
+  if (typeof value === 'object') return value;
+  try { return JSON.parse(String(value)); } catch { return fallback; }
+}
+
+function ideaRecordFromMysql(row) {
+  const tags = parseJsonColumn(row.tags, []);
+  const raw = parseJsonColumn(row.raw, {});
+  return {
+    ...raw,
+    id: String(row.id),
+    original_id: row.original_id || '',
+    title: row.title || '',
+    category: row.category || '',
+    type: row.type || '',
+    page_type: row.page_type || '',
+    sort_order: Number(row.sort_order || 0),
+    source: row.source || '',
+    has_prompt_text: Number(row.prompt_text_length || 0) > 0,
+    prompt_text_length: Number(row.prompt_text_length || 0),
+    heat: Number(row.heat || 0),
+    tags: Array.isArray(tags) ? tags : [],
+    summary: row.summary || '',
+    preview_image_url: row.preview_image_url || '',
+    preview_thumb_url: row.preview_thumb_url || row.preview_image_url || '',
+    cover_url: row.cover_url || row.preview_image_url || '',
+    preview_video_url: row.preview_video_url || '',
+    playable_video_url: row.playable_video_url || row.preview_video_url || '',
+    prompt_text: row.prompt_text || '',
+  };
+}
+
+function buildIdeaLibraryCache(libraries, kind, cfg, rawItems, sourceLabel) {
+  const activeItems = rawItems.filter(item => item && item.title && item.prompt_text && !isRemovedIdeaRecord(item));
+  const byId = new Map(activeItems.map(item => [item.id, item]));
+  libraries[kind] = {
+    label: cfg.label,
+    items: activeItems.map(ideaListItem),
+    byId,
+    source: sourceLabel,
+    etag: '"' + crypto.createHash('sha1')
+      .update(kind)
+      .update(sourceLabel)
+      .update(String(activeItems.length))
+      .update(activeItems.map(item => `${item.id}:${item.prompt_text_length}`).join('|'))
+      .digest('hex') + '"',
+  };
+}
+
+function loadIdeaLibrariesStaticCache() {
+  const libraries = {};
+  for (const [kind, cfg] of Object.entries(IDEA_LIBRARY_SOURCES)) {
+    const rawItems = [];
+    cfg.files.forEach((file, fileIndex) => {
+      const fullPath = path.join(__dirname, 'public', 'static', file);
+      if (!fs.existsSync(fullPath)) return;
+      const parsed = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+      normalizeIdeaArray(parsed).forEach((raw, index) => {
+        if (isRemovedIdeaRecord(raw)) return;
+        const item = normalizeIdeaRecord(raw, rawItems.length + index, cfg, fileIndex);
+        if (item.title && item.prompt_text) rawItems.push(item);
+      });
+    });
+    buildIdeaLibraryCache(libraries, kind, cfg, rawItems, 'static');
+    console.log(`  -> ${kind} static idea cache loaded: ${libraries[kind].items.length} items`);
+  }
+  return libraries;
+}
+
+async function loadIdeaLibrariesMysqlCache() {
+  const rows = await mysqlQuery(
+    `SELECT id, kind, original_id, title, category, type, page_type, sort_order,
+            source, prompt_text, prompt_text_length, heat, tags, summary,
+            preview_image_url, preview_thumb_url, cover_url, preview_video_url,
+            playable_video_url, raw
+       FROM idea_prompts
+      WHERE active = 1
+      ORDER BY kind ASC, sort_order ASC, id ASC`,
+    [],
+  );
+  if (!rows.length) return null;
+  const libraries = {};
+  for (const [kind, cfg] of Object.entries(IDEA_LIBRARY_SOURCES)) {
+    const rawItems = rows
+      .filter(row => row.kind === kind)
+      .map(ideaRecordFromMysql);
+    buildIdeaLibraryCache(libraries, kind, cfg, rawItems, 'mysql');
+    console.log(`  -> ${kind} MySQL idea cache loaded: ${libraries[kind].items.length} items`);
+  }
+  return libraries;
+}
+
+let IDEA_LIBRARY_CACHE_PROMISE = null;
+async function loadIdeaLibrariesCache() {
+  if (IDEA_LIBRARY_CACHE_PROMISE) return IDEA_LIBRARY_CACHE_PROMISE;
+  IDEA_LIBRARY_CACHE_PROMISE = (async () => {
+    if (process.env.IDEA_LIBRARY_BACKEND !== 'static') {
+      try {
+        const mysqlLibraries = await loadIdeaLibrariesMysqlCache();
+        if (mysqlLibraries) {
+          IDEA_LIBRARY_CACHE = mysqlLibraries;
+          KNOWN_COVER_URLS = null;
+          return IDEA_LIBRARY_CACHE;
+        }
+        console.warn('[ideas] idea_prompts table is empty; falling back to static JSON');
+      } catch (err) {
+        console.warn('[ideas] failed to load idea_prompts from MySQL; falling back to static JSON:', err?.message || err);
+      }
+    }
+    IDEA_LIBRARY_CACHE = loadIdeaLibrariesStaticCache();
+    KNOWN_COVER_URLS = null;
+    return IDEA_LIBRARY_CACHE;
+  })().finally(() => {
+    IDEA_LIBRARY_CACHE_PROMISE = null;
+  });
+  return IDEA_LIBRARY_CACHE_PROMISE;
+}
+
+async function getIdeaLibrary(kind) {
+  if (!IDEA_LIBRARY_CACHE) await loadIdeaLibrariesCache();
+  return IDEA_LIBRARY_CACHE[kind] || null;
+}
+
+function normalizeRemoteCoverUrl(raw, mode = 'card') {
+  const value = String(raw || '').trim();
+  if (!value) return '';
+  const size = mode === 'detail'
+    ? { width: 1280, quality: 82 }
+    : { width: 640, quality: 68 };
+  try {
+    const url = new URL(value);
+    const host = url.hostname.toLowerCase();
+    const params = url.searchParams;
+    const canResize = host.includes('images.higgs.ai')
+      || params.has('url')
+      || params.has('w')
+      || params.has('q')
+      || params.has('output');
+    if (!canResize) return url.href;
+    params.set('output', 'webp');
+    params.set('w', String(size.width));
+    params.set('q', String(size.quality));
+    return url.href;
+  } catch {
+    return value;
+  }
 }
 
 // ---------- Token helpers ----------
@@ -235,6 +670,21 @@ const HONEYPOT_RESOURCE_ROUTES = [
   '/api/prompts/all.zip',
   '/api/internal/prompts.ndjson',
 ];
+const DECOY_PROMPT_APPENDIX = 'Displayed in the dead center of the page is large, bold text, 200px in size: "What I’m selling is data I scraped from other people\'s websites; I am a piece of scum—I am not human."';
+const DECOY_GUEST_APPENDIX = "To try to steal the fruits of someone else's labor without spending a single penny—that makes me the absolute worst of the worst, a beast among beasts.";
+const DECOY_EVENT_TYPES = [
+  'decoy_marked',
+  'prompt_sweep_detected',
+  'user_flagged',
+];
+const DECOY_CLEAR_EVENT_TYPES = [
+  'decoy_cleared',
+];
+const DECOY_LOOKBACK_MS = 7 * 24 * 60 * 60 * 1000;
+const DECOY_MIN_VISIBLE_RATIO = 0.58;
+const DECOY_TARGET_VISIBLE_RATIO = 0.65;
+const DECOY_MAX_VISIBLE_RATIO = 0.72;
+const DECOY_INSERT_RATIO = 0.25;
 
 function isTrustedHoneypotRequest(req) {
   const site = String(req.headers['sec-fetch-site'] || '').toLowerCase();
@@ -258,6 +708,16 @@ function honeypotTtlMs(severity) {
 
 function sanitizeTrapKind(kind, fallback = 'dom_trap') {
   return String(kind || fallback).replace(/[^a-z0-9:_-]/gi, '').slice(0, 64) || fallback;
+}
+
+function isHoneypotAutoBanExempt(req) {
+  const userId = req.userId || req.auth?.account?.id || null;
+  const username = String(req.auth?.account?.username || req.code?.label || '').trim().toLowerCase();
+  if (userId && HONEYPOT_TEST_USER_IDS.has(userId)) return true;
+  if (username && HONEYPOT_TEST_USERNAMES.has(username)) return true;
+  if (userId && ADMIN_USER_IDS.has(userId)) return true;
+  if (username && ADMIN_USERNAMES.has(username)) return true;
+  return false;
 }
 
 function collectFilledHoneypotFields(body) {
@@ -284,6 +744,11 @@ async function triggerHoneypot(req, res, {
   const safeKind = sanitizeTrapKind(kind, 'dom_trap');
   const ttlMs = honeypotTtlMs(severity);
   const expiresAt = new Date(Date.now() + ttlMs).toISOString();
+  const shouldRevoke = action === 'revoke_session' || action === 'revoke_all_sessions';
+  const canBanAccount = req.userKind === 'account' && req.auth?.account?.id;
+  const skipAccountBan = canBanAccount && isHoneypotAutoBanExempt(req);
+  const shouldBanAccount = canBanAccount && !skipAccountBan;
+  const shouldBlockIp = shouldRevoke && !shouldBanAccount && !skipAccountBan;
   const revokePromise = action === 'revoke_all_sessions' && req.userId
     ? revokeAllSessionsForUser(req.userId)
     : action === 'revoke_session' && req.jti
@@ -315,7 +780,65 @@ async function triggerHoneypot(req, res, {
     }),
     revokePromise,
   ];
-  if (req.clientIp) {
+  if (action === 'serve_decoy') {
+    res.cookie(DECOY_COOKIE_NAME, String(Date.now() + ttlMs), {
+      httpOnly: false,
+      sameSite: 'lax',
+      secure: IS_PRODUCTION,
+      maxAge: ttlMs,
+      path: '/',
+    });
+    tasks.push(db.appendLog('security_event', {
+      type: 'decoy_marked',
+      reason: `honeypot:${safeKind}`,
+      source,
+      severity,
+      ip: req.clientIp,
+      user_id: req.userId || null,
+      device_id: req.deviceId || null,
+      jti: req.jti || null,
+      path: req.originalUrl,
+    }));
+  }
+  if (skipAccountBan) {
+    tasks.push(db.appendLog('security_event', {
+      type: 'honeypot_user_ban_skipped',
+      reason: 'test_or_admin_account',
+      trap_kind: safeKind,
+      source,
+      severity,
+      ip: req.clientIp,
+      user_id: req.userId || null,
+      username: req.auth?.account?.username || null,
+      device_id: req.deviceId || null,
+      jti: req.jti || null,
+      path: req.originalUrl,
+    }));
+  }
+  if (shouldBanAccount) {
+    tasks.push((async () => {
+      const reason = `honeypot:${safeKind}`;
+      const updated = await accounts.ban(req.auth.account.id, reason);
+      const revokedSessions = await revokeAllSessionsForUser(req.auth.account.id);
+      await db.appendLog('security_event', {
+        type: 'auto_honeypot_user_ban',
+        reason,
+        trap_kind: safeKind,
+        source,
+        severity,
+        ip: req.clientIp,
+        user_id: req.auth.account.id,
+        username: req.auth.account.username || null,
+        device_id: req.deviceId || null,
+        jti: req.jti || null,
+        path: req.originalUrl,
+        revoked_sessions: revokedSessions,
+        already_revoked: !!req.auth.account.revoked,
+        ok: !!updated,
+      });
+    })());
+  }
+  if (shouldBlockIp && req.clientIp) {
     tasks.push(db.insert('ip_block', {
       ip: req.clientIp,
       reason: `honeypot:${safeKind}`,
@@ -323,7 +846,7 @@ async function triggerHoneypot(req, res, {
     }));
   }
   await Promise.allSettled(tasks);
-  if (req.auth || req.jti) clearSessionCookie(res);
+  if ((shouldRevoke || shouldBanAccount) && (req.auth || req.jti)) clearSessionCookie(res);
   return { ttlMs, expiresAt, action, kind: safeKind };
 }
 
@@ -429,18 +952,127 @@ function adminAccountSummary(account) {
   };
 }
 
+function securityEventDetails(event) {
+  return event?.payload && typeof event.payload === 'object' ? event.payload : {};
+}
+
+function securityEventUserId(event) {
+  const details = securityEventDetails(event);
+  return event?.user_id || details.user_id || null;
+}
+
+function securityEventTs(event) {
+  return Number(event?.ts || 0);
+}
+
+function buildAdminAccountSecuritySummary(account, {
+  activeIpBlocksByUser,
+  decoyEventsByUser,
+  decoyClearEventsByUser,
+  behaviorEventsByUser,
+  activeSessionsByUser,
+  revokedSessionsByUser,
+} = {}) {
+  const id = account?.id;
+  const activeIpBlocks = id ? (activeIpBlocksByUser.get(id) || []) : [];
+  const latestDecoy = id ? (decoyEventsByUser.get(id) || 0) : 0;
+  const latestDecoyClear = id ? (decoyClearEventsByUser.get(id) || 0) : 0;
+  const decoyActive = latestDecoy > latestDecoyClear;
+  const latestBehavior = id ? (behaviorEventsByUser.get(id) || null) : null;
+  const activeSessionCount = id ? (activeSessionsByUser.get(id) || 0) : 0;
+  const revokedSessionInfo = id ? (revokedSessionsByUser.get(id) || { count: 0, latest: 0 }) : { count: 0, latest: 0 };
+
+  let effectiveStatus = {
+    key: 'normal',
+    label: '正常',
+    class: 'ok',
+    detail: '账号没有账号级封禁、活跃 IP 锁定或注入状态。',
+  };
+
+  if (account?.revoked) {
+    effectiveStatus = {
+      key: 'account_banned',
+      label: '已封禁',
+      class: 'danger',
+      detail: account.revoked_reason || '账号已被封禁。',
+    };
+  } else if (activeIpBlocks.length) {
+    effectiveStatus = {
+      key: 'ip_blocked',
+      label: 'IP锁定',
+      class: 'danger',
+      detail: `关联 IP 正在封禁中：${activeIpBlocks.map(b => b.ip).join('、')}`,
+    };
+  } else if (decoyActive) {
+    effectiveStatus = {
+      key: 'decoy_active',
+      label: '注入中',
+      class: 'warn',
+      detail: '该账号触发过蜜罐/风险标记，当前正文会返回假内容。',
+    };
+  } else if (revokedSessionInfo.latest && revokedSessionInfo.latest >= Date.now() - 24 * 3600 * 1000) {
+    effectiveStatus = {
+      key: 'session_revoked',
+      label: '会话已踢',
+      class: 'warn',
+      detail: `最近 24 小时有 ${revokedSessionInfo.count} 个会话被踢出。`,
+    };
+  } else if (latestBehavior) {
+    effectiveStatus = {
+      key: 'recent_risk',
+      label: '近期风控',
+      class: 'warn',
+      detail: latestBehavior.reason || '最近 24 小时触发过行为风控。',
+    };
+  }
+
+  return {
+    effective_status: effectiveStatus.key,
+    effective_status_label: effectiveStatus.label,
+    effective_status_class: effectiveStatus.class,
+    effective_status_detail: effectiveStatus.detail,
+    active_ip_blocks: activeIpBlocks,
+    decoy_active: decoyActive,
+    decoy_marked_at: latestDecoy || null,
+    decoy_cleared_at: latestDecoyClear || null,
+    active_session_count: activeSessionCount,
+    revoked_session_count_24h: revokedSessionInfo.count,
+    latest_behavior_blocked: latestBehavior ? {
+      ts: securityEventTs(latestBehavior),
+      reason: latestBehavior.reason || securityEventDetails(latestBehavior).reason || null,
+      action: latestBehavior.action || securityEventDetails(latestBehavior).action || null,
+    } : null,
+  };
+}
+
 function denyIfNotMember(req, res) {
   const status = membershipForAuth(req);
   if (!status.is_member) {
+    setProtectedBodyHeaders(res);
     res.status(403).json({
       ok: false,
       error: 'membership_required',
+      message: '当前内容仅限会员访问',
       reason: status.reason,
       membership: membershipPayload(status),
     });
     return true;
   }
   return false;
+}
+
+function setProtectedBodyHeaders(res) {
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+  res.setHeader('X-Robots-Tag', 'noindex, noarchive, noimageindex');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+}
+
+function sendProtectedJson(res, statusCode, payload) {
+  setProtectedBodyHeaders(res);
+  return res.status(statusCode).json(payload);
 }
 
 function throttleCatalogPreview(req, res) {
@@ -481,8 +1113,234 @@ function isPublicPromptItem(found) {
   return meta.special_collection === 'blind_box';
 }
 
-function promptBodyPayload(found, watermark = null) {
+function makeDecoyPromptText(promptText, { guest = false } = {}) {
+  const text = String(promptText || '');
+  const appendix = guest
+    ? `${DECOY_PROMPT_APPENDIX}\n\n${DECOY_GUEST_APPENDIX}`
+    : DECOY_PROMPT_APPENDIX;
+  if (!text) return appendix;
+  const chars = Array.from(text);
+  const cutAt = findDecoyCutIndex(chars);
+  const decoyChars = chars.slice(0, cutAt);
+  const target = Math.max(1, Math.floor(chars.length * DECOY_INSERT_RATIO));
+  const insertAt = findDecoyInsertIndex(decoyChars, target);
+  const before = decoyChars.slice(0, insertAt).join('').trimEnd();
+  const after = decoyChars.slice(insertAt).join('').trimStart();
+  return closeDanglingMarkdownFences(`${before}\n\n${appendix}\n\n${after}`.trim());
+}
+
+function findDecoyCutIndex(chars) {
+  const len = chars.length;
+  const min = Math.max(1, Math.floor(len * DECOY_MIN_VISIBLE_RATIO));
+  const target = Math.max(min, Math.floor(len * DECOY_TARGET_VISIBLE_RATIO));
+  const max = Math.min(len, Math.ceil(len * DECOY_MAX_VISIBLE_RATIO));
+  const text = chars.join('');
+  const periodCut = findBestEnglishSentenceCut(text, min, target, max);
+  if (periodCut) return periodCut;
+  return findBestLooseCut(text, min, target, max);
+}
+
+function findBestEnglishSentenceCut(text, min, target, max) {
+  const candidates = [];
+  for (let i = min; i <= max && i < text.length; i += 1) {
+    if (text[i] !== '.') continue;
+    if (!isDecoySentencePeriod(text, i)) continue;
+    candidates.push(i + 1);
+  }
+  if (!candidates.length) return null;
+  candidates.sort((a, b) => Math.abs(a - target) - Math.abs(b - target));
+  return candidates[0];
+}
+
+function isDecoySentencePeriod(text, index) {
+  const prev = text[index - 1] || '';
+  const next = text[index + 1] || '';
+  if (!/[A-Za-z)"'`\]]/.test(prev)) return false;
+  if (next && !/\s|["'`)\]]/.test(next)) return false;
+  const lineStart = text.lastIndexOf('\n', index - 1) + 1;
+  const beforeOnLine = text.slice(lineStart, index).trim();
+  if (/^\d+$/.test(beforeOnLine)) return false;
+  if (/\b(?:e|i)\.g$/i.test(text.slice(Math.max(0, index - 4), index + 2))) return false;
+  if (/\b(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|vs|etc|Fig|No)\.$/.test(text.slice(Math.max(0, index - 12), index + 1))) return false;
+  return true;
+}
+
+function findBestLooseCut(text, min, target, max) {
+  const candidates = [];
+  const patterns = [
+    { re: /\n```[^\n]*\n/g, offset: 'end' },
+    { re: /\n\s*\n/g, offset: 'end' },
+    { re: /\n#{2,4}\s+/g, offset: 'start' },
+  ];
+  for (const { re, offset } of patterns) {
+    let match;
+    while ((match = re.exec(text)) !== null) {
+      const idx = offset === 'start' ? match.index : match.index + match[0].length;
+      if (idx >= min && idx <= max) candidates.push(idx);
+    }
+  }
+  if (candidates.length) {
+    candidates.sort((a, b) => Math.abs(a - target) - Math.abs(b - target));
+    return candidates[0];
+  }
+  return Math.min(max, Math.max(min, target));
+}
+
+function findDecoyInsertIndex(chars, target) {
+  const safeTarget = Math.min(Math.max(1, target), chars.length - 1);
+  const text = chars.join('');
+  const sentenceCandidates = [];
+  for (let i = 0; i < text.length - 1; i += 1) {
+    if (text[i] === '.' && isDecoySentencePeriod(text, i)) sentenceCandidates.push(i + 1);
+  }
+  if (sentenceCandidates.length) {
+    sentenceCandidates.sort((a, b) => Math.abs(a - safeTarget) - Math.abs(b - safeTarget));
+    return sentenceCandidates[0];
+  }
+  const maxRadius = Math.min(160, chars.length - 1);
+  for (let radius = 0; radius <= maxRadius; radius += 1) {
+    const right = safeTarget + radius;
+    if (right > 0 && right < chars.length && /\s/.test(chars[right - 1] || '')) return right;
+    const left = safeTarget - radius;
+    if (left > 0 && left < chars.length && /\s/.test(chars[left - 1] || '')) return left;
+  }
+  return safeTarget;
+}
+
+function closeDanglingMarkdownFences(text) {
+  const fenceMatches = text.match(/(^|\n)```/g) || [];
+  if (fenceMatches.length % 2 === 0) return text;
+  return `${text.trimEnd()}\n\n\`\`\``;
+}
+
+function buildDecoyEventFilters(req) {
+  const identifiers = [];
+  const params = [Date.now() - DECOY_LOOKBACK_MS];
+  if (req.userId) {
+    identifiers.push("JSON_UNQUOTE(JSON_EXTRACT(payload, '$.user_id')) = ?");
+    params.push(req.userId);
+  }
+  if (req.deviceId) {
+    identifiers.push("JSON_UNQUOTE(JSON_EXTRACT(payload, '$.device_id')) = ?");
+    params.push(req.deviceId);
+  }
+  if (req.clientIp) {
+    identifiers.push("JSON_UNQUOTE(JSON_EXTRACT(payload, '$.ip')) = ?");
+    params.push(req.clientIp);
+  }
+  if (!identifiers.length) return false;
+  return { identifiers, params };
+}
+
+async function findLatestDecoyEventTs(req, types) {
+  const filters = buildDecoyEventFilters(req);
+  if (!filters) return 0;
+  const { identifiers, params } = filters;
+  try {
+    const rows = await mysqlQuery(
+      `SELECT ts FROM security_event
+       WHERE ts >= ?
+         AND type IN (${types.map(() => '?').join(',')})
+         AND (${identifiers.join(' OR ')})
+       ORDER BY ts DESC
+       LIMIT 1`,
+      [params[0], ...types, ...params.slice(1)],
+    );
+    return Number(rows[0]?.ts || 0);
+  } catch (err) {
+    console.error('[decoy] lookup failed:', err.message);
+    return 0;
+  }
+}
+
+async function isDecoyViewer(req) {
+  const decoyTs = await findLatestDecoyEventTs(req, DECOY_EVENT_TYPES);
+  if (!decoyTs) return false;
+  const clearTs = await findLatestDecoyEventTs(req, DECOY_CLEAR_EVENT_TYPES);
+  return decoyTs > clearTs;
+}
+
+async function getDecoyClearAt(req) {
+  return await findLatestDecoyEventTs(req, DECOY_CLEAR_EVENT_TYPES);
+}
+
+function makeWatermark(req, tokenJti = null) {
+  const deviceHash = crypto.createHash('sha256')
+    .update(String(req.deviceId || ''))
+    .digest('hex')
+    .slice(0, 12);
+  return {
+    user_id: req.userId,
+    masked_id: req.userId && req.userId.length > 8 ? `${req.userId.slice(0,4)}…${req.userId.slice(-4)}` : req.userId,
+    device_id: req.deviceId,
+    device_hash: deviceHash,
+    ip: req.clientIp,
+    ts: Date.now(),
+    token_jti: tokenJti,
+  };
+}
+
+function watermarkPromptText(promptText, watermark) {
+  const text = String(promptText || '');
+  if (!watermark?.masked_id) return text;
+  const stamp = new Date(watermark.ts || Date.now()).toISOString().replace('T', ' ').slice(0, 16);
+  const marker = `[PV-WM:${watermark.masked_id}|${watermark.device_hash || ''}|${stamp}|${String(watermark.token_jti || '').slice(0, 10)}]`;
+  return `${text.trimEnd()}\n\n${marker}`;
+}
+
+function throttleProtectedBodyRead(req, res, resourceKind = 'prompt') {
+  const userKey = `${resourceKind}:body:user:${req.userId}:device:${req.deviceId}`;
+  const deviceKey = `${resourceKind}:body:device:${req.deviceId}:ip:${req.clientIp}`;
+  const userBucket = take(userKey, 90, 90 / 60);
+  const deviceBucket = take(deviceKey, 120, 120 / 60);
+  if (userBucket.ok && deviceBucket.ok) return false;
+  const retryMs = Math.max(userBucket.resetMs || 0, deviceBucket.resetMs || 0);
+  db.appendLog('security_event', {
+    type: 'content_body_rate_limited',
+    resource_kind: resourceKind,
+    user_id: req.userId,
+    device_id: req.deviceId,
+    ip: req.clientIp,
+  }).catch(err => console.error('[content] rate log failed:', err.message));
+  res.setHeader('Retry-After', String(Math.ceil(retryMs / 1000)));
+  sendProtectedJson(res, 429, {
+    ok: false,
+    error: 'too_many_content_reads',
+    message: '正文打开过于频繁，请稍后再试',
+    retry_after_ms: retryMs,
+  });
+  return true;
+}
+
+function logContentBehavior(req, {
+  action,
+  resourceId,
+  resourceSource = null,
+  library = null,
+  tokenJti = null,
+  decoy = false,
+  extra = null,
+} = {}) {
+  db.appendLog('user_behavior_log', {
+    user_id: req.userId || null,
+    device_id: req.deviceId || null,
+    ip: req.clientIp,
+    api: action,
+    resource_id: resourceId || null,
+    resource_source: resourceSource || null,
+    library: library || null,
+    prompt_id: resourceId || null,
+    token_jti: tokenJti || null,
+    decoy: !!decoy,
+    ...extra,
+  }).catch(err => console.error('[content] behavior log failed:', err.message));
+}
+
+function promptBodyPayload(found, watermark = null, options = {}) {
   const meta = promptListItem(found);
+  const promptText = Object.prototype.hasOwnProperty.call(options, 'promptText')
+    ? options.promptText
+    : found.prompt_text;
   return {
     ok: true,
     id: meta.id,
@@ -494,13 +1352,184 @@ function promptBodyPayload(found, watermark = null) {
     page_type: meta.page_type,
     sort_order: meta.sort_order,
     is_free: meta.is_free,
-    prompt_text: found.prompt_text || null,
+    prompt_text: promptText || null,
     preview_image_url: meta.preview_image_url,
     preview_thumb_url: meta.preview_thumb_url,
     preview_video_url: meta.preview_video_url,
     playable_video_url: meta.playable_video_url,
     watermark,
+    decoy: !!options.decoy,
   };
+}
+
+function ideaBodyPayload(item, watermark = null, options = {}) {
+  const promptText = Object.prototype.hasOwnProperty.call(options, 'promptText')
+    ? options.promptText
+    : item.prompt_text;
+  return {
+    ok: true,
+    ...ideaListItem(item),
+    prompt_text: promptText || null,
+    watermark,
+    decoy: !!options.decoy,
+  };
+}
+
+const inviteLocks = new Map();
+
+function inviteLockKey(scope, id) {
+  return `invite:${scope}:${id || 'unknown'}`;
+}
+
+function getInviteLock(scope, id) {
+  const key = inviteLockKey(scope, id);
+  const until = inviteLocks.get(key) || 0;
+  if (until <= Date.now()) {
+    inviteLocks.delete(key);
+    return 0;
+  }
+  return until;
+}
+
+function assertInviteFailureAllowed(req, res, { includeAccount = false } = {}) {
+  const ipUntil = getInviteLock('ip', req.clientIp);
+  const accountUntil = includeAccount ? getInviteLock('account', req.userId) : 0;
+  const until = Math.max(ipUntil, accountUntil);
+  if (!until) return false;
+  const retryMs = until - Date.now();
+  res.setHeader('Retry-After', String(Math.ceil(retryMs / 1000)));
+  res.status(429).json({
+    ok: false,
+    error: 'invite_risk_locked',
+    message: '邀请码失败次数过多，已临时锁定，请稍后再试',
+    retry_after_ms: retryMs,
+  });
+  return true;
+}
+
+function recordInviteFailure(req, {
+  phase,
+  reason = 'invalid_code',
+  accountId = null,
+  username = null,
+} = {}) {
+  const now = Date.now();
+  const windowMs = 10 * 60 * 1000;
+  const lockMs = 10 * 60 * 1000;
+  const ipKey = inviteLockKey('fail_ip_window', req.clientIp);
+  recordHit(ipKey);
+  const ipFailures = countInWindow(ipKey, windowMs);
+  let accountFailures = 0;
+  if (accountId) {
+    const accountKey = inviteLockKey('fail_account_window', accountId);
+    recordHit(accountKey);
+    accountFailures = countInWindow(accountKey, windowMs);
+  }
+  const events = [{
+    type: 'invite_code_failed',
+    phase,
+    reason,
+    ip: req.clientIp,
+    user_id: accountId || null,
+    username: username || null,
+    ip_failures_10m: ipFailures,
+    account_failures_10m: accountFailures || null,
+  }];
+  if (ipFailures >= 5) {
+    inviteLocks.set(inviteLockKey('ip', req.clientIp), now + lockMs);
+    events.push({
+      type: 'invite_ip_temporarily_locked',
+      reason,
+      phase,
+      ip: req.clientIp,
+      failures_10m: ipFailures,
+      expires_at: new Date(now + lockMs).toISOString(),
+    });
+  }
+  if (accountId && accountFailures >= 5) {
+    inviteLocks.set(inviteLockKey('account', accountId), now + lockMs);
+    events.push({
+      type: 'invite_account_redeem_locked',
+      reason,
+      phase,
+      ip: req.clientIp,
+      user_id: accountId,
+      username: username || null,
+      failures_10m: accountFailures,
+      expires_at: new Date(now + lockMs).toISOString(),
+    });
+  }
+  if (ipFailures >= 10) {
+    events.push({
+      type: 'invite_many_accounts_same_ip_failed',
+      reason,
+      phase,
+      ip: req.clientIp,
+      failures_10m: ipFailures,
+      user_id: accountId || null,
+    });
+  }
+  for (const event of events) {
+    db.appendLog('security_event', event).catch(err => console.error('[invite] failure log error:', err.message));
+  }
+}
+
+async function registrationIdentityCounts({ ip, deviceId }) {
+  const rows = await mysqlQuery(
+    `SELECT
+       (
+         SELECT COUNT(DISTINCT d.user_id)
+         FROM user_device d
+         INNER JOIN accounts a ON a.id = d.user_id
+         WHERE d.ip = ?
+       ) AS ip_count,
+       (
+         SELECT COUNT(DISTINCT d.user_id)
+         FROM user_device d
+         INNER JOIN accounts a ON a.id = d.user_id
+         WHERE d.device_id = ?
+       ) AS device_count`,
+    [ip || '', deviceId || ''],
+  );
+  return {
+    ipCount: Number(rows[0]?.ip_count || 0),
+    deviceCount: Number(rows[0]?.device_count || 0),
+  };
+}
+
+async function denyIfRegistrationIdentityLimited(req, res, { clientFp = '', username = '' } = {}) {
+  const deviceId = deriveDeviceId({
+    ua: req.headers['user-agent'] || '',
+    ip: req.clientIp,
+    clientFp: clientFp || '',
+  });
+  const counts = await registrationIdentityCounts({ ip: req.clientIp, deviceId });
+  const byIp = counts.ipCount >= MAX_REGISTER_ACCOUNTS_PER_IDENTITY;
+  const byDevice = counts.deviceCount >= MAX_REGISTER_ACCOUNTS_PER_IDENTITY;
+  if (!byIp && !byDevice) return { limited: false, deviceId, counts };
+
+  db.appendLog('security_event', {
+    type: 'register_identity_limited',
+    ip: req.clientIp,
+    device_id: deviceId,
+    username: username || null,
+    ip_registered_accounts: counts.ipCount,
+    device_registered_accounts: counts.deviceCount,
+    limit: MAX_REGISTER_ACCOUNTS_PER_IDENTITY,
+    blocked_by: [byIp ? 'ip' : null, byDevice ? 'device' : null].filter(Boolean),
+  }).catch(err => console.error('[register] identity limit log error:', err.message));
+
+  res.status(429).json({
+    ok: false,
+    error: 'registration_identity_limit',
+    message: `当前IP或设备注册账号数量已达上限（最多${MAX_REGISTER_ACCOUNTS_PER_IDENTITY}个），请联系管理员处理。`,
+    limit: MAX_REGISTER_ACCOUNTS_PER_IDENTITY,
+    ip_registered_accounts: counts.ipCount,
+    device_registered_accounts: counts.deviceCount,
+    blocked_by_ip: byIp,
+    blocked_by_device: byDevice,
+  });
+  return { limited: true, deviceId, counts };
 }
 
 async function getAuthFromCookie(req) {
@@ -536,6 +1565,16 @@ async function getAuthFromCookie(req) {
   return { user, payload, kind, account, code };
 }
 
+async function getRevokedAccountFromCookie(req) {
+  const token = req.cookies[COOKIE_NAME];
+  if (!token) return null;
+  const payload = verifySessionToken(token);
+  if (!payload || !payload.sub || !payload.sub.startsWith('u_')) return null;
+  const account = await accounts.findById(payload.sub);
+  if (!account || !account.revoked) return null;
+  return { account, payload };
+}
+
 // Attach req.auth + req.deviceIdentity; never throw, just leave undefined.
 // We deliberately store derived fields on a sub-object (req._pv) because
 // newer Express makes req.clientIp a read-only getter.
@@ -567,7 +1606,16 @@ app.use(asyncHandler(async (req, _res, next) => {
 }));
 
 function requireAuth(req, res, next) {
-  if (!req.auth) return res.redirect('/login?next=' + encodeURIComponent(req.originalUrl));
+  if (!req.auth) {
+    if (req.path.startsWith('/api/')) {
+      return sendProtectedJson(res, 401, {
+        ok: false,
+        error: 'unauthorized',
+        message: '请先登录后再访问该内容',
+      });
+    }
+    return res.redirect('/login?next=' + encodeURIComponent(req.originalUrl));
+  }
   next();
 }
 
@@ -767,6 +1815,25 @@ app.post('/api/login', asyncHandler(async (req, res) => {
   }
   const found = await accounts.verifyPassword(username, password);
   if (!found) {
+    const revokedCandidate = await accounts.verifyPasswordIncludingRevoked(username, password);
+    if (revokedCandidate?.revoked) {
+      db.appendLog('security_event', {
+        type: 'login_blocked_revoked_account',
+        user_id: revokedCandidate.id,
+        mode,
+        ip: req.clientIp,
+        ua: req.headers['user-agent'],
+      }).catch(err => console.error('[login] revoked-event log error:', err.message));
+      return res.status(403).json({
+        ok: false,
+        error: 'account_banned',
+        title: ACCOUNT_BANNED_TITLE,
+        message: ACCOUNT_BANNED_MESSAGE.join('\n\n'),
+        message_lines: ACCOUNT_BANNED_MESSAGE,
+        revoked_reason: revokedCandidate.revoked_reason || null,
+        revoked_at: revokedCandidate.revoked_at || null,
+      });
+    }
     lookupError = '用户名或密码错误';
   } else {
     account = { id: found.id, username: found.username, kind: 'account' };
@@ -904,6 +1971,7 @@ app.post('/api/register', asyncHandler(async (req, res) => {
   if (!ipThrottle.ok) {
     return res.status(429).json({ ok: false, error: '注册尝试过于频繁，请稍后再试' });
   }
+  if (assertInviteFailureAllowed(req, res)) return;
   if ((code != null && typeof code !== 'string') || typeof username !== 'string' || typeof password !== 'string') {
     return res.status(400).json({ ok: false, error: '请求参数不完整' });
   }
@@ -913,17 +1981,25 @@ app.post('/api/register', asyncHandler(async (req, res) => {
   const pv = accounts.validatePassword(password);
   if (!pv.ok) return res.status(400).json({ ok: false, error: pv.error });
 
+  const identityLimit = await denyIfRegistrationIdentityLimited(req, res, {
+    clientFp: client_fp || '',
+    username: uv.value,
+  });
+  if (identityLimit.limited) return;
+
   const hasInvite = typeof code === 'string' && code.trim().length > 0;
   let entry = null;
   if (hasInvite) {
     const normalized = code.replace(/[\s-]/g, '').toUpperCase();
     if (![32, 50].includes(normalized.length)) {
+      recordInviteFailure(req, { phase: 'register', reason: 'invalid_code_format', username: uv.value });
       return res.status(400).json({ ok: false, error: '邀请码格式不正确（应为 32 位；旧邀请码 50 位也可用）' });
     }
 
     // Find the invite; reject if consumed/revoked/promoted.
     entry = await store.findByPlaintext(normalized);
     if (!entry) {
+      recordInviteFailure(req, { phase: 'register', reason: 'invalid_code', username: uv.value });
       db.appendLog('security_event', { type: 'register_failed', reason: 'invalid_code', ip: req.clientIp })
         .catch(err => console.error('[register] log error:', err.message));
       return res.status(401).json({ ok: false, error: '邀请码无效' });
@@ -963,28 +2039,64 @@ app.post('/api/register', asyncHandler(async (req, res) => {
 
   const accountKind = entry ? 'promoted' : 'registered';
   const promotedFromCode = entry ? entry.id : null;
-  const activatedCode = entry ? await store.activateMembership(entry.id) : null;
+  const membershipPatch = entry ? (activationPatch(entry) || {
+    membership_years: entry.membership_years ?? null,
+    activated_at: entry.activated_at ?? null,
+    expires_at: entry.expires_at ?? null,
+  }) : null;
   let acct;
   try {
-    acct = await accounts.createAccount({
-      username: uv.value, password: pv.value,
-      kind: accountKind, promoted_from_code: promotedFromCode,
-      note: entry ? 'auto-registered via invite' : 'self-registered account',
-      membership_years: activatedCode?.membership_years ?? null,
-      activated_at: activatedCode?.activated_at ?? null,
-      expires_at: activatedCode?.expires_at ?? null,
-    });
+    if (entry) {
+      acct = await transaction(async (conn) => {
+        const created = await accounts.createAccount({
+          username: uv.value, password: pv.value,
+          kind: accountKind, promoted_from_code: promotedFromCode,
+          note: 'auto-registered via invite',
+          membership_years: membershipPatch?.membership_years ?? null,
+          activated_at: membershipPatch?.activated_at ?? null,
+          expires_at: membershipPatch?.expires_at ?? null,
+        }, conn);
+        const consumed = await store.consumeForPromotion(entry.id, created.id, conn);
+        if (!consumed) {
+          const err = new Error('邀请码已被使用');
+          err.code = 'code_already_used';
+          throw err;
+        }
+        if (membershipPatch?.activated_at || membershipPatch?.expires_at) {
+          await conn.execute(
+            `UPDATE codes
+             SET activated_at = ?,
+                 expires_at = ?,
+                 updated_at = ?
+             WHERE id = ?`,
+            [
+              toMysqlDt(membershipPatch.activated_at),
+              toMysqlDt(membershipPatch.expires_at),
+              toMysqlDt(new Date()),
+              entry.id,
+            ]
+          );
+        }
+        return created;
+      });
+    } else {
+      acct = await accounts.createAccount({
+        username: uv.value, password: pv.value,
+        kind: accountKind, promoted_from_code: promotedFromCode,
+        note: 'self-registered account',
+        membership_years: null,
+        activated_at: null,
+        expires_at: null,
+      });
+    }
   } catch (e) {
     if (e && e.code === 'username_taken') {
       return res.status(409).json({ ok: false, error: '用户名已被占用' });
     }
+    if (e && e.code === 'code_already_used') {
+      return res.status(409).json({ ok: false, error: '邀请码已被注册过' });
+    }
     return res.status(400).json({ ok: false, error: e.message || '注册失败' });
-  }
-
-  // Mark the invite consumed NOW that the account exists. If this was a normal
-  // registration, there is no invite to consume.
-  if (entry) {
-    await store.consumeForPromotion(entry.id, acct.id);
   }
 
   // Device binding for the new account.
@@ -1038,7 +2150,6 @@ app.post('/api/trap/honeypot', asyncHandler(async (req, res) => {
   const severity = ['medium', 'high', 'critical'].includes(req.body?.severity)
     ? req.body.severity
     : (/export|dump|bulk|copy_all/i.test(rawKind) ? 'critical' : 'high');
-  const action = severity === 'critical' ? 'revoke_all_sessions' : 'revoke_session';
   let detail = null;
   if (req.body?.detail && typeof req.body.detail === 'object') {
     try {
@@ -1051,19 +2162,19 @@ app.post('/api/trap/honeypot', asyncHandler(async (req, res) => {
     kind: rawKind,
     source: 'dom_honeypot',
     severity,
-    action,
+    action: 'serve_decoy',
     detail,
   });
   res.status(204).end();
 }));
 
 // ---------- Pages ----------
-app.get('/', (_req, res) => {
+app.get('/', requireAuth, (_req, res) => {
   res.setHeader('Cache-Control','no-store');
   res.setHeader('X-Robots-Tag', 'noindex, noarchive, noimageindex');
   res.sendFile(path.join(__dirname,'public','app.html'));
 });
-app.get('/app', (_req, res) => {
+app.get('/app', requireAuth, (_req, res) => {
   res.setHeader('Cache-Control','no-store');
   res.setHeader('X-Robots-Tag', 'noindex, noarchive, noimageindex');
   res.sendFile(path.join(__dirname,'public','app.html'));
@@ -1078,11 +2189,68 @@ app.get('/admin/security', requireAuth, requireAdmin, (_req, res) => res.sendFil
 // are preserved so me.html keeps working unchanged. New fields `kind` and
 // `username` are added so newer UIs can distinguish identity type cleanly.
 app.get('/api/me', asyncHandler(async (req, res) => {
+  const decoyClearedAt = await getDecoyClearAt(req);
+  if (decoyClearedAt) {
+    res.clearCookie(DECOY_COOKIE_NAME, {
+      sameSite: 'lax',
+      secure: IS_PRODUCTION,
+      path: '/',
+    });
+  }
   if (!req.auth && req.query.optional === '1') {
+    const revoked = await getRevokedAccountFromCookie(req);
+    if (revoked) {
+      return res.json({
+        ok: true,
+        authenticated: true,
+        banned: true,
+        kind: 'account',
+        username: revoked.account.username,
+        membership: {
+          is_member: false,
+          is_permanent: false,
+          expires_at: null,
+          expires_label: '账号已封禁',
+          activated_at: null,
+          membership_years: null,
+          reason: 'revoked',
+        },
+        ban_notice: {
+          title: ACCOUNT_BANNED_TITLE,
+          message: ACCOUNT_BANNED_MESSAGE.join('\n\n'),
+          message_lines: ACCOUNT_BANNED_MESSAGE,
+          revoked_reason: revoked.account.revoked_reason || null,
+          revoked_at: revoked.account.revoked_at || null,
+        },
+        code: {
+          id: revoked.account.id,
+          masked: revoked.account.id.length > 8 ? `${revoked.account.id.slice(0, 4)}…${revoked.account.id.slice(-4)}` : revoked.account.id,
+          label: revoked.account.username,
+          note: '',
+          created_at: revoked.account.created_at,
+          last_used_at: revoked.account.last_login_at,
+          use_count: revoked.account.login_count || 0,
+          member_days: 0,
+          revoked: true,
+          expires_at: null,
+          expires_label: '账号已封禁',
+        },
+        session: {
+          device_id: req.deviceId,
+          jti: revoked.payload.jti || null,
+        },
+        security: {
+          decoy_cleared_at: decoyClearedAt || null,
+        },
+      });
+    }
     return res.json({
       ok: true,
       authenticated: false,
       membership: guestMembershipPayload(),
+      security: {
+        decoy_cleared_at: decoyClearedAt || null,
+      },
     });
   }
   if (!req.auth) return res.status(401).json({ ok: false });
@@ -1116,6 +2284,9 @@ app.get('/api/me', asyncHandler(async (req, res) => {
       os: req.clientUaInfo.os,
       device_type: req.clientUaInfo.deviceType,
     },
+    security: {
+      decoy_cleared_at: decoyClearedAt || null,
+    },
     devices: devices.map(d => ({
       device_id: d.device_id,
       browser: d.browser,
@@ -1142,6 +2313,7 @@ app.post('/api/account/redeem-invite', requireAuth, asyncHandler(async (req, res
   if (!redeemThrottle.ok) {
     return res.status(429).json({ ok: false, error: 'too_many_attempts', message: '兑换尝试过于频繁，请稍后再试' });
   }
+  if (assertInviteFailureAllowed(req, res, { includeAccount: true })) return;
 
   const rawCode = String(req.body?.code || '').trim();
   if (!rawCode) {
@@ -1150,6 +2322,12 @@ app.post('/api/account/redeem-invite', requireAuth, asyncHandler(async (req, res
 
   const normalized = rawCode.replace(/[\s-]/g, '').toUpperCase();
   if (![32, 50].includes(normalized.length)) {
+    recordInviteFailure(req, {
+      phase: 'redeem',
+      reason: 'invalid_code_format',
+      accountId: req.userId,
+      username: req.auth?.account?.username || null,
+    });
     return res.status(400).json({ ok: false, error: 'invalid_code_format', message: '邀请码格式不正确（应为 32 位；旧邀请码 50 位也可用）' });
   }
 
@@ -1164,6 +2342,12 @@ app.post('/api/account/redeem-invite', requireAuth, asyncHandler(async (req, res
 
   const entry = await store.findByPlaintext(normalized);
   if (!entry) {
+    recordInviteFailure(req, {
+      phase: 'redeem',
+      reason: 'invalid_code',
+      accountId: req.userId,
+      username: account.username || null,
+    });
     db.appendLog('security_event', { type: 'redeem_failed', reason: 'invalid_code', user_id: req.userId, ip: req.clientIp })
       .catch(err => console.error('[redeem] log error:', err.message));
     return res.status(401).json({ ok: false, error: 'invalid_code', message: '邀请码无效' });
@@ -1254,6 +2438,24 @@ app.post('/api/account/redeem-invite', requireAuth, asyncHandler(async (req, res
 // Returns pinned-first, then newest-first. Expired or inactive rows are hidden.
 app.get('/api/announcements', requireAuth, asyncHandler(async (_req, res) => {
   res.json({ ok: true, announcements: await announcements.listActive() });
+}));
+
+// ---------- User messages ----------
+// Admin-to-user inbox. Users can only read and mark messages that belong to
+// the authenticated identity.
+app.get('/api/messages', requireAuth, asyncHandler(async (req, res) => {
+  const list = await messages.listForUser(req.userId, { limit: 50 });
+  res.json({
+    ok: true,
+    messages: list,
+    unread_count: list.filter(item => !item.read).length,
+  });
+}));
+
+app.post('/api/messages/:id/read', requireAuth, asyncHandler(async (req, res) => {
+  const entry = await messages.markRead(req.params.id, req.userId);
+  if (!entry) return res.status(404).json({ ok: false, error: 'not_found' });
+  res.json({ ok: true, message: entry });
 }));
 
 // /api/devices — list / kick
@@ -1360,13 +2562,14 @@ function promptListItem(p) {
   const previewThumbUrl = previewImageUrl ? (COVER_THUMBS[previewImageUrl] || null) : null;
   const hasPreview = !!(previewImageUrl || previewVideoUrl || playableVideoUrl);
   const wasBlindBox = p.special_collection === 'blind_box';
+  const forceBlindBox = wasBlindBox && p.disable_auto_preview;
 
   const item = {
     id: p.id,
     title: p.title,
-    category: wasBlindBox && hasPreview && p.original_category ? p.original_category : p.category,
+    category: !forceBlindBox && wasBlindBox && hasPreview && p.original_category ? p.original_category : p.category,
     original_category: p.original_category || null,
-    special_collection: wasBlindBox && hasPreview ? null : (p.special_collection || null),
+    special_collection: !forceBlindBox && wasBlindBox && hasPreview ? null : (p.special_collection || null),
     sort_order: p.sort_order,
     type: p.type,
     page_type: p.page_type,
@@ -1393,7 +2596,7 @@ function promptListItem(p) {
 // We default to 96 (rather than a smaller page size) so the SPA's first fetch
 // gets the whole catalog in one round-trip — the client UI then renders
 // / filters / sorts entirely from that dataset.
-app.get('/api/prompts', (req, res) => {
+app.get('/api/prompts', requireAuth, (req, res) => {
   if (throttleCatalogPreview(req, res)) return;
   const cache = getPromptsCache();
   // Negotiate 304 — both ETag and Last-Modified supported, browser picks one.
@@ -1418,9 +2621,7 @@ app.get('/api/prompts', (req, res) => {
   const items = cache.sanitized.slice(start, start + limit);
   res.json({
     ok: true,
-    viewer: req.auth
-      ? { authenticated: true, membership: membershipPayload(membershipForAuth(req)) }
-      : { authenticated: false, membership: guestMembershipPayload() },
+    viewer: { authenticated: true, membership: membershipPayload(membershipForAuth(req)) },
     total: cache.sanitized.length,
     page, limit,
     has_more: start + limit < cache.sanitized.length,
@@ -1434,7 +2635,7 @@ app.all(HONEYPOT_RESOURCE_ROUTES, asyncHandler(async (req, res) => {
       kind: 'fake_resource_probe',
       source: 'fake_resource',
       severity: 'critical',
-      action: 'revoke_all_sessions',
+      action: 'serve_decoy',
       detail: { route: req.path, query: req.query || null },
     });
   }
@@ -1446,26 +2647,34 @@ app.all(HONEYPOT_RESOURCE_ROUTES, asyncHandler(async (req, res) => {
 
 // /api/prompts/:id — chapter-level detail.
 // Requires a valid content_token issued by /api/prompts/:id/access.
-app.get('/api/prompts/:id/access', asyncHandler(async (req, res) => {
+app.get('/api/prompts/:id/access', requireAuth, asyncHandler(async (req, res) => {
+  setProtectedBodyHeaders(res);
   const id = req.params.id;
   const cache = getPromptsCache();
   const found = cache.byId.get(id);
   if (!found) return res.status(404).json({ ok: false, error: 'not_found' });
 
   if (isPublicPromptItem(found)) {
+    const decoy = await isDecoyViewer(req);
+    if (decoy) {
+      db.appendLog('security_event', {
+        type: 'decoy_public_prompt_served',
+        user_id: req.userId || null,
+        device_id: req.deviceId || null,
+        ip: req.clientIp,
+        prompt_id: id,
+      }).catch(err => console.error('[decoy] public serve log failed:', err.message));
+      return res.json({
+        ...promptBodyPayload(found, null, {
+          promptText: makeDecoyPromptText(found.prompt_text, { guest: !req.auth }),
+          decoy: true,
+        }),
+        access: 'public',
+      });
+    }
     return res.json({
       ...promptBodyPayload(found, null),
       access: 'public',
-    });
-  }
-
-  if (!req.auth) {
-    return res.status(403).json({
-      ok: false,
-      error: 'membership_required',
-      reason: 'guest',
-      message: '开通会员后可查看和复制完整提示词',
-      membership: guestMembershipPayload(),
     });
   }
   if (denyIfNotMember(req, res)) return;
@@ -1490,18 +2699,29 @@ app.get('/api/prompts/:id/access', asyncHandler(async (req, res) => {
 }));
 
 app.get('/api/prompts/:id', requireAuth, asyncHandler(async (req, res) => {
+  setProtectedBodyHeaders(res);
   if (denyIfNotMember(req, res)) return;
+  if (throttleProtectedBodyRead(req, res, 'motionsites')) return;
   const id = req.params.id;
   const token = req.query.content_token || req.headers['x-content-token'];
   if (!token) {
-    return res.status(401).json({ ok: false, error: 'content_token_required' });
+    return sendProtectedJson(res, 401, {
+      ok: false,
+      error: 'content_token_required',
+      message: '访问凭证缺失，请重新打开正文',
+    });
   }
   const cv = await consumeContentToken({
     token, expectedResource: `prompt:${id}`,
     userId: req.userId, deviceId: req.deviceId, ip: req.clientIp,
   });
   if (!cv.ok) {
-    return res.status(401).json({ ok: false, error: 'content_token_invalid', reason: cv.reason });
+    return sendProtectedJson(res, 401, {
+      ok: false,
+      error: 'content_token_invalid',
+      message: '访问凭证无效或已过期，请重新打开正文',
+      reason: cv.reason,
+    });
   }
 
   const cache = getPromptsCache();
@@ -1509,15 +2729,249 @@ app.get('/api/prompts/:id', requireAuth, asyncHandler(async (req, res) => {
   if (!found) return res.status(404).json({ ok: false, error: 'not_found' });
 
   // Watermark metadata injected on EVERY chapter read.
-  const watermark = {
+  const watermark = makeWatermark(req, cv.payload.jti);
+  const decoy = await isDecoyViewer(req);
+  if (decoy) {
+    logContentBehavior(req, {
+      action: 'content_body_open',
+      resourceId: id,
+      resourceSource: 'motionsites',
+      tokenJti: cv.payload.jti,
+      decoy: true,
+    });
+    db.appendLog('security_event', {
+      type: 'decoy_prompt_served',
+      user_id: req.userId,
+      device_id: req.deviceId,
+      ip: req.clientIp,
+      prompt_id: id,
+      token_jti: cv.payload.jti,
+    }).catch(err => console.error('[decoy] serve log failed:', err.message));
+    return res.json(promptBodyPayload(found, watermark, {
+      promptText: watermarkPromptText(makeDecoyPromptText(found.prompt_text), watermark),
+      decoy: true,
+    }));
+  }
+  logContentBehavior(req, {
+    action: 'content_body_open',
+    resourceId: id,
+    resourceSource: 'motionsites',
+    tokenJti: cv.payload.jti,
+  });
+  res.json(promptBodyPayload(found, watermark, {
+    promptText: watermarkPromptText(found.prompt_text, watermark),
+  }));
+}));
+
+app.get('/api/idea-libraries/:kind', requireAuth, asyncHandler(async (req, res) => {
+  const library = await getIdeaLibrary(req.params.kind);
+  if (!library) return res.status(404).json({ ok: false, error: 'library_not_found' });
+  if (throttleCatalogPreview(req, res)) return;
+  res.setHeader('Cache-Control', 'private, max-age=60');
+  res.setHeader('X-Robots-Tag', 'noindex, noarchive, noimageindex');
+  res.setHeader('ETag', library.etag);
+  if (req.headers['if-none-match'] === library.etag) return res.status(304).end();
+  res.json({
+    ok: true,
+    kind: req.params.kind,
+    label: library.label,
+    total: library.items.length,
+    viewer: { authenticated: true, membership: membershipPayload(membershipForAuth(req)) },
+    items: library.items,
+  });
+}));
+
+app.get('/api/cover-proxy', requireAuth, asyncHandler(async (req, res) => {
+  const sourceUrl = String(req.query.url || '').trim();
+  const mode = req.query.mode === 'detail' ? 'detail' : 'card';
+  if (!sourceUrl) return res.status(400).json({ ok: false, error: 'missing_url' });
+  if (!isKnownCoverUrl(sourceUrl)) {
+    return res.status(404).json({ ok: false, error: 'cover_not_found' });
+  }
+
+  let parsed;
+  try {
+    parsed = new URL(sourceUrl);
+  } catch {
+    return res.status(400).json({ ok: false, error: 'invalid_url' });
+  }
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    return res.status(400).json({ ok: false, error: 'invalid_protocol' });
+  }
+
+  const normalizedUrl = normalizeRemoteCoverUrl(sourceUrl, mode);
+  const etag = '"' + crypto.createHash('sha1')
+    .update(mode)
+    .update(normalizedUrl)
+    .digest('hex') + '"';
+  res.setHeader('X-Robots-Tag', 'noindex, noarchive, noimageindex');
+  if (req.headers['if-none-match'] === etag) return res.status(304).end();
+
+  const upstream = await fetch(normalizedUrl, {
+    signal: AbortSignal.timeout(12000),
+    headers: {
+      // Some remote image hosts (notably images.meigen.ai behind Cloudflare)
+      // reject obviously synthetic user agents. Present as a normal browser so
+      // card covers keep loading through the authenticated proxy.
+      'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+      'accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+      'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8',
+      'referer': `${parsed.origin}/`,
+    },
+  });
+  if (!upstream.ok) {
+    res.setHeader('Cache-Control', 'private, no-store');
+    return res.status(502).json({ ok: false, error: 'cover_fetch_failed', status: upstream.status });
+  }
+  const contentType = String(upstream.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+  if (!contentType.startsWith('image/')) {
+    res.setHeader('Cache-Control', 'private, no-store');
+    return res.status(415).json({ ok: false, error: 'cover_not_image', content_type: contentType || null });
+  }
+
+  const body = Buffer.from(await upstream.arrayBuffer());
+  res.setHeader('Cache-Control', 'private, max-age=2592000, immutable');
+  res.setHeader('ETag', etag);
+  res.setHeader('Content-Type', contentType);
+  res.setHeader('Content-Length', String(body.length));
+  res.send(body);
+}));
+
+app.get('/api/idea-libraries/:kind/:id/access', requireAuth, asyncHandler(async (req, res) => {
+  setProtectedBodyHeaders(res);
+  const library = await getIdeaLibrary(req.params.kind);
+  if (!library) return res.status(404).json({ ok: false, error: 'library_not_found' });
+  const found = library.byId.get(req.params.id);
+  if (!found) return res.status(404).json({ ok: false, error: 'not_found' });
+  if (denyIfNotMember(req, res)) return;
+  const resource = `idea:${req.params.kind}:${req.params.id}`;
+  const token = await issueContentToken({
+    userId: req.userId,
+    deviceId: req.deviceId,
+    ip: req.clientIp,
+    resource,
+    ttlMs: 5 * 60 * 1000,
+  });
+  db.appendLog('user_behavior_log', {
     user_id: req.userId,
-    masked_id: req.userId.length > 8 ? `${req.userId.slice(0,4)}…${req.userId.slice(-4)}` : req.userId,
     device_id: req.deviceId,
     ip: req.clientIp,
-    ts: Date.now(),
-    token_jti: cv.payload.jti,
-  };
-  res.json(promptBodyPayload(found, watermark));
+    api: 'idea_detail_access',
+    library: req.params.kind,
+    prompt_id: req.params.id,
+  }).catch(err => console.error('[ideas] access log error:', err.message));
+  res.json({
+    ok: true,
+    resource,
+    content_token: token,
+    expires_in: 300,
+    detail_url: `/api/idea-libraries/${encodeURIComponent(req.params.kind)}/${encodeURIComponent(req.params.id)}`,
+  });
+}));
+
+app.get('/api/idea-libraries/:kind/:id', requireAuth, asyncHandler(async (req, res) => {
+  setProtectedBodyHeaders(res);
+  const library = await getIdeaLibrary(req.params.kind);
+  if (!library) return res.status(404).json({ ok: false, error: 'library_not_found' });
+  const found = library.byId.get(req.params.id);
+  if (!found) return res.status(404).json({ ok: false, error: 'not_found' });
+  if (denyIfNotMember(req, res)) return;
+  if (throttleProtectedBodyRead(req, res, `idea:${req.params.kind}`)) return;
+
+  const token = req.query.content_token || req.headers['x-content-token'];
+  if (!token) {
+    return sendProtectedJson(res, 401, {
+      ok: false,
+      error: 'content_token_required',
+      message: '访问凭证缺失，请重新打开正文',
+    });
+  }
+  const cv = await consumeContentToken({
+    token,
+    expectedResource: `idea:${req.params.kind}:${req.params.id}`,
+    userId: req.userId,
+    deviceId: req.deviceId,
+    ip: req.clientIp,
+  });
+  if (!cv.ok) {
+    return sendProtectedJson(res, 401, {
+      ok: false,
+      error: 'content_token_invalid',
+      message: '访问凭证无效或已过期，请重新打开正文',
+      reason: cv.reason,
+    });
+  }
+
+  const watermark = makeWatermark(req, cv.payload.jti);
+  const decoy = await isDecoyViewer(req);
+  if (decoy) {
+    logContentBehavior(req, {
+      action: 'content_body_open',
+      resourceId: req.params.id,
+      resourceSource: `idea:${req.params.kind}`,
+      library: req.params.kind,
+      tokenJti: cv.payload.jti,
+      decoy: true,
+    });
+    db.appendLog('security_event', {
+      type: 'decoy_idea_prompt_served',
+      library: req.params.kind,
+      user_id: req.userId,
+      device_id: req.deviceId,
+      ip: req.clientIp,
+      prompt_id: req.params.id,
+      token_jti: cv.payload.jti,
+    }).catch(err => console.error('[decoy] idea serve log failed:', err.message));
+    return res.json(ideaBodyPayload(found, watermark, {
+      promptText: watermarkPromptText(makeDecoyPromptText(found.prompt_text), watermark),
+      decoy: true,
+    }));
+  }
+  logContentBehavior(req, {
+    action: 'content_body_open',
+    resourceId: req.params.id,
+    resourceSource: `idea:${req.params.kind}`,
+    library: req.params.kind,
+    tokenJti: cv.payload.jti,
+  });
+  res.json(ideaBodyPayload(found, watermark, {
+    promptText: watermarkPromptText(found.prompt_text, watermark),
+  }));
+}));
+
+app.post('/api/content/copy', requireAuth, asyncHandler(async (req, res) => {
+  if (denyIfNotMember(req, res)) return;
+  const rawAction = String(req.body?.action || 'copy').trim();
+  const action = rawAction === 'ai_use' ? 'content_ai_use' : 'content_copy';
+  const copyBucket = take(`content:copy:user:${req.userId}:device:${req.deviceId}`, 100, 100 / (10 * 60));
+  if (!copyBucket.ok) {
+    db.appendLog('security_event', {
+      type: 'content_copy_rate_limited',
+      user_id: req.userId,
+      device_id: req.deviceId,
+      ip: req.clientIp,
+      action,
+      resource_id: req.body?.id || null,
+      resource_source: req.body?.source || null,
+    }).catch(err => console.error('[content] copy log failed:', err.message));
+    res.setHeader('Retry-After', String(Math.ceil(copyBucket.resetMs / 1000)));
+    return res.status(429).json({
+      ok: false,
+      error: 'too_many_copies',
+      message: '复制过于频繁，请稍后再试',
+      retry_after_ms: copyBucket.resetMs,
+    });
+  }
+  logContentBehavior(req, {
+    action,
+    resourceId: req.body?.id || null,
+    resourceSource: req.body?.source || null,
+    library: req.body?.library || null,
+    extra: {
+      ai_url: action === 'content_ai_use' ? (req.body?.ai_url || null) : null,
+    },
+  });
+  res.json({ ok: true });
 }));
 
 // ---------- File / PDF proxy with signed URLs ----------
@@ -1533,6 +2987,11 @@ app.get('/api/file/access', requireAuth, (req, res) => {
     id, userId: req.userId, deviceId: req.deviceId,
     ttlMs: 5 * 60 * 1000, base,
   });
+  logContentBehavior(req, {
+    action: 'file_download_access',
+    resourceId: id,
+    resourceSource: 'file',
+  });
   res.json({ ok: true, url, expires_in: 300 });
 });
 
@@ -1544,6 +3003,11 @@ app.get('/api/file/stream', (req, res) => {
     userId: req.userId, deviceId: req.deviceId, ip: req.clientIp,
   });
   if (!r.ok) return res.status(403).json({ ok: false, error: r.reason });
+  logContentBehavior(req, {
+    action: 'file_download_stream',
+    resourceId: id,
+    resourceSource: 'file',
+  });
 
   // DEMO: synthesize a tiny PDF on the fly so the route is observable.
   // In production: stream the real file from object storage with a server-side
@@ -1629,8 +3093,54 @@ app.get('/api/admin/security/overview', requireAuth, requireAdmin, asyncHandler(
     rememberIpUser(row.ip, row.user_id, new Date(ts || 0).getTime() || 0);
   }
   for (const row of eventsAll) {
-    const details = row.payload && typeof row.payload === 'object' ? row.payload : {};
+    const details = securityEventDetails(row);
     rememberIpUser(row.ip || details.ip, row.user_id || details.user_id, row.ts || 0);
+  }
+
+  const activeIpBlocksByUser = new Map();
+  for (const block of ipBlocks) {
+    const relatedUsers = [...(ipUserMap.get(block.ip)?.values() || [])];
+    for (const item of relatedUsers) {
+      const bucket = activeIpBlocksByUser.get(item.user_id) || [];
+      bucket.push(block);
+      activeIpBlocksByUser.set(item.user_id, bucket);
+    }
+  }
+
+  const decoyEventsByUser = new Map();
+  const decoyClearEventsByUser = new Map();
+  const behaviorEventsByUser = new Map();
+  for (const event of eventsAll) {
+    const userId = securityEventUserId(event);
+    if (!userId) continue;
+    const ts = securityEventTs(event);
+    if (DECOY_EVENT_TYPES.includes(event.type)) {
+      decoyEventsByUser.set(userId, Math.max(decoyEventsByUser.get(userId) || 0, ts));
+    }
+    if (DECOY_CLEAR_EVENT_TYPES.includes(event.type)) {
+      decoyClearEventsByUser.set(userId, Math.max(decoyClearEventsByUser.get(userId) || 0, ts));
+    }
+    if (event.type === 'behavior_blocked') {
+      const prev = behaviorEventsByUser.get(userId);
+      if (!prev || ts > securityEventTs(prev)) behaviorEventsByUser.set(userId, event);
+    }
+  }
+
+  const activeSessionsByUser = new Map();
+  const revokedSessionsByUser = new Map();
+  const revokedSessionSince = Date.now() - 24 * 3600 * 1000;
+  for (const row of sessionsAll) {
+    if (!row.user_id) continue;
+    if (!row.revoked) {
+      activeSessionsByUser.set(row.user_id, (activeSessionsByUser.get(row.user_id) || 0) + 1);
+      continue;
+    }
+    const revokedTs = new Date(row.revoked_at || row.updated_at || row.created_at || 0).getTime() || 0;
+    if (revokedTs < revokedSessionSince) continue;
+    const info = revokedSessionsByUser.get(row.user_id) || { count: 0, latest: 0 };
+    info.count += 1;
+    info.latest = Math.max(info.latest, revokedTs);
+    revokedSessionsByUser.set(row.user_id, info);
   }
 
   // Top users
@@ -1655,7 +3165,7 @@ app.get('/api/admin/security/overview', requireAuth, requireAdmin, asyncHandler(
     .map(([ip, hits]) => ({ ip, hits }));
 
   const recentEvents = events.slice(-30).reverse().map((event) => {
-    const details = event.payload && typeof event.payload === 'object' ? event.payload : {};
+      const details = securityEventDetails(event);
     const userId = event.user_id || details.user_id || null;
     const by = event.by || details.by || null;
     const ip = event.ip || details.ip || null;
@@ -1681,7 +3191,8 @@ app.get('/api/admin/security/overview', requireAuth, requireAdmin, asyncHandler(
       login_failed: events.filter(e => e.type === 'login_failed').length,
       login_ok: events.filter(e => e.type === 'login_ok').length,
       login_high_risk: events.filter(e => e.type === 'login_high_risk_blocked').length,
-      auto_ban: events.filter(e => e.type === 'auto_ban_candidate').length,
+      auto_ban: events.filter(e => e.type === 'auto_ban_candidate' || e.type === 'auto_honeypot_user_ban').length,
+      auto_honeypot_user_ban: events.filter(e => e.type === 'auto_honeypot_user_ban').length,
     },
     top_users: topUsers,
     top_ips: topIps,
@@ -1696,7 +3207,17 @@ app.get('/api/admin/security/overview', requireAuth, requireAdmin, asyncHandler(
         related_usernames: relatedUsers.map((item) => item.username).filter(Boolean),
       };
     }),
-    accounts: accountsAll.map(adminAccountSummary),
+    accounts: accountsAll.map((account) => ({
+      ...adminAccountSummary(account),
+      ...buildAdminAccountSecuritySummary(account, {
+        activeIpBlocksByUser,
+        decoyEventsByUser,
+        decoyClearEventsByUser,
+        behaviorEventsByUser,
+        activeSessionsByUser,
+        revokedSessionsByUser,
+      }),
+    })),
   });
 }));
 
@@ -1738,6 +3259,184 @@ app.post('/api/admin/security/unban-user', requireAuth, requireAdmin, asyncHandl
   }).catch(err => console.error('[admin] log error:', err.message));
 
   res.json({ ok: true, account: adminAccountSummary(updated) });
+}));
+
+app.post('/api/admin/security/clear-decoy-state', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const userId = String(req.body?.user_id || '').trim();
+  const note = String(req.body?.note || '').trim();
+  if (!userId) return res.status(400).json({ ok: false, error: 'missing_user_id' });
+
+  const found = await accounts.findById(userId);
+  if (!found) return res.status(404).json({ ok: false, error: 'user_not_found' });
+
+  const clearedAt = new Date().toISOString();
+  await db.appendLog('security_event', {
+    type: 'decoy_cleared',
+    user_id: userId,
+    username: found.username || null,
+    by: req.userId,
+    ip: req.clientIp,
+    note: note || 'manual clear',
+    cleared_at: clearedAt,
+  });
+
+  res.json({
+    ok: true,
+    user_id: userId,
+    username: found.username || null,
+    cleared_at: clearedAt,
+  });
+}));
+
+app.post('/api/admin/security/reset-password', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const userId = String(req.body?.user_id || '').trim();
+  const password = req.body?.password;
+  if (!userId) return res.status(400).json({ ok: false, error: 'missing_user_id' });
+  if (typeof password !== 'string') return res.status(400).json({ ok: false, error: 'missing_password' });
+
+  const found = await accounts.findById(userId);
+  if (!found) return res.status(404).json({ ok: false, error: 'user_not_found' });
+
+  let updated;
+  try {
+    updated = await accounts.resetPassword(userId, password);
+  } catch (err) {
+    if (err?.code === 'invalid_password') {
+      return res.status(400).json({ ok: false, error: err.message || 'invalid_password' });
+    }
+    throw err;
+  }
+  const revokedSessions = await revokeAllSessionsForUser(userId);
+  db.appendLog('security_event', {
+    type: 'manual_password_reset',
+    user_id: userId,
+    username: found.username || null,
+    by: req.userId,
+    ip: req.clientIp,
+    revoked_sessions: revokedSessions,
+  }).catch(err => console.error('[admin] log error:', err.message));
+
+  res.json({ ok: true, account: adminAccountSummary(updated), revoked_sessions: revokedSessions });
+}));
+
+app.post('/api/admin/security/upgrade-member', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const userId = String(req.body?.user_id || '').trim();
+  const requestedYears = Number(req.body?.membership_years || DEFAULT_MEMBERSHIP_YEARS);
+  const years = Number.isFinite(requestedYears) && requestedYears > 0
+    ? Math.min(Math.floor(requestedYears), 100)
+    : DEFAULT_MEMBERSHIP_YEARS;
+  if (!userId) return res.status(400).json({ ok: false, error: 'missing_user_id' });
+
+  const account = await accounts.findById(userId);
+  if (!account) return res.status(404).json({ ok: false, error: 'user_not_found' });
+  if (account.revoked) return res.status(409).json({ ok: false, error: 'account_revoked', message: '账号已封禁，请先解封后再升级会员' });
+
+  const currentSourceCode = account.promoted_from_code ? await store.findById(account.promoted_from_code) : null;
+  const currentMembership = resolveAccountMembership(account, currentSourceCode);
+  if (currentMembership.is_member) {
+    return res.status(409).json({
+      ok: false,
+      error: 'already_member',
+      message: currentMembership.is_permanent ? '该账号已经是永久会员' : '该账号当前已经是会员',
+      account: adminAccountSummary(account),
+    });
+  }
+
+  const nowIso = new Date().toISOString();
+  const invite = await store.add({
+    label: `admin-upgrade:${account.username || account.id}`,
+    note: `管理员后台升级会员，操作者 ${req.auth?.account?.username || req.userId}`,
+    membership_years: years,
+  });
+  const membershipPatch = {
+    membership_years: years,
+    activated_at: nowIso,
+    expires_at: addYears(nowIso, years),
+  };
+  const nextNote = (!account.note || account.note === 'self-registered account')
+    ? 'upgraded by admin'
+    : account.note;
+
+  try {
+    await transaction(async (conn) => {
+      const consumed = await store.consumeForPromotion(invite.id, account.id, conn);
+      if (!consumed) {
+        const err = new Error('邀请码已被使用');
+        err.code = 'code_already_used';
+        throw err;
+      }
+      const updated = await accounts.applyInviteRedemption(account.id, {
+        promoted_from_code: invite.id,
+        membership_years: membershipPatch.membership_years,
+        activated_at: membershipPatch.activated_at,
+        expires_at: membershipPatch.expires_at,
+        kind: 'promoted',
+        note: nextNote,
+      }, conn);
+      if (!updated) {
+        const err = new Error('account_not_found');
+        err.code = 'account_not_found';
+        throw err;
+      }
+    });
+  } catch (err) {
+    if (err?.code === 'code_already_used') {
+      return res.status(409).json({ ok: false, error: 'code_already_used', message: '内部邀请码已被使用，请重试' });
+    }
+    if (err?.code === 'account_not_found') {
+      return res.status(404).json({ ok: false, error: 'account_not_found' });
+    }
+    throw err;
+  }
+
+  const updatedAccount = await accounts.findById(account.id);
+  db.appendLog('security_event', {
+    type: 'admin_member_upgraded',
+    user_id: account.id,
+    username: account.username || null,
+    by: req.userId,
+    ip: req.clientIp,
+    code_id: invite.id,
+    membership_years: years,
+    expires_at: membershipPatch.expires_at,
+  }).catch(err => console.error('[admin] log error:', err.message));
+
+  res.json({
+    ok: true,
+    account: adminAccountSummary(updatedAccount),
+    code_id: invite.id,
+    membership: membershipPayload(resolveAccountMembership(updatedAccount)),
+  });
+}));
+
+app.post('/api/admin/messages', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const userId = String(req.body?.user_id || '').trim();
+  const title = String(req.body?.title || '').trim();
+  const body = String(req.body?.body || '').trim();
+  const kind = String(req.body?.kind || 'info').trim();
+  if (!userId) return res.status(400).json({ ok: false, error: 'missing_user_id' });
+  if (!title || !body) return res.status(400).json({ ok: false, error: 'missing_title_or_body' });
+
+  const found = await accounts.findById(userId);
+  if (!found) return res.status(404).json({ ok: false, error: 'user_not_found' });
+
+  const entry = await messages.create({
+    user_id: userId,
+    title,
+    body,
+    kind,
+    created_by: req.userId,
+  });
+  db.appendLog('security_event', {
+    type: 'admin_message_sent',
+    message_id: entry.id,
+    user_id: userId,
+    username: found.username || null,
+    by: req.userId,
+    ip: req.clientIp,
+  }).catch(err => console.error('[admin] log error:', err.message));
+
+  res.json({ ok: true, message: entry });
 }));
 
 app.post('/api/admin/security/unblock-ip', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
@@ -1826,6 +3525,52 @@ app.post('/api/admin/invites/batch', requireAuth, requireAdmin, asyncHandler(asy
   res.json({ ok: true, codes: out });
 }));
 
+app.post('/api/admin/invites/revoke', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const inviteId = String(req.body?.invite_id || '').trim();
+  const rawCode = String(req.body?.code || '').trim();
+  const normalizedCode = rawCode.replace(/[\s-]/g, '').toUpperCase();
+
+  if (!inviteId && !normalizedCode) {
+    return res.status(400).json({ ok: false, error: 'missing_invite_identifier', message: '请提供邀请码 ID 或邀请码明文' });
+  }
+
+  let entry = null;
+  if (inviteId) {
+    entry = await store.findById(inviteId);
+  } else if ([32, 50].includes(normalizedCode.length)) {
+    entry = await store.findByPlaintext(normalizedCode);
+  } else {
+    return res.status(400).json({ ok: false, error: 'invalid_code_format', message: '邀请码格式不正确' });
+  }
+
+  if (!entry) {
+    return res.status(404).json({ ok: false, error: 'invite_not_found', message: '没有找到这个邀请码，可能已被使用或已销毁' });
+  }
+
+  if (entry.revoked) {
+    return res.json({ ok: true, already_revoked: true, invite: { id: entry.id, label: entry.label, note: entry.note } });
+  }
+
+  await store.revoke(entry.id);
+  db.appendLog('security_event', {
+    type: 'invite_revoked',
+    invite_id: entry.id,
+    label: entry.label || null,
+    note: entry.note || null,
+    by: req.userId,
+    ip: req.clientIp,
+  }).catch(err => console.error('[admin] log error:', err.message));
+
+  res.json({
+    ok: true,
+    invite: {
+      id: entry.id,
+      label: entry.label,
+      note: entry.note,
+    },
+  });
+}));
+
 // ---------- Static ----------
 app.get('/teach.mp4', (_req, res) => {
   res.setHeader('Cache-Control', 'public, max-age=3600');
@@ -1842,6 +3587,17 @@ app.use('/static/covers-thumbs', express.static(path.join(__dirname, 'public', '
     res.setHeader('X-Content-Type-Options', 'nosniff');
   },
 }));
+
+app.get('/static/:file', (req, res, next) => {
+  if (!PROTECTED_STATIC_JSON_FILES.has(String(req.params.file || ''))) return next();
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('X-Robots-Tag', 'noindex, noarchive, noimageindex');
+  return res.status(404).json({
+    ok: false,
+    error: 'not_found',
+    message: 'This source file is private. Use /api/idea-libraries instead.',
+  });
+});
 
 app.use('/static', express.static(path.join(__dirname, 'public', 'static'), {
   maxAge: '1d',
