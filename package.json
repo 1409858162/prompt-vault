@@ -9,7 +9,9 @@
     "admin": "node admin.js",
     "db:init": "node scripts/init-mysql.mjs",
     "db:migrate": "node scripts/migrate-json-to-mysql.mjs",
-    "db:migrate:ideas": "node scripts/migrate-idea-prompts-to-mysql.mjs"
+    "db:migrate:ideas": "node scripts/migrate-idea-prompts-to-mysql.mjs",
+    "db:migrate:prompts": "node scripts/migrate-prompts-to-mysql.mjs",
+    "db:seed:tutorials": "node scripts/seed-tutorials.mjs"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

@@ -52,11 +52,15 @@ const IDEA_LIBRARY_SOURCES = {
     defaultType: 'Video Idea',
     defaultCategory: '视频生成灵感',
   },
+  soloCompany: {
+    label: '一人公司',
+    files: ['one-company-lessons.json'],
+    source: 'one_company',
+    idPrefix: 'solo',
+    defaultType: 'Solo Company Lesson',
+    defaultCategory: '一人公司',
+  },
 };
-
-const REMOVED_IDEA_TITLES = new Set([
-  '无限制的 ChatGPT（降权）',
-]);
 
 function readConfig() {
   const base = {
@@ -152,11 +156,8 @@ function ideaSummary(raw, promptText, title) {
 }
 
 function isRemovedIdeaRecord(raw) {
-  const title = String(raw?.title || raw?.name || '').trim();
-  if (REMOVED_IDEA_TITLES.has(title)) return true;
   const summary = String(raw?.summary || raw?.description || '').trim();
-  return title.includes('无限制的 ChatGPT')
-    && summary.includes('2023.06.10')
+  return summary.includes('2023.06.10')
     && summary.includes('被降权');
 }
 

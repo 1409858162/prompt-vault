@@ -51,6 +51,16 @@
       border: 1px solid var(--border); text-decoration: none; font-size: 13px;
     }
     .link:hover { color: var(--text); background: rgba(255,255,255,.05); }
+    .link.primary {
+      color: var(--text);
+      border-color: rgba(99, 102, 241, .75);
+      background: rgba(99, 102, 241, .12);
+      font-weight: 700;
+    }
+    .link.primary:hover {
+      background: rgba(99, 102, 241, .22);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, .12);
+    }
     main { max-width: 1400px; margin: 0 auto; padding: 28px; }
     h1 { font-size: 24px; font-weight: 800; margin-bottom: 4px; }
     .sub { color: var(--text-dim); font-size: 13px; margin-bottom: 24px; }
@@ -304,6 +314,7 @@
       安全控制台 <small style="color:var(--text-dim);font-weight:400;margin-left:6px;">· Security Console</small>
     </div>
     <div class="topbar-right">
+      <a class="link primary" href="/admin/content">卡片管理</a>
       <a class="link" href="/app">提示词库</a>
       <a class="link" href="/me">个人中心</a>
       <a class="link" href="/api/admin/security/overview" target="_blank">原始 JSON</a>

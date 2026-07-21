@@ -1,0 +1,55 @@
+<svg width="1280" height="800" viewBox="0 0 1280 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1280" height="800" rx="36" fill="#071017"/>
+  <rect x="24" y="24" width="1232" height="752" rx="28" fill="url(#bg)"/>
+  <circle cx="1036" cy="162" r="224" fill="url(#glow1)" fill-opacity="0.72"/>
+  <circle cx="264" cy="674" r="252" fill="url(#glow2)" fill-opacity="0.45"/>
+  <circle cx="682" cy="396" r="318" fill="url(#glow3)" fill-opacity="0.26"/>
+
+  <rect x="86" y="96" width="262" height="42" rx="21" fill="rgba(255,255,255,0.10)"/>
+  <text x="112" y="123" fill="#E7F7FF" font-size="20" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif" letter-spacing="1.2">SOLO COMPANY POLICY</text>
+
+  <text x="86" y="234" fill="#FFFFFF" font-size="76" font-weight="700" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">一人公司政策福利</text>
+  <text x="86" y="304" fill="#CBE2F6" font-size="28" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">补贴、场地、贷款、社保、AI 扶持与合规红利</text>
+  <text x="86" y="350" fill="#94B8D6" font-size="24" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">把 2025 年以后真正有用的政策，翻成你能落地的动作。</text>
+
+  <rect x="86" y="442" width="144" height="52" rx="18" fill="rgba(255,255,255,0.11)" stroke="rgba(255,255,255,0.14)"/>
+  <text x="124" y="476" fill="#FFFFFF" font-size="24" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">补贴</text>
+  <rect x="248" y="442" width="144" height="52" rx="18" fill="rgba(255,255,255,0.11)" stroke="rgba(255,255,255,0.14)"/>
+  <text x="286" y="476" fill="#FFFFFF" font-size="24" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">场地</text>
+  <rect x="410" y="442" width="144" height="52" rx="18" fill="rgba(255,255,255,0.11)" stroke="rgba(255,255,255,0.14)"/>
+  <text x="448" y="476" fill="#FFFFFF" font-size="24" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">贷款</text>
+  <rect x="572" y="442" width="144" height="52" rx="18" fill="rgba(255,255,255,0.11)" stroke="rgba(255,255,255,0.14)"/>
+  <text x="610" y="476" fill="#FFFFFF" font-size="24" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">社保</text>
+  <rect x="734" y="442" width="144" height="52" rx="18" fill="rgba(255,255,255,0.11)" stroke="rgba(255,255,255,0.14)"/>
+  <text x="772" y="476" fill="#FFFFFF" font-size="24" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">AI</text>
+
+  <rect x="850" y="118" width="330" height="492" rx="28" fill="rgba(5,15,25,0.56)" stroke="rgba(255,255,255,0.14)"/>
+  <text x="894" y="190" fill="#DFF0FF" font-size="24" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">重点看这 5 类</text>
+  <text x="894" y="250" fill="#FFFFFF" font-size="32" font-weight="700" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">1. 税负减轻</text>
+  <text x="894" y="306" fill="#FFFFFF" font-size="32" font-weight="700" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">2. 规范检查</text>
+  <text x="894" y="362" fill="#FFFFFF" font-size="32" font-weight="700" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">3. 首违容错</text>
+  <text x="894" y="418" fill="#FFFFFF" font-size="32" font-weight="700" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">4. 园区扶持</text>
+  <text x="894" y="474" fill="#FFFFFF" font-size="32" font-weight="700" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">5. 风口结合</text>
+  <text x="894" y="548" fill="#A0C8E8" font-size="22" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">不是只会收藏政策，</text>
+  <text x="894" y="584" fill="#A0C8E8" font-size="22" font-family="Inter, PingFang SC, Microsoft YaHei, sans-serif">而是把政策翻成动作。</text>
+
+  <defs>
+    <linearGradient id="bg" x1="48" y1="44" x2="1188" y2="780" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B1622"/>
+      <stop offset="0.56" stop-color="#0F2332"/>
+      <stop offset="1" stop-color="#13293D"/>
+    </linearGradient>
+    <radialGradient id="glow1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1036 162) rotate(90) scale(224)">
+      <stop stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#38BDF8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow2" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(264 674) rotate(90) scale(252)">
+      <stop stop-color="#8B5CF6"/>
+      <stop offset="1" stop-color="#8B5CF6" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow3" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(682 396) rotate(90) scale(318)">
+      <stop stop-color="#22C55E"/>
+      <stop offset="1" stop-color="#22C55E" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+</svg>

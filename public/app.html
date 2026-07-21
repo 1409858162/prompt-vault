@@ -130,6 +130,14 @@
   .nav-tab.active.shorts .count {
     background: rgba(20,184,166,.22); color: #99f6e4;
   }
+  .nav-tab.active.ai-skills {
+    background: rgba(99,102,241,.12);
+    color: #c7d2fe;
+    box-shadow: inset 0 0 0 1px rgba(99,102,241,.45);
+  }
+  .nav-tab.active.ai-skills .count {
+    background: rgba(99,102,241,.22); color: #c7d2fe;
+  }
   .nav-tab.active.image-ideas .count {
     background: rgba(56,189,248,.22); color: #bae6fd;
   }
@@ -718,6 +726,225 @@
     border: 1px solid rgba(255,255,255,.12);
     background: rgba(7,10,18,.72);
   }
+  /* AI SKILLS cards - 科技风格 */
+  .card.skill-card {
+    min-height: 0;
+    background:
+      radial-gradient(circle at 12% 16%, hsla(var(--skill-hue), 60%, 40%, 0.25), transparent 34%),
+      linear-gradient(140deg, rgba(17,19,40,.98), rgba(10,12,20,.98));
+    border: 1px solid hsla(var(--skill-hue), 60%, 50%, 0.2);
+  }
+  .card.skill-card.china-skill {
+    background:
+      radial-gradient(circle at 12% 16%, rgba(220,38,38,.22), transparent 34%),
+      linear-gradient(140deg, rgba(30,17,17,.98), rgba(18,10,10,.98));
+    border: 1px solid rgba(220,38,38,.25);
+  }
+  .card.skill-card .preview {
+    aspect-ratio: 4 / 5;
+    min-height: 0;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    overflow: hidden;
+  }
+  .card.skill-card .preview::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background:
+      linear-gradient(rgba(255,255,255,.055) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size: 22px 22px;
+    mask-image: radial-gradient(circle at 50% 38%, #000 0 46%, transparent 78%);
+    opacity: .72;
+  }
+  .card.skill-card .preview::after {
+    content: '';
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    right: -74px;
+    top: -66px;
+    border-radius: 999px;
+    background: conic-gradient(from 110deg, transparent, hsla(var(--skill-hue), 85%, 66%, .46), transparent 38%);
+    filter: blur(.2px);
+    opacity: .76;
+  }
+  .card.skill-card .skill-cover {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 16px;
+    z-index: 1;
+  }
+  .card.skill-card .skill-svg-wrap {
+    width: 92px;
+    height: 92px;
+    border-radius: 28px;
+    display: grid;
+    place-items: center;
+    position: relative;
+    color: hsl(var(--skill-hue), 88%, 78%);
+    background:
+      radial-gradient(circle at 30% 20%, rgba(255,255,255,.24), transparent 26%),
+      linear-gradient(145deg, rgba(255,255,255,.16), rgba(255,255,255,.045));
+    border: 1px solid hsla(var(--skill-hue), 78%, 78%, .34);
+    box-shadow:
+      0 18px 42px hsla(var(--skill-hue), 70%, 48%, .28),
+      inset 0 1px 0 rgba(255,255,255,.18);
+    backdrop-filter: blur(8px);
+  }
+  .card.skill-card .skill-svg-wrap::before,
+  .card.skill-card .skill-svg-wrap::after {
+    content: '';
+    position: absolute;
+    border-radius: 999px;
+    pointer-events: none;
+  }
+  .card.skill-card .skill-svg-wrap::before {
+    inset: -10px;
+    border: 1px solid hsla(var(--skill-hue), 82%, 72%, .24);
+    border-top-color: hsla(var(--skill-hue), 90%, 76%, .66);
+    transform: rotate(-16deg);
+  }
+  .card.skill-card .skill-svg-wrap::after {
+    width: 8px;
+    height: 8px;
+    right: 5px;
+    top: 13px;
+    background: hsl(var(--skill-hue), 90%, 72%);
+    box-shadow:
+      -74px 48px 0 -2px hsla(var(--skill-hue), 90%, 72%, .86),
+      -12px 72px 0 -3px hsla(var(--skill-hue), 90%, 72%, .76);
+  }
+  .card.skill-card .skill-svg-wrap svg {
+    width: 58px;
+    height: 58px;
+    display: block;
+    filter: drop-shadow(0 8px 18px hsla(var(--skill-hue), 84%, 58%, .42));
+  }
+  .card.skill-card .skill-svg-wrap svg .soft {
+    opacity: .38;
+  }
+  .card.skill-card .skill-svg-wrap svg .fill-soft {
+    fill: currentColor;
+    opacity: .12;
+  }
+  .card.skill-card .skill-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    text-align: center;
+    text-shadow: 0 2px 8px hsla(var(--skill-hue), 70%, 50%, 0.3);
+    margin: 0;
+    line-height: 1.3;
+  }
+  .card.skill-card .short-summary {
+    position: relative;
+    z-index: 1;
+    color: rgba(255,255,255,0.85);
+    font-size: 12px;
+    background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+    padding: 12px 12px 8px;
+    margin: 0;
+  }
+  .card.skill-card .body h3 {
+    min-height: 42px;
+    color: #e0e7ff;
+    font-size: 15px;
+  }
+  .card.skill-card:hover {
+    border-color: hsla(var(--skill-hue), 60%, 60%, 0.5);
+    box-shadow: 0 8px 32px hsla(var(--skill-hue), 60%, 50%, 0.25);
+    transform: translateY(-4px);
+  }
+  .card.skill-card.china-skill:hover {
+    border-color: rgba(220,38,38,.5);
+    box-shadow: 0 8px 32px rgba(220,38,38,.25);
+  }
+  .badge.china-flag {
+    font-size: 11px;
+    color: #fca5a5;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(220,38,38,.15);
+    border: 1px solid rgba(220,38,38,.3);
+  }
+  .skill-badge {
+    background: hsla(var(--skill-hue, 245), 60%, 40%, 0.3);
+    border-color: hsla(var(--skill-hue, 245), 60%, 50%, 0.4);
+    color: hsla(var(--skill-hue, 245), 80%, 80%, 1);
+  }
+  .skill-id {
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+    color: hsla(var(--skill-hue, 245), 60%, 70%, 1);
+    font-size: 12px;
+  }
+  .skill-modal-cover {
+    position: relative;
+    min-height: 158px;
+    padding: 22px 24px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 18% 20%, hsla(var(--skill-hue, 245), 86%, 64%, .22), transparent 34%),
+      linear-gradient(135deg, #0d1518, #11111b 72%);
+  }
+  .skill-modal-cover::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size: 24px 24px;
+    opacity: .5;
+    mask-image: linear-gradient(90deg, #000, transparent 78%);
+  }
+  .skill-modal-icon {
+    width: 84px;
+    height: 84px;
+    flex: 0 0 auto;
+    border-radius: 26px;
+    display: grid;
+    place-items: center;
+    color: hsl(var(--skill-hue, 245), 88%, 78%);
+    background: linear-gradient(145deg, rgba(255,255,255,.16), rgba(255,255,255,.045));
+    border: 1px solid hsla(var(--skill-hue, 245), 78%, 78%, .34);
+    box-shadow: 0 18px 42px hsla(var(--skill-hue, 245), 70%, 48%, .25);
+    position: relative;
+    z-index: 1;
+  }
+  .skill-modal-icon svg {
+    width: 54px;
+    height: 54px;
+  }
+  .skill-modal-icon svg .soft {
+    opacity: .38;
+  }
+  .skill-modal-icon svg .fill-soft {
+    fill: currentColor;
+    opacity: .12;
+  }
+  .skill-modal-copy {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 8px;
+  }
+  .skill-modal-copy b {
+    color: #fff;
+    font-size: 18px;
+  }
   .idea-card .idea-visual {
     position: absolute;
     inset: 0;
@@ -790,6 +1017,528 @@
   .idea-card .body .snippet {
     min-height: 60px;
     -webkit-line-clamp: 3;
+  }
+  .solo-docs {
+    display: grid;
+    gap: 18px;
+    align-items: start;
+  }
+  .solo-docs.shelf-mode {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .solo-docs.reader-mode {
+    grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
+  }
+  .solo-shelf-shell {
+    display: grid;
+    gap: 18px;
+  }
+  .solo-shelf-head {
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 8% 16%, rgba(250,204,21,.16), transparent 26%),
+      radial-gradient(circle at 88% 0%, rgba(129,140,248,.18), transparent 28%),
+      linear-gradient(145deg, rgba(17,21,31,.98), rgba(10,12,19,.98));
+    box-shadow:
+      0 18px 40px -30px rgba(0,0,0,.9),
+      0 0 0 1px rgba(255,255,255,.02) inset;
+  }
+  .solo-shelf-head-inner {
+    padding: 24px 24px 22px;
+    display: grid;
+    gap: 12px;
+  }
+  .solo-shelf-kicker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .solo-shelf-kicker .pill {
+    background: rgba(7,10,18,.62);
+  }
+  .solo-shelf-head h2 {
+    margin: 0;
+    font-size: clamp(28px, 3vw, 40px);
+    line-height: 1.02;
+    letter-spacing: -.03em;
+    color: #fff;
+  }
+  .solo-shelf-head p {
+    margin: 0;
+    max-width: 920px;
+    font-size: 14px;
+    line-height: 1.8;
+    color: rgba(226,232,240,.84);
+  }
+  .solo-shelf-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px;
+    align-items: start;
+  }
+  .solo-book-card {
+    position: relative;
+    display: grid;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 20px;
+    background:
+      linear-gradient(180deg, rgba(18,22,33,.98), rgba(10,12,19,.98));
+    box-shadow:
+      0 18px 40px -30px rgba(0,0,0,.92),
+      0 0 0 1px rgba(255,255,255,.02) inset;
+    transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+  }
+  .solo-book-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(129,140,248,.24);
+    box-shadow:
+      0 22px 46px -30px rgba(0,0,0,.96),
+      0 0 0 1px rgba(255,255,255,.03) inset,
+      0 0 24px rgba(99,102,241,.08);
+  }
+  .solo-book-cover {
+    position: relative;
+    aspect-ratio: 16 / 11;
+    background:
+      radial-gradient(circle at 14% 18%, rgba(250,204,21,.18), transparent 28%),
+      radial-gradient(circle at 84% 4%, rgba(99,102,241,.2), transparent 24%),
+      linear-gradient(135deg, #1a1322, #111827 60%, #0b111a);
+    overflow: hidden;
+  }
+  .solo-book-cover img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .solo-book-cover::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(8,11,18,.12), rgba(8,11,18,.18) 42%, rgba(8,11,18,.86));
+    pointer-events: none;
+  }
+  .solo-book-cover-inner {
+    position: absolute;
+    inset: auto 16px 14px 16px;
+    z-index: 1;
+    display: grid;
+    gap: 8px;
+  }
+  .solo-book-cover-inner .pill {
+    width: fit-content;
+    background: rgba(7,10,18,.68);
+  }
+  .solo-book-cover-inner strong {
+    font-size: 18px;
+    line-height: 1.08;
+    color: #fff;
+    letter-spacing: -.02em;
+    text-shadow: 0 10px 28px rgba(10,12,20,.45);
+  }
+  .solo-book-body {
+    display: grid;
+    gap: 14px;
+    padding: 16px 16px 16px;
+  }
+  .solo-book-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 11px;
+  }
+  .solo-book-meta .pill {
+    background: rgba(255,255,255,.03);
+  }
+  .solo-book-summary {
+    margin: 0;
+    min-height: 56px;
+    font-size: 12.5px;
+    line-height: 1.72;
+    color: rgba(226,232,240,.78);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .solo-book-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .solo-book-tags span {
+    padding: 6px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    color: #cbd5e1;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.06);
+  }
+  .solo-book-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .solo-book-stats {
+    font-size: 12px;
+    color: rgba(226,232,240,.62);
+  }
+  .solo-book-open {
+    appearance: none;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 132px;
+    min-height: 48px;
+    border: 1px solid rgba(255,255,255,.18);
+    cursor: pointer;
+    overflow: hidden;
+    padding: 12px 18px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: .01em;
+    color: #fff;
+    background:
+      radial-gradient(circle at 18% 12%, rgba(255,255,255,.34), transparent 24%),
+      linear-gradient(135deg, #7c3aed 0%, #a855f7 42%, #ec4899 100%);
+    box-shadow:
+      0 16px 34px -18px rgba(168,85,247,.9),
+      0 0 0 1px rgba(255,255,255,.08) inset,
+      0 0 24px rgba(236,72,153,.16);
+    text-shadow: 0 1px 10px rgba(0,0,0,.22);
+    transition:
+      transform .18s ease,
+      box-shadow .18s ease,
+      border-color .18s ease,
+      filter .18s ease;
+  }
+  .solo-book-open::before {
+    content: '';
+    position: absolute;
+    inset: 1px;
+    border-radius: inherit;
+    background: linear-gradient(180deg, rgba(255,255,255,.18), transparent 48%);
+    pointer-events: none;
+  }
+  .solo-book-open::after {
+    content: '';
+    position: absolute;
+    top: -45%;
+    bottom: -45%;
+    width: 42px;
+    left: -70px;
+    transform: rotate(18deg);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.42), transparent);
+    transition: left .55s ease;
+    pointer-events: none;
+  }
+  .solo-book-open span,
+  .solo-book-open svg {
+    position: relative;
+    z-index: 1;
+  }
+  .solo-book-open svg {
+    width: 17px;
+    height: 17px;
+    stroke-width: 2.4;
+    filter: drop-shadow(0 2px 8px rgba(255,255,255,.22));
+  }
+  .solo-book-open:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,.34);
+    filter: brightness(1.06) saturate(1.04);
+    box-shadow:
+      0 20px 42px -18px rgba(168,85,247,1),
+      0 0 0 1px rgba(255,255,255,.12) inset,
+      0 0 34px rgba(236,72,153,.26);
+  }
+  .solo-book-open:hover::after {
+    left: calc(100% + 48px);
+  }
+  .solo-book-open:active {
+    transform: translateY(0) scale(.985);
+  }
+  @media (max-width: 1500px) {
+    .solo-shelf-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+  @media (max-width: 1120px) {
+    .solo-shelf-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  .solo-reader-back {
+    appearance: none;
+    border: 1px solid rgba(255,255,255,.1);
+    background: rgba(255,255,255,.03);
+    color: var(--text);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+  }
+  .solo-reader-back:hover {
+    border-color: rgba(129,140,248,.28);
+    background: rgba(255,255,255,.05);
+  }
+  .solo-reader-topbar {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: -4px;
+  }
+  .solo-docs-sidebar,
+  .solo-docs-reader {
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(17,21,31,.98), rgba(10,12,19,.98));
+    box-shadow:
+      0 18px 40px -30px rgba(0,0,0,.9),
+      0 0 0 1px rgba(255,255,255,.02) inset;
+  }
+  .solo-docs-sidebar {
+    position: sticky;
+    top: 18px;
+    max-height: calc(100dvh - 210px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .solo-sidebar-head {
+    padding: 18px 18px 14px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  .solo-sidebar-head h2 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--text);
+  }
+  .solo-sidebar-head p {
+    margin: 8px 0 0;
+    color: var(--text-dim);
+    font-size: 12.5px;
+    line-height: 1.65;
+  }
+  .solo-sidebar-list {
+    padding: 10px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .solo-nav-item {
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,.06);
+    background: rgba(255,255,255,.02);
+    color: var(--text);
+    border-radius: 14px;
+    padding: 14px 14px 13px;
+    transition: border-color .15s, background .15s, transform .15s, box-shadow .15s;
+  }
+  .solo-nav-item:hover {
+    border-color: rgba(129,140,248,.26);
+    background: rgba(255,255,255,.04);
+    transform: translateY(-1px);
+  }
+  .solo-nav-item.active {
+    border-color: rgba(129,140,248,.4);
+    background:
+      radial-gradient(circle at top left, rgba(129,140,248,.16), transparent 48%),
+      rgba(16,18,28,.9);
+    box-shadow: 0 10px 30px -24px rgba(99,102,241,.72);
+  }
+  .solo-nav-kicker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+  }
+  .solo-nav-index,
+  .solo-nav-type {
+    font-size: 11px;
+    line-height: 1;
+    border-radius: 999px;
+    padding: 5px 8px;
+    border: 1px solid rgba(255,255,255,.1);
+    background: rgba(7,10,18,.7);
+  }
+  .solo-nav-index {
+    color: #fde68a;
+    border-color: rgba(251,191,36,.28);
+  }
+  .solo-nav-type {
+    color: #c7d2fe;
+    margin-left: auto;
+  }
+  .solo-nav-title {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.5;
+    color: var(--text);
+  }
+  .solo-nav-summary {
+    margin-top: 8px;
+    font-size: 12.5px;
+    color: rgba(226,232,240,.68);
+    line-height: 1.65;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .solo-docs-reader {
+    min-height: 72vh;
+    overflow: hidden;
+  }
+  .solo-reader-cover {
+    position: relative;
+    min-height: clamp(180px, 30dvh, 280px);
+    border-bottom: 1px solid rgba(255,255,255,.06);
+    background:
+      radial-gradient(circle at 12% 18%, rgba(251,191,36,.18), transparent 30%),
+      radial-gradient(circle at 88% 0%, rgba(99,102,241,.18), transparent 26%),
+      linear-gradient(135deg, #18131f, #101827 60%, #0a1019);
+    overflow: hidden;
+  }
+  .solo-reader-cover.has-image img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .solo-reader-cover::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(8,11,18,.14), rgba(8,11,18,.38) 32%, rgba(8,11,18,.92));
+    pointer-events: none;
+  }
+  .solo-reader-cover-inner {
+    position: absolute;
+    inset: auto 0 0 0;
+    z-index: 1;
+    padding: 24px 26px 22px;
+  }
+  .solo-reader-kicker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+  }
+  .solo-reader-kicker .pill {
+    background: rgba(7,10,18,.7);
+  }
+  .solo-reader-title {
+    margin: 0;
+    font-size: clamp(28px, 3vw, 38px);
+    line-height: 1.08;
+    color: #fff;
+    letter-spacing: -.02em;
+  }
+  .solo-reader-summary {
+    margin: 14px 0 0;
+    max-width: 860px;
+    color: rgba(241,245,249,.84);
+    font-size: 14px;
+    line-height: 1.8;
+  }
+  .solo-reader-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 18px 26px 0;
+  }
+  .solo-reader-meta .pill {
+    background: rgba(255,255,255,.03);
+  }
+  .solo-reader-body {
+    padding: 22px 26px 28px;
+  }
+  .solo-reader-article {
+    color: #e5e7eb;
+    font-size: 15px;
+    line-height: 1.92;
+  }
+  .solo-reader-article h2,
+  .solo-reader-article h3 {
+    color: #fff;
+    letter-spacing: -.01em;
+  }
+  .solo-reader-article h2 {
+    margin: 28px 0 14px;
+    font-size: 24px;
+    line-height: 1.28;
+  }
+  .solo-reader-article h3 {
+    margin: 24px 0 12px;
+    font-size: 18px;
+    line-height: 1.4;
+  }
+  .solo-reader-article p {
+    margin: 0 0 14px;
+    color: rgba(229,231,235,.92);
+  }
+  .solo-reader-article ul,
+  .solo-reader-article ol {
+    margin: 0 0 18px 22px;
+    padding: 0;
+    display: grid;
+    gap: 10px;
+  }
+  .solo-reader-article li {
+    color: rgba(229,231,235,.9);
+  }
+  .solo-reader-article a {
+    color: #93c5fd;
+    text-decoration: none;
+    word-break: break-all;
+  }
+  .solo-reader-article a:hover {
+    color: #bfdbfe;
+    text-decoration: underline;
+  }
+  .solo-reader-note {
+    margin-top: 22px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255,255,255,.06);
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+  .solo-reader-status {
+    min-height: 360px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 24px;
+    color: var(--text-dim);
+    font-size: 14px;
+    line-height: 1.8;
+  }
+  .solo-toolbar-hidden {
+    display: none !important;
   }
   .card.promo-card {
     --promo-angle: 0deg;
@@ -1172,6 +1921,79 @@
   .modal .actions button.favorite-active { color: #fbcfe8; border-color: rgba(244,114,182,.55); background: rgba(83,20,52,.55); }
   .modal .actions button.primary { background: linear-gradient(135deg, var(--accent), var(--pink)); border: none; color: white; }
 
+  .skill-modal-content {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .skill-modal-header {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .skill-modal-tagline {
+    font-size: 17px;
+    color: #e0e7ff;
+    line-height: 1.5;
+  }
+  .skill-modal-desc {
+    font-size: 14px;
+    line-height: 1.75;
+    color: #d1d5db;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+  }
+  .skill-modal-desc p {
+    margin: 0;
+  }
+  .skill-modal-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .skill-modal-meta .meta-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    font-size: 13px;
+  }
+  .skill-modal-meta .meta-label {
+    color: var(--text-dim);
+    min-width: 60px;
+  }
+  .skill-modal-meta .meta-value {
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: var(--bg);
+    padding: 3px 8px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+  }
+  .skill-modal-tip {
+    font-size: 13px;
+    line-height: 1.7;
+    color: #a5b4fc;
+    background: rgba(99,102,241,.1);
+    border: 1px solid rgba(99,102,241,.25);
+    border-radius: 10px;
+    padding: 14px 18px;
+  }
+  .skill-modal-tip code {
+    background: rgba(99,102,241,.2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #c7d2fe;
+  }
+
   .sysmsg-backdrop {
     position: fixed;
     inset: 0;
@@ -1379,6 +2201,41 @@
       border-radius: 0;
     }
     .sysmsg-list { padding: 16px; }
+    .solo-docs {
+      gap: 14px;
+    }
+    .solo-docs.reader-mode {
+      grid-template-columns: 1fr;
+    }
+    .solo-docs-sidebar {
+      position: static;
+      max-height: none;
+    }
+    .solo-reader-cover-inner,
+    .solo-reader-body,
+    .solo-reader-meta {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+    .solo-reader-cover-inner {
+      padding-top: 18px;
+      padding-bottom: 18px;
+    }
+    .solo-reader-title {
+      font-size: 24px;
+    }
+    .solo-shelf-head-inner,
+    .solo-book-body {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+    .solo-shelf-grid {
+      grid-template-columns: 1fr;
+    }
+    .solo-reader-back {
+      margin-left: 0;
+      margin-right: 0;
+    }
   }
 
   @media (max-height: 760px) and (min-width: 601px) {
@@ -1414,10 +2271,10 @@
         <span>免费盲盒</span>
         <span class="count" id="blindboxCount">0</span>
       </button>
-      <button class="nav-tab shorts" id="tabShorts" type="button" role="tab" aria-selected="false" title="短提示词灵感库">
+      <button class="nav-tab shorts" id="tabShorts" type="button" role="tab" aria-selected="false" title="AI SKILLS + 灵感库">
         <span>AI</span>
         <span>灵感库</span>
-        <span class="count" id="shortsCount">200</span>
+        <span class="count" id="shortsCount">…</span>
       </button>
       <button class="nav-tab image-ideas" id="tabImageIdeas" type="button" role="tab" aria-selected="false" title="图片生成灵感库">
         <span>IMG AI</span>
@@ -1488,6 +2345,7 @@
 
 <main>
   <div id="grid" class="grid"></div>
+  <div id="soloCompanyDocs" class="solo-docs" style="display:none"></div>
   <div id="empty" class="empty" style="display:none">
     <h2>没有匹配的提示词</h2>
     <p>试试其他搜索词或清除筛选条件。</p>
@@ -1565,10 +2423,15 @@
 
 <script>
 let DATA = [];
+let AI_SKILLS = [];
+let AI_SKILLS_LOADING = false;
+let AI_SKILLS_ERROR = '';
 let SHORT_PROMPTS = [];
 let IMAGE_IDEAS = [];
 let VIDEO_IDEAS = [];
 let SOLO_COMPANY = [];
+let SOLO_COMPANY_SELECTED_ID = '';
+let SOLO_COMPANY_LOADING_ID = '';
 let SYSTEM_MESSAGES = [];
 let SYSTEM_UNREAD = 0;
 // Pagination state.
@@ -1603,24 +2466,22 @@ const visitedPages = new Set([1]);
 const PROMO_CARDS_PER_PAGE = 1;
 const PAGE_SIZE = 20 - PROMO_CARDS_PER_PAGE;
 const SERVER_PAGE_SIZE = 96;
-const CATALOG_CACHE_KEY = 'prompt-vault:catalog:v4';
+// v7: invalidate old fallback/partial caches that wrongly classified demo_url cards as 盲盒.
+const CATALOG_CACHE_SCHEMA = 7;
+const CATALOG_CACHE_KEY = 'prompt-vault:catalog:v7';
+const STALE_CATALOG_CACHE_KEYS = ['prompt-vault:catalog:v4', 'prompt-vault:catalog:v5', 'prompt-vault:catalog:v6'];
 const CATALOG_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const FAVORITES_KEY = 'prompt-vault:favorites:v1';
 const IDEA_LIBRARY_ENDPOINTS = {
   shorts: '/api/idea-libraries/shorts',
+  aiSkills: '/api/skills',
   imageIdeas: '/api/idea-libraries/imageIdeas',
   videoIdeas: '/api/idea-libraries/videoIdeas',
   soloCompany: '/api/idea-libraries/soloCompany',
 };
-const REMOVED_IDEA_TITLES = new Set([
-  '无限制的 ChatGPT（降权）',
-]);
 function isRemovedIdeaRecord(raw) {
-  const title = String(raw?.title || raw?.name || '').trim();
-  if (REMOVED_IDEA_TITLES.has(title)) return true;
   const summary = String(raw?.summary || raw?.description || '').trim();
-  return title.includes('无限制的 ChatGPT')
-    && summary.includes('2023.06.10')
+  return summary.includes('2023.06.10')
     && summary.includes('被降权');
 }
 let FAVORITES = {};
@@ -2077,6 +2938,161 @@ async function loadShortPrompts() {
   }
 }
 
+async function loadAISkills() {
+  AI_SKILLS_LOADING = true;
+  AI_SKILLS_ERROR = '';
+  syncTopBarStats();
+  try {
+    const r = await fetch(IDEA_LIBRARY_ENDPOINTS.aiSkills, { cache: 'no-store' });
+    if (!r.ok) throw new Error('skills http ' + r.status);
+    const data = await r.json();
+    const imported = normalizeSkills(Array.isArray(data.items) ? data.items : []);
+    if (!imported.length) throw new Error('skills empty');
+    AI_SKILLS = imported;
+    AI_SKILLS_ERROR = '';
+    clearRenderedGridPageCache();
+    syncTopBarStats();
+    if (VIEW === 'shorts' || VIEW === 'favorites') render();
+  } catch (e) {
+    console.warn('[Prompt Vault] skills import failed:', e && e.message ? e.message : e);
+    AI_SKILLS_ERROR = e && e.message ? e.message : 'load failed';
+    syncTopBarStats();
+  } finally {
+    AI_SKILLS_LOADING = false;
+  }
+}
+
+function normalizeSkills(input) {
+  const arr = Array.isArray(input) ? input : (Array.isArray(input?.items) ? input.items : []);
+  return arr.map((raw, index) => {
+    const id = String(raw.id || `skill-${String(index + 1).padStart(3, '0')}`);
+    const name = String(raw.name || raw.title || id);
+    return {
+      ...raw,
+      id,
+      name,
+      title: name,
+      source: 'skill',
+      category: String(raw.category || '未分类'),
+      tags: Array.isArray(raw.tags)
+        ? raw.tags.map(tag => String(tag).trim()).filter(Boolean)
+        : [],
+      sort_order: Number.isFinite(Number(raw.sort_order)) ? Number(raw.sort_order) : index + 1,
+      heat: Number.isFinite(Number(raw.heat)) ? Number(raw.heat) : 2400 - index,
+      has_prompt_text: false,
+    };
+  });
+}
+
+function skillIconVariant(item) {
+  const text = [
+    item.id,
+    item.name,
+    item.category,
+    item.tagline,
+    ...(item.tags || []),
+  ].join(' ').toLowerCase();
+  if (/debug|bug|调试|排错|修复|fix/.test(text)) return 'debug';
+  if (/git|commit|branch|workflow|流程|协作/.test(text)) return 'workflow';
+  if (/doc|文档|documentation|readme|知识/.test(text)) return 'doc';
+  if (/mcp|tool|server|api|工具/.test(text)) return 'tool';
+  if (/context|上下文|prompt|提示/.test(text)) return 'context';
+  if (/test|quality|review|check|测试|验证/.test(text)) return 'quality';
+  return 'neural';
+}
+
+function skillIconSvg(item) {
+  const common = 'viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false"';
+  const variant = skillIconVariant(item);
+  if (variant === 'debug') {
+    return `<svg ${common}>
+      <path class="fill-soft" d="M24 42c0-13.255 10.745-24 24-24s24 10.745 24 24v10c0 13.255-10.745 24-24 24S24 65.255 24 52V42Z"/>
+      <path d="M33 40c0-8.284 6.716-15 15-15s15 6.716 15 15v13c0 8.284-6.716 15-15 15s-15-6.716-15-15V40Z" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+      <path d="M24 36h11M61 36h11M23 58h11M62 58h11M36 25l-7-8M60 25l7-8M42 44h12M42 55h12" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+    </svg>`;
+  }
+  if (variant === 'workflow') {
+    return `<svg ${common}>
+      <path class="fill-soft" d="M18 25h24v22H18zM54 49h24v22H54z"/>
+      <rect x="18" y="24" width="24" height="22" rx="7" stroke="currentColor" stroke-width="5"/>
+      <rect x="54" y="50" width="24" height="22" rx="7" stroke="currentColor" stroke-width="5"/>
+      <path d="M42 35h9c7 0 13 6 13 13v2M54 61H43c-7 0-13-6-13-13v-2" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+      <path d="M58 42l6 8 6-8M38 54l-8-8-8 8" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+  }
+  if (variant === 'doc') {
+    return `<svg ${common}>
+      <path class="fill-soft" d="M26 16h31l13 13v51H26z"/>
+      <path d="M26 16h31l13 13v51H26V16Z" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M56 17v14h14M36 44h24M36 56h24M36 68h15" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+  }
+  if (variant === 'tool') {
+    return `<svg ${common}>
+      <path class="fill-soft" d="M24 24h48v48H24z"/>
+      <rect x="20" y="20" width="56" height="56" rx="16" stroke="currentColor" stroke-width="5"/>
+      <path d="M34 38h28M34 48h16M34 58h28" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+      <path d="M62 34l8 8-8 8" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+  }
+  if (variant === 'context') {
+    return `<svg ${common}>
+      <path class="fill-soft" d="M24 22h48v40H40L28 74V62h-4z"/>
+      <path d="M24 22h48v40H41L28 74V62h-4V22Z" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M36 37h24M36 49h17" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+    </svg>`;
+  }
+  if (variant === 'quality') {
+    return `<svg ${common}>
+      <path class="fill-soft" d="M48 14l28 12v20c0 18-12 29-28 37-16-8-28-19-28-37V26z"/>
+      <path d="M48 14l28 12v20c0 18-12 29-28 37-16-8-28-19-28-37V26l28-12Z" stroke="currentColor" stroke-width="5" stroke-linejoin="round"/>
+      <path d="M35 48l9 9 18-20" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
+  }
+  return `<svg ${common}>
+    <circle class="fill-soft" cx="48" cy="48" r="30"/>
+    <circle cx="48" cy="48" r="8" stroke="currentColor" stroke-width="5"/>
+    <circle cx="25" cy="30" r="6" stroke="currentColor" stroke-width="5"/>
+    <circle cx="71" cy="30" r="6" stroke="currentColor" stroke-width="5"/>
+    <circle cx="28" cy="68" r="6" stroke="currentColor" stroke-width="5"/>
+    <circle cx="68" cy="68" r="6" stroke="currentColor" stroke-width="5"/>
+    <path d="M31 33l11 10M65 34L54 43M35 66l8-11M61 66l-8-11" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
+  </svg>`;
+}
+
+function skillCardHtml(item) {
+  const chinaClass = item.isChina ? 'china-skill' : '';
+  // 为每个 SKILL 生成独特的渐变色
+  const hue = item.isChina ? 4 : (item.id.charCodeAt(0) * 37 + item.id.charCodeAt(item.id.length - 1) * 13) % 360;
+  const gradientStyle = item.isChina 
+    ? `background: radial-gradient(circle at 35% 22%, rgba(251,191,36,.18), transparent 30%), linear-gradient(135deg, rgba(220,38,38,0.2), rgba(59,7,100,0.24)), #0d0d12;`
+    : `background: radial-gradient(circle at 35% 22%, hsla(${hue}, 90%, 72%, .2), transparent 30%), linear-gradient(135deg, hsl(${hue}, 60%, 25%), hsl(${(hue + 60) % 360}, 50%, 15%)), #0d0d12;`;
+  
+  return `
+    <article class="card skill-card ${chinaClass}" data-id="${escapeHtml(item.id)}" tabindex="0" style="--skill-hue: ${hue}deg">
+      <div class="preview" style="${gradientStyle}">
+        <div class="short-topline">
+          <span class="short-index skill-badge">SKILL</span>
+          <span class="badge cat">${escapeHtml(item.category || '')}</span>
+          ${item.isChina ? '<span class="badge china-flag">CN 原创</span>' : ''}
+        </div>
+        <div class="skill-cover">
+          <div class="skill-svg-wrap">${skillIconSvg(item)}</div>
+          <h2 class="skill-title">${escapeHtml(item.name || '')}</h2>
+        </div>
+        <p class="short-summary">${escapeHtml(item.tagline || '')}</p>
+      </div>
+      <div class="body">
+        <h3>${escapeHtml(item.name || '')}</h3>
+        <div class="snippet">${escapeHtml(item.description || '')}</div>
+        <div class="footer">
+          <span class="skill-id">/${escapeHtml(item.id || '')}</span>
+          <span class="arrow">查看详情 →</span>
+        </div>
+      </div>
+    </article>`;
+}
+
 async function loadImageIdeas() {
   IMAGE_IDEAS_LOADING = true;
   IMAGE_IDEAS_ERROR = '';
@@ -2203,7 +3219,7 @@ function syncTopBarStats() {
   const allVisibleCount = Math.max(0, TOTAL - DATA.filter(usesManghePlaceholder).length);
   document.getElementById('blindboxCount').textContent = blindCount;
   document.getElementById('tabAllCount').textContent = allVisibleCount;
-  document.getElementById('shortsCount').textContent = SHORT_PROMPTS.length;
+  document.getElementById('shortsCount').textContent = AI_SKILLS.length + SHORT_PROMPTS.length || '…';
   document.getElementById('imageIdeasCount').textContent = IMAGE_IDEAS_LOADING ? '…' : IMAGE_IDEAS.length;
   document.getElementById('videoIdeasCount').textContent = VIDEO_IDEAS_LOADING ? '…' : VIDEO_IDEAS.length;
   document.getElementById('soloCompanyCount').textContent = SOLO_COMPANY_LOADING ? '…' : SOLO_COMPANY.length;
@@ -2368,6 +3384,7 @@ function saveCatalogCache() {
   if (!catalogFullyLoaded || !DATA.length) return;
   try {
     localStorage.setItem(CATALOG_CACHE_KEY, JSON.stringify({
+      schema: CATALOG_CACHE_SCHEMA,
       saved_at: Date.now(),
       total: TOTAL,
       items: DATA.map(p => ({ ...p, prompt_text: null })),
@@ -2379,10 +3396,13 @@ function saveCatalogCache() {
 
 function hydrateCatalogFromCache() {
   try {
+    for (const key of STALE_CATALOG_CACHE_KEYS) {
+      try { localStorage.removeItem(key); } catch {}
+    }
     const raw = localStorage.getItem(CATALOG_CACHE_KEY);
     if (!raw) return false;
     const cached = JSON.parse(raw);
-    if (!cached || !Array.isArray(cached.items) || !cached.items.length) return false;
+    if (!cached || cached.schema !== CATALOG_CACHE_SCHEMA || !Array.isArray(cached.items) || !cached.items.length) return false;
     if (Date.now() - (cached.saved_at || 0) > CATALOG_CACHE_MAX_AGE_MS) return false;
     DATA = cached.items.map(p => ({ ...p, prompt_text: null }));
     TOTAL = cached.total || DATA.length;
@@ -2567,8 +3587,28 @@ const ANNOUNCEMENT_ICONS = {
   downtime: '🛠',
   promo: '🎁',
 };
+const IMG_AI_BRAND_CORE = ['g', 'pt'].join('');
+const IMG_AI_BRAND_CHAT = ['chat', IMG_AI_BRAND_CORE].join('');
+function scrubImgAiBrandText(value) {
+  if (value == null) return value;
+  return String(value)
+    .replace(new RegExp(`${IMG_AI_BRAND_CHAT}\\s*[-_ ]?image`, 'ig'), 'AI Image')
+    .replace(new RegExp(`${IMG_AI_BRAND_CORE}\\s*[-_ ]?image`, 'ig'), 'AI Image')
+    .replace(new RegExp(`chat\\s+${IMG_AI_BRAND_CORE}`, 'ig'), 'AI 助手')
+    .replace(new RegExp(IMG_AI_BRAND_CHAT, 'ig'), 'AI 助手')
+    .replace(new RegExp(IMG_AI_BRAND_CORE, 'ig'), 'AI');
+}
 function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+}
+function escapeImgAiHtml(s) {
+  return escapeHtml(scrubImgAiBrandText(s));
+}
+function displayTextForItem(item, value) {
+  return item?.source === 'image_ideas' ? scrubImgAiBrandText(value) : value;
+}
+function escapeItemHtml(item, value) {
+  return item?.source === 'image_ideas' ? escapeImgAiHtml(value) : escapeHtml(value);
 }
 function formatAnnDate(iso) {
   try {
@@ -2878,7 +3918,7 @@ async function fetchOneServerPage(serverPage) {
   const url = `/api/prompts?limit=${SERVER_PAGE_SIZE}&page=${serverPage}`;
   let r;
   try {
-    r = await fetch(url);
+    r = await fetch(url, { cache: 'no-store' });
   } catch (e) {
     if (serverPage === 1) {
       renderFatalError('无法连接到服务器：' + (e && e.message ? e.message : '网络错误') + '。请检查网络后重试。', true);
@@ -3215,7 +4255,7 @@ function isBlindboxEligible(p) {
 function previewHtml(item) {
   if (item.preview_image_url) {
     const thumbUrl = cachedCoverUrl(item.preview_thumb_url || item.preview_image_url, 'card');
-    return `<img src="${escapeHtml(thumbUrl)}" alt="${escapeHtml(item.title)}" width="640" height="400" loading="eager" decoding="async" fetchpriority="auto" />`;
+    return `<img src="${escapeHtml(thumbUrl)}" alt="${escapeItemHtml(item, item.title)}" width="640" height="400" loading="eager" decoding="async" fetchpriority="auto" />`;
   }
   // playable_video_url is the canonical field; preview_video_url is a legacy alias.
   const videoUrl = item.preview_video_url || item.playable_video_url;
@@ -3237,6 +4277,7 @@ function previewHtml(item) {
 }
 
 function cardHtml(item) {
+  if (item.source === 'skill') return skillCardHtml(item);
   if (item.source === 'shorts') return shortPromptCardHtml(item);
   if (item.source === 'image_ideas' || item.source === 'video_ideas' || item.source === 'one_company') {
     return item.placeholder ? ideaPlaceholderCardHtml(item) : ideaPromptCardHtml(item);
@@ -3297,45 +4338,46 @@ function ideaPromptCardHtml(item) {
   const isLesson = item.source === 'one_company';
   const favActive = isFavorite(item.id);
   const favCount = favoriteCount(item.id);
-  const tags = (item.tags || []).slice(0, 3).map(tag => `<span class="short-tag">${escapeHtml(tag)}</span>`).join('');
+  const html = value => escapeItemHtml(item, value);
+  const tags = (item.tags || []).slice(0, 3).map(tag => `<span class="short-tag">${html(tag)}</span>`).join('');
   const heatLabel = isLesson
     ? (item.page_type || '教学')
     : (Number(item.likes || item.heat || 0) ? `${Number(item.likes || item.heat || 0)} likes` : '灵感');
-  const model = item.model ? `<span class="badge meta">${escapeHtml(item.model)}</span>` : '';
+  const model = item.model ? `<span class="badge meta">${html(item.model)}</span>` : '';
   const accessible = canAccessPrompts(item);
   const bodySnippet = item.summary || (accessible ? snippet(item.prompt_text, 160) : lockedPromptHint(item));
   const visual = hasPreviewCover(item) ? previewHtml(item) : (isVideo ? `
         <div class="idea-visual">
           <div class="short-topline">
             <span class="short-index">VID</span>
-            <span class="idea-status">${escapeHtml(item.page_type || 'Video Prompt')}</span>
+            <span class="idea-status">${html(item.page_type || 'Video Prompt')}</span>
           </div>
           <div class="idea-timeline"><i></i><i></i><i></i><i></i><i></i></div>
         </div>` : isLesson ? `
         <div class="idea-visual">
           <div class="short-topline">
             <span class="short-index">SOLO</span>
-            <span class="idea-status">${escapeHtml(item.page_type || '创业教学')}</span>
+            <span class="idea-status">${html(item.page_type || '创业教学')}</span>
           </div>
-          <p class="short-summary">${escapeHtml(item.summary || (accessible ? snippet(item.prompt_text, 140) : lockedPromptHint(item)))}</p>
+          <p class="short-summary">${html(item.summary || (accessible ? snippet(item.prompt_text, 140) : lockedPromptHint(item)))}</p>
           <div class="short-tags">${tags}</div>
         </div>` : `
         <div class="idea-visual">
           <div class="short-topline">
             <span class="short-index">IMG</span>
-            <span class="idea-status">${escapeHtml(item.page_type || 'Prompt')}</span>
+            <span class="idea-status">${html(item.page_type || 'Prompt')}</span>
           </div>
-          <p class="short-summary">${escapeHtml(item.summary || (accessible ? snippet(item.prompt_text, 140) : lockedPromptHint(item)))}</p>
+          <p class="short-summary">${html(item.summary || (accessible ? snippet(item.prompt_text, 140) : lockedPromptHint(item)))}</p>
           <div class="short-tags">${tags}</div>
         </div>`);
-  const footerLabel = escapeHtml(item.page_type || item.category || (isVideo ? '视频灵感' : isLesson ? '一人公司' : '图片灵感'));
-  const heatChip = `<span class="short-heat">${escapeHtml(heatLabel)}</span>`;
+  const footerLabel = html(item.page_type || item.category || (isVideo ? '视频灵感' : isLesson ? '一人公司' : '图片灵感'));
+  const heatChip = `<span class="short-heat">${html(heatLabel)}</span>`;
   return `
     <article class="card idea-card ${isVideo ? 'video-card' : isLesson ? 'lesson-card' : 'image-card'}" data-id="${escapeHtml(item.id)}" tabindex="0">
       <div class="preview">
         ${hasPreviewCover(item) ? `<div class="badges">
           <div class="badges-left">
-            <span class="badge cat">${escapeHtml(item.category || '')}</span>
+            <span class="badge cat">${html(item.category || '')}</span>
             ${model}
             ${heatChip}
           </div>
@@ -3347,8 +4389,8 @@ function ideaPromptCardHtml(item) {
         </button>
       </div>
       <div class="body">
-        <h3>${escapeHtml(item.title)}</h3>
-        <div class="snippet">${escapeHtml(bodySnippet)}</div>
+        <h3>${html(item.title)}</h3>
+        <div class="snippet">${html(bodySnippet)}</div>
         ${tags ? `<div class="short-tags">${tags}</div>` : ''}
         <div class="footer">
           <span>${footerLabel}</span>
@@ -3360,20 +4402,21 @@ function ideaPromptCardHtml(item) {
 
 function ideaPlaceholderCardHtml(item) {
   const isVideo = item.source === 'video_ideas';
-  const tags = (item.tags || []).slice(0, 3).map(tag => `<span class="short-tag">${escapeHtml(tag)}</span>`).join('');
+  const html = value => escapeItemHtml(item, value);
+  const tags = (item.tags || []).slice(0, 3).map(tag => `<span class="short-tag">${html(tag)}</span>`).join('');
   return `
     <article class="card short-card idea-placeholder ${isVideo ? 'video-card' : 'image-card'}" data-id="${escapeHtml(item.id)}" tabindex="0" aria-disabled="true">
       <div class="preview">
         <div class="short-topline">
           <span class="short-index">${isVideo ? 'VID' : 'IMG'}</span>
-          <span class="badge cat">${escapeHtml(item.category || '')}</span>
+          <span class="badge cat">${html(item.category || '')}</span>
           <span class="idea-status">待导入</span>
         </div>
-        <p class="short-summary">${escapeHtml(item.summary || '')}</p>
+        <p class="short-summary">${html(item.summary || '')}</p>
         <div class="short-tags">${tags}</div>
       </div>
       <div class="body">
-        <h3>${escapeHtml(item.title)}</h3>
+        <h3>${html(item.title)}</h3>
         <div class="snippet">${escapeHtml(isVideo ? '预留视频生成提示词、镜头描述、时长节奏和运镜参数。' : '预留图片生成提示词、画面主体、风格参考和构图参数。')}</div>
         <div class="footer">
           <span>#${escapeHtml(item.id)}</span>
@@ -3490,7 +4533,7 @@ function withPromoCard(rows) {
 }
 
 // ---- View state (mirrored to URL) ----
-//   view: 'all' (default, blind-box hidden) | 'blindbox' | 'shorts' | 'imageIdeas' | 'videoIdeas' | 'soloCompany' | 'favorites'
+//   view: 'all' (default, blind-box hidden) | 'blindbox' | 'shorts' | 'aiSkills' | 'imageIdeas' | 'videoIdeas' | 'soloCompany' | 'favorites'
 //   filters: q / cat / text / sort — apply on top of the active view
 let VIEW = 'all';
 const FILTERS = { q: '', cat: '', text: '', sort: '' };
@@ -3500,6 +4543,23 @@ function readFiltersFromUI() {
   FILTERS.cat  = document.getElementById('categorySelect').value;
   FILTERS.text = document.getElementById('textSelect').value;
   FILTERS.sort = document.getElementById('sortSelect').value;
+}
+
+function syncToolbarForView() {
+  const searchInput = document.getElementById('searchInput');
+  const textSelect = document.getElementById('textSelect');
+  const sortSelect = document.getElementById('sortSelect');
+  const isSolo = VIEW === 'soloCompany';
+  if (searchInput) {
+    searchInput.placeholder = isSolo
+      ? '搜索文章标题、摘要、章节关键词…'
+      : '搜索标题、提示词、分类、ID…';
+  }
+  [textSelect, sortSelect].forEach(el => {
+    if (!el) return;
+    el.disabled = isSolo;
+    el.classList.toggle('solo-toolbar-hidden', isSolo);
+  });
 }
 
 function applyViewAndFiltersToUI() {
@@ -3536,6 +4596,7 @@ function applyViewAndFiltersToUI() {
   document.getElementById('categorySelect').disabled = (VIEW === 'blindbox');
   // Cross-view compatibility for FILTERS.cat is enforced inside render()
   // (it checks DATA, not a hard-coded string), so we don't repeat the check here.
+  syncToolbarForView();
 }
 
 function toQuery() {
@@ -3603,6 +4664,11 @@ function switchView(v) {
   if (!['all', 'blindbox', 'shorts', 'imageIdeas', 'videoIdeas', 'soloCompany', 'favorites'].includes(v)) v = 'all';
   if (VIEW === v) return;
   VIEW = v;
+  if (VIEW === 'soloCompany') {
+    FILTERS.text = '';
+    FILTERS.sort = '';
+    SOLO_COMPANY_SELECTED_ID = '';
+  }
   currentPage = 1;
   applyViewAndFiltersToUI();
   syncQueryString();
@@ -3612,22 +4678,24 @@ function switchView(v) {
 function getRows() {
   const q = FILTERS.q.toLowerCase();
   const tokens = q ? q.split(/\s+/).filter(Boolean) : [];
+  // AI SKILLS 排在灵感库前面
+  const combinedShorts = [...AI_SKILLS, ...SHORT_PROMPTS];
   const pool = VIEW === 'shorts'
-    ? SHORT_PROMPTS
+    ? combinedShorts
     : VIEW === 'imageIdeas'
       ? IMAGE_IDEAS
     : VIEW === 'videoIdeas'
       ? VIDEO_IDEAS
     : VIEW === 'soloCompany'
       ? SOLO_COMPANY
-    : (VIEW === 'favorites' ? DATA.concat(SHORT_PROMPTS, IMAGE_IDEAS, VIDEO_IDEAS, SOLO_COMPANY) : DATA);
+    : (VIEW === 'favorites' ? DATA.concat(AI_SKILLS, SHORT_PROMPTS, IMAGE_IDEAS, VIDEO_IDEAS, SOLO_COMPANY) : DATA);
   return pool.filter(p => {
     if (VIEW === 'all' && usesManghePlaceholder(p)) return false;
     if (VIEW === 'blindbox' && !isBlindboxEligible(p)) return false;
     if (VIEW === 'favorites' && !isFavorite(p.id)) return false;
     if (FILTERS.cat && p.category !== FILTERS.cat) return false;
-    if (FILTERS.text === 'yes' && !p.has_prompt_text) return false;
-    if (FILTERS.text === 'no'  && p.has_prompt_text)  return false;
+    if (VIEW !== 'soloCompany' && FILTERS.text === 'yes' && !p.has_prompt_text) return false;
+    if (VIEW !== 'soloCompany' && FILTERS.text === 'no'  && p.has_prompt_text)  return false;
     if (tokens.length) {
       const hay = (p.title + ' ' + (p.prompt_text || '') + ' ' +
                    (p.summary || '') + ' ' + (p.tags || []).join(' ') + ' ' +
@@ -3636,6 +4704,15 @@ function getRows() {
     }
     return true;
   }).sort((a, b) => {
+    if (VIEW === 'shorts') {
+      const as = a.source === 'skill' ? 0 : 1;
+      const bs = b.source === 'skill' ? 0 : 1;
+      if (as !== bs) return as - bs;
+      if (as === 0) {
+        const sa = Number(a.sort_order || 9999), sb = Number(b.sort_order || 9999);
+        if (sa !== sb) return sa - sb;
+      }
+    }
     if (VIEW === 'soloCompany' && FILTERS.sort === '') {
       return (a.sort_order || 0) - (b.sort_order || 0);
     }
@@ -3671,10 +4748,10 @@ function renderActiveFilterChips() {
   const items = [];
   if (FILTERS.q)    items.push({ key: 'q',    label: '搜索 "' + FILTERS.q + '"' });
   if (FILTERS.cat)  items.push({ key: 'cat',  label: '分类: ' + FILTERS.cat });
-  if (FILTERS.text === 'yes')  items.push({ key: 'text', label: '有提示词正文' });
-  if (FILTERS.text === 'no')   items.push({ key: 'text', label: '仅元数据' });
-  if (FILTERS.sort === 'favorite_count')  items.push({ key: 'sort', label: '按收藏数量' });
-  if (FILTERS.sort === 'favorite_recent') items.push({ key: 'sort', label: '按最近收藏' });
+  if (VIEW !== 'soloCompany' && FILTERS.text === 'yes')  items.push({ key: 'text', label: '有提示词正文' });
+  if (VIEW !== 'soloCompany' && FILTERS.text === 'no')   items.push({ key: 'text', label: '仅元数据' });
+  if (VIEW !== 'soloCompany' && FILTERS.sort === 'favorite_count')  items.push({ key: 'sort', label: '按收藏数量' });
+  if (VIEW !== 'soloCompany' && FILTERS.sort === 'favorite_recent') items.push({ key: 'sort', label: '按最近收藏' });
   if (!items.length) { box.innerHTML = ''; return; }
   box.innerHTML = items.map(it =>
     `<span class="chip">${escapeHtml(it.label)}<button data-clear="${it.key}" aria-label="移除">×</button></span>`
@@ -3704,13 +4781,15 @@ function renderResultCount(filteredCount, pageStart, pageEnd) {
   const totalInView = (VIEW === 'blindbox')
     ? DATA.filter(isBlindboxEligible).length
     : (VIEW === 'shorts')
-      ? SHORT_PROMPTS.length
+      ? AI_SKILLS.length + SHORT_PROMPTS.length
     : (VIEW === 'imageIdeas')
       ? IMAGE_IDEAS.length
     : (VIEW === 'videoIdeas')
       ? VIDEO_IDEAS.length
+    : (VIEW === 'soloCompany')
+      ? SOLO_COMPANY.length
     : (VIEW === 'favorites')
-      ? DATA.concat(SHORT_PROMPTS, IMAGE_IDEAS, VIDEO_IDEAS).filter(p => isFavorite(p.id)).length
+      ? DATA.concat(AI_SKILLS, SHORT_PROMPTS, IMAGE_IDEAS, VIDEO_IDEAS, SOLO_COMPANY).filter(p => isFavorite(p.id)).length
     : DATA.filter(p => !usesManghePlaceholder(p)).length;
   // If the user is mid-pagination and hasn't fetched every server page yet,
   // the in-views estimate undercounts. Prefer the server's TOTAL when it
@@ -3741,8 +4820,13 @@ function renderGrid(rows) {
       emptyH.textContent = '收藏库还是空的';
       emptyP.textContent = '点卡片上的心形按钮，把常用 UI 提示词收进来。';
     } else if (VIEW === 'shorts') {
-      emptyH.textContent = '灵感库里没找到匹配的提示词';
-      emptyP.textContent = '换个关键词，或清空筛选后继续浏览。';
+      if (AI_SKILLS_LOADING || SHORT_PROMPTS.length === 0) {
+        emptyH.textContent = '灵感库加载中…';
+        emptyP.textContent = '正在读取提示词数据…';
+      } else {
+        emptyH.textContent = '灵感库里没找到匹配的';
+        emptyP.textContent = '换个关键词，或清空筛选后继续浏览。';
+      }
     } else if (VIEW === 'imageIdeas') {
       if (IMAGE_IDEAS_LOADING) {
         emptyH.textContent = '图片生成灵感加载中';
@@ -3790,13 +4874,336 @@ function renderGrid(rows) {
     });
   });
   grid.querySelectorAll('.card:not([data-ad-slot])').forEach(el => {
-    el.addEventListener('click', () => { openModal(el.dataset.id); });
+    el.addEventListener('click', () => {
+      const id = el.dataset.id;
+      const item = DATA.concat(AI_SKILLS, SHORT_PROMPTS, IMAGE_IDEAS, VIDEO_IDEAS, SOLO_COMPANY).find(x => x.id === id);
+      if (item?.source === 'one_company') {
+        openSoloCompanyArticle(id);
+        return;
+      }
+      openModal(id);
+    });
     el.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(el.dataset.id); }
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        const id = el.dataset.id;
+        const item = DATA.concat(AI_SKILLS, SHORT_PROMPTS, IMAGE_IDEAS, VIDEO_IDEAS, SOLO_COMPANY).find(x => x.id === id);
+        if (item?.source === 'one_company') {
+          openSoloCompanyArticle(id);
+          return;
+        }
+        openModal(id);
+      }
     });
   });
   lazyHydrateVideos(grid);
   touchRenderedGridPageCache(cacheKey, { nodes: Array.from(grid.children) });
+}
+
+function ensureSoloCompanySelection(rows) {
+  if (!rows.length) {
+    SOLO_COMPANY_SELECTED_ID = '';
+    return null;
+  }
+  const current = rows.find(item => item.id === SOLO_COMPANY_SELECTED_ID);
+  if (current) return current;
+  return null;
+}
+
+function backToSoloCompanyShelf() {
+  SOLO_COMPANY_SELECTED_ID = '';
+  render();
+}
+
+function lessonInlineHtml(text) {
+  return escapeHtml(String(text || '')).replace(/(https?:\/\/[^\s<]+)/g, href => {
+    return `<a href="${href}" target="_blank" rel="noopener noreferrer">${href}</a>`;
+  });
+}
+
+function lessonStandaloneLink(line) {
+  const trimmed = String(line || '').trim();
+  return /^https?:\/\/\S+$/i.test(trimmed) ? trimmed : '';
+}
+
+function isSoloMinorHeading(line) {
+  const value = String(line || '').trim();
+  if (!value) return false;
+  if (/^[一二三四五六七八九十百]+、/.test(value)) return true;
+  if (/^[0-9]+\./.test(value)) return false;
+  if (value.length <= 22 && /[：:]$/.test(value)) return true;
+  return value.length <= 14 && !/[。！？；;,.，]/.test(value);
+}
+
+function renderLessonArticle(item, text) {
+  const normalized = String(text || '').replace(/\r\n?/g, '\n').trim();
+  if (!normalized) {
+    return '<div class="solo-reader-status">这篇内容暂时还是空的。</div>';
+  }
+  const blocks = normalized.split(/\n{2,}/).map(part => part.trim()).filter(Boolean);
+  const html = [];
+  const normalizedTitle = String(item?.title || '').trim();
+
+  const renderLines = (lines) => {
+    let output = '';
+    for (let i = 0; i < lines.length;) {
+      const line = String(lines[i] || '').trim();
+      if (!line) {
+        i++;
+        continue;
+      }
+      const bulletMatch = line.match(/^[-*•]\s+(.+)$/);
+      if (bulletMatch) {
+        const items = [];
+        while (i < lines.length) {
+          const hit = String(lines[i] || '').trim().match(/^[-*•]\s+(.+)$/);
+          if (!hit) break;
+          items.push(`<li>${lessonInlineHtml(hit[1])}</li>`);
+          i++;
+        }
+        output += `<ul>${items.join('')}</ul>`;
+        continue;
+      }
+      const numberMatch = line.match(/^\d+[.)、]\s+(.+)$/);
+      if (numberMatch) {
+        const items = [];
+        while (i < lines.length) {
+          const hit = String(lines[i] || '').trim().match(/^\d+[.)、]\s+(.+)$/);
+          if (!hit) break;
+          items.push(`<li>${lessonInlineHtml(hit[1])}</li>`);
+          i++;
+        }
+        output += `<ol>${items.join('')}</ol>`;
+        continue;
+      }
+      const onlyLink = lessonStandaloneLink(line);
+      if (onlyLink) {
+        output += `<p><a href="${escapeHtml(onlyLink)}" target="_blank" rel="noopener noreferrer">${escapeHtml(onlyLink)}</a></p>`;
+        i++;
+        continue;
+      }
+      output += `<p>${lessonInlineHtml(line)}</p>`;
+      i++;
+    }
+    return output;
+  };
+
+  blocks.forEach((block, index) => {
+    const lines = block.split('\n').map(line => line.trim()).filter(Boolean);
+    if (!lines.length) return;
+    if (index === 0 && lines.length === 1 && normalizedTitle && lines[0] === normalizedTitle) return;
+    const [first, ...rest] = lines;
+    if (/^[一二三四五六七八九十百]+、/.test(first)) {
+      html.push(`<h2>${lessonInlineHtml(first)}</h2>`);
+      if (rest.length) html.push(renderLines(rest));
+      return;
+    }
+    if (rest.length && isSoloMinorHeading(first)) {
+      html.push(`<h3>${lessonInlineHtml(first.replace(/[：:]$/, ''))}</h3>`);
+      html.push(renderLines(rest));
+      return;
+    }
+    if (lines.length === 1 && isSoloMinorHeading(first)) {
+      html.push(`<h3>${lessonInlineHtml(first.replace(/[：:]$/, ''))}</h3>`);
+      return;
+    }
+    html.push(renderLines(lines));
+  });
+  return html.join('');
+}
+
+async function loadSoloCompanyArticle(item) {
+  const host = document.getElementById('soloReaderArticle');
+  const note = document.getElementById('soloReaderNote');
+  if (!host || !item) return;
+  if (!canAccessPrompts(item)) {
+    host.innerHTML = `<div class="solo-reader-status">${escapeHtml(membershipRequiredMessage())}</div>`;
+    if (note) note.textContent = '';
+    return;
+  }
+  if (item._visible_prompt_text) {
+    host.innerHTML = renderLessonArticle(item, item._visible_prompt_text);
+    if (note) {
+      const wm = item._watermark || {};
+      note.textContent = wm.masked_id
+        ? `仅限 ${wm.masked_id} 查看 · ${new Date(wm.ts || Date.now()).toISOString().slice(0,16).replace('T', ' ')}`
+        : '';
+    }
+    return;
+  }
+  SOLO_COMPANY_LOADING_ID = item.id;
+  host.innerHTML = `<div class="solo-reader-status">正在安全加载这篇教程正文…</div>`;
+  if (note) note.textContent = '';
+  try {
+    const body = await fetchIdeaBody(item);
+    item.prompt_text = body.prompt_text || '';
+    item._visible_prompt_text = body.prompt_text || '';
+    item._watermark = body.watermark || null;
+    if (SOLO_COMPANY_SELECTED_ID !== item.id) return;
+    host.innerHTML = renderLessonArticle(item, item._visible_prompt_text);
+    if (note && body.watermark?.masked_id) {
+      note.textContent = `仅限 ${body.watermark.masked_id} 查看 · ${new Date(body.watermark.ts || Date.now()).toISOString().slice(0,16).replace('T', ' ')}`;
+    } else if (note) {
+      note.textContent = '';
+    }
+  } catch (e) {
+    if (SOLO_COMPANY_SELECTED_ID !== item.id) return;
+    host.innerHTML = `<div class="solo-reader-status">${escapeHtml(
+      e.message === 'membership_required' ? membershipRequiredMessage() : ('加载失败：' + e.message)
+    )}</div>`;
+    if (note) note.textContent = '';
+  } finally {
+    if (SOLO_COMPANY_LOADING_ID === item.id) SOLO_COMPANY_LOADING_ID = '';
+  }
+}
+
+function renderSoloCompanyDocs(rows) {
+  const docs = document.getElementById('soloCompanyDocs');
+  const grid = document.getElementById('grid');
+  const emptyEl = document.getElementById('empty');
+  const pagerWrap = document.getElementById('pagerWrap');
+  if (!docs || !grid || !emptyEl || !pagerWrap) return;
+  grid.style.display = 'none';
+  docs.style.display = '';
+  pagerWrap.style.display = 'none';
+  if (!rows.length) {
+    docs.className = 'solo-docs shelf-mode';
+    docs.innerHTML = '';
+    emptyEl.style.display = 'block';
+    if (SOLO_COMPANY_LOADING) {
+      emptyEl.querySelector('h2').textContent = '一人公司教程加载中';
+      emptyEl.querySelector('p').textContent = '正在读取文章目录，请稍等一下。';
+    } else if (SOLO_COMPANY_ERROR) {
+      emptyEl.querySelector('h2').textContent = '一人公司教程加载失败';
+      emptyEl.querySelector('p').textContent = '请刷新页面重试，或检查教程数据是否导入成功。';
+    } else {
+      emptyEl.querySelector('h2').textContent = '没有匹配的文章';
+      emptyEl.querySelector('p').textContent = '试试其他关键词，或者清空筛选后继续浏览。';
+    }
+    return;
+  }
+  emptyEl.style.display = 'none';
+  const active = ensureSoloCompanySelection(rows);
+  if (!active) {
+    docs.className = 'solo-docs shelf-mode';
+    docs.innerHTML = `
+      <section class="solo-shelf-shell">
+        <div class="solo-shelf-head">
+          <div class="solo-shelf-head-inner">
+            <div class="solo-shelf-kicker">
+              <span class="pill">一人公司</span>
+              <span class="pill">教程书架</span>
+              <span class="pill">${rows.length} 本</span>
+            </div>
+            <h2>一人公司正在成为大趋势</h2>
+            <p>这里不讲空话，只讲实操。陪你从注册、收款、产品、增长一路往前做，在个人创业的时代里，一起进步，一起把项目跑起来。</p>
+          </div>
+        </div>
+        <div class="solo-shelf-grid">
+          ${rows.map((item, index) => {
+            const coverUrl = hasPreviewCover(item)
+              ? cachedCoverUrl(item.preview_image_url || item.cover_url, 'detail')
+              : '';
+            const tagList = (Array.isArray(item.tags) ? item.tags : []).slice(0, 4);
+            return `
+              <article class="solo-book-card">
+                <div class="solo-book-cover">
+                  ${coverUrl ? `<img src="${escapeHtml(coverUrl)}" alt="${escapeHtml(item.title)}" width="1280" height="800" decoding="async" loading="lazy" />` : ''}
+                  <div class="solo-book-cover-inner">
+                    <span class="pill">第 ${index + 1} 本</span>
+                    <strong>${escapeHtml(item.title)}</strong>
+                  </div>
+                </div>
+                <div class="solo-book-body">
+                  <div class="solo-book-meta">
+                    <span class="pill">${escapeHtml(item.category || '一人公司')}</span>
+                    <span class="pill">${escapeHtml(item.page_type || '创业教学')}</span>
+                  </div>
+                  <p class="solo-book-summary">${escapeHtml(item.summary || '点击进入阅读')}</p>
+                  <div class="solo-book-tags">
+                    ${tagList.length ? tagList.map(tag => `<span>${escapeHtml(tag)}</span>`).join('') : `<span>${escapeHtml(item.type || 'Solo Company Lesson')}</span>`}
+                  </div>
+                  <div class="solo-book-actions">
+                    <div class="solo-book-stats">正文约 ${Number(item.prompt_text_length || 0).toLocaleString('zh-CN')} 字</div>
+                    <button class="solo-book-open" type="button" data-solo-article="${escapeHtml(item.id)}">
+                      <span>打开阅读</span>
+                      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" focusable="false">
+                        <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </article>
+            `;
+          }).join('')}
+        </div>
+      </section>
+    `;
+  } else {
+    docs.className = 'solo-docs reader-mode';
+    const coverUrl = hasPreviewCover(active)
+      ? cachedCoverUrl(active.preview_image_url || active.cover_url, 'detail')
+      : '';
+    docs.innerHTML = `
+      <div class="solo-reader-topbar">
+        <button class="solo-reader-back" type="button" id="soloReaderBack">← 返回书架</button>
+      </div>
+      <aside class="solo-docs-sidebar">
+        <div class="solo-sidebar-head">
+          <h2>一人公司书架</h2>
+          <p>现在是单本阅读模式。左侧切书，或者返回书架继续看其他主题。</p>
+        </div>
+        <div class="solo-sidebar-list">
+          ${rows.map((item, index) => `
+            <button class="solo-nav-item ${item.id === active.id ? 'active' : ''}" type="button" data-solo-article="${escapeHtml(item.id)}">
+              <div class="solo-nav-kicker">
+                <span class="solo-nav-index">第 ${index + 1} 本</span>
+                <span class="solo-nav-type">${escapeHtml(item.page_type || item.category || '教程')}</span>
+              </div>
+              <div class="solo-nav-title">${escapeHtml(item.title)}</div>
+              <div class="solo-nav-summary">${escapeHtml(item.summary || '点击进入阅读')}</div>
+            </button>
+        `).join('')}
+        </div>
+      </aside>
+      <section class="solo-docs-reader">
+        <div class="solo-reader-cover ${coverUrl ? 'has-image' : ''}">
+          ${coverUrl ? `<img src="${escapeHtml(coverUrl)}" alt="${escapeHtml(active.title)}" width="1280" height="720" decoding="async" />` : ''}
+          <div class="solo-reader-cover-inner">
+            <div class="solo-reader-kicker">
+              <span class="pill">教程阅读</span>
+              <span class="pill">${escapeHtml(active.category || '一人公司')}</span>
+              <span class="pill">${escapeHtml(active.page_type || '创业教学')}</span>
+            </div>
+            <h1 class="solo-reader-title">${escapeHtml(active.title)}</h1>
+            <p class="solo-reader-summary">${escapeHtml(active.summary || '这篇教程会在右侧正文区展开，按文章方式连续阅读。')}</p>
+          </div>
+        </div>
+        <div class="solo-reader-meta">
+          <span class="pill">ID: <b>${escapeHtml(active.id)}</b></span>
+          <span class="pill">类型: <b>${escapeHtml(active.type || 'Solo Company Lesson')}</b></span>
+          <span class="pill">正文: <b>${active.prompt_text_length || 0} 字符</b></span>
+        </div>
+        <div class="solo-reader-body">
+          <article class="solo-reader-article" id="soloReaderArticle">
+            <div class="solo-reader-status">${active._visible_prompt_text ? '正在整理文章排版…' : '正在安全加载这篇教程正文…'}</div>
+          </article>
+          <div class="solo-reader-note" id="soloReaderNote"></div>
+        </div>
+      </section>
+    `;
+  }
+  docs.querySelectorAll('[data-solo-article]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const nextId = btn.getAttribute('data-solo-article') || '';
+      if (!nextId || nextId === SOLO_COMPANY_SELECTED_ID) return;
+      SOLO_COMPANY_SELECTED_ID = nextId;
+      render();
+    });
+  });
+  const backBtn = docs.querySelector('#soloReaderBack');
+  if (backBtn) backBtn.addEventListener('click', backToSoloCompanyShelf);
+  if (active) loadSoloCompanyArticle(active);
 }
 
 // --- Video lazy hydration ----------------------------------------------
@@ -3897,10 +5304,12 @@ function lazyHydrateVideos(grid) {
 
 function populateCategorySelect() {
   // Build categories based on what the current view can actually select.
+  // AI SKILLS 排在灵感库前面
+  const combinedShorts = [...AI_SKILLS, ...SHORT_PROMPTS];
   const pool = (VIEW === 'blindbox')
     ? DATA.filter(isBlindboxEligible)
     : (VIEW === 'shorts')
-      ? SHORT_PROMPTS
+      ? combinedShorts
     : (VIEW === 'imageIdeas')
       ? IMAGE_IDEAS
     : (VIEW === 'videoIdeas')
@@ -3908,7 +5317,7 @@ function populateCategorySelect() {
     : (VIEW === 'soloCompany')
       ? SOLO_COMPANY
     : (VIEW === 'favorites')
-      ? DATA.concat(SHORT_PROMPTS, IMAGE_IDEAS, VIDEO_IDEAS, SOLO_COMPANY).filter(p => isFavorite(p.id))
+      ? DATA.concat(AI_SKILLS, SHORT_PROMPTS, IMAGE_IDEAS, VIDEO_IDEAS, SOLO_COMPANY).filter(p => isFavorite(p.id))
       : DATA.filter(p => !usesManghePlaceholder(p));
   // Cache key changes when view changes — recompute every time in blindbox mode
   // (in all mode the blind-box category is impossible anyway, so cheaper to skip)
@@ -3924,6 +5333,10 @@ function render() {
   // Don't overwrite an error overlay — let it persist until the next successful load.
   if (isFatalError) return;
   readFiltersFromUI();
+  if (VIEW === 'soloCompany') {
+    FILTERS.text = '';
+    FILTERS.sort = '';
+  }
   // Drop FILTERS.cat if it's not valid in the current view.
   // The naïve rule used to be "clear iff cat === '盲盒 UI 提示词'", but that
   // missed every other invalid combo: e.g. ?view=blindbox&cat=Hero would
@@ -3933,7 +5346,7 @@ function render() {
     const pool = (VIEW === 'blindbox')
       ? DATA.filter(isBlindboxEligible)
       : (VIEW === 'shorts')
-        ? SHORT_PROMPTS
+        ? [...AI_SKILLS, ...SHORT_PROMPTS]
       : (VIEW === 'imageIdeas')
         ? IMAGE_IDEAS
       : (VIEW === 'videoIdeas')
@@ -3941,7 +5354,7 @@ function render() {
       : (VIEW === 'soloCompany')
         ? SOLO_COMPANY
       : (VIEW === 'favorites')
-        ? DATA.concat(SHORT_PROMPTS, IMAGE_IDEAS, VIDEO_IDEAS, SOLO_COMPANY).filter(p => isFavorite(p.id))
+        ? DATA.concat(AI_SKILLS, SHORT_PROMPTS, IMAGE_IDEAS, VIDEO_IDEAS, SOLO_COMPANY).filter(p => isFavorite(p.id))
         : DATA.filter(p => !usesManghePlaceholder(p));
     const validCats = new Set(
       pool.map(p => p.category).filter(Boolean)
@@ -3953,7 +5366,8 @@ function render() {
   // Brand subtitle reflects the current view
   document.querySelector('.brand small').textContent =
     VIEW === 'blindbox' ? '· 免费盲盒专题'
-      : VIEW === 'shorts' ? '· 灵感提示词库'
+      : VIEW === 'shorts' ? '· AI SKILLS + 灵感库'
+      : VIEW === 'aiSkills' ? '· AI 编程 SKILLS'
       : VIEW === 'imageIdeas' ? '· 图片生成灵感'
       : VIEW === 'videoIdeas' ? '· 视频生成灵感'
       : VIEW === 'soloCompany' ? '· 一人公司'
@@ -3963,6 +5377,20 @@ function render() {
   // Filter + sort the dataset the user *currently has loaded*. Once the
   // pager decides which page to show, we'll slice this for the grid.
   const allRows = getRows();
+  const docs = document.getElementById('soloCompanyDocs');
+  const grid = document.getElementById('grid');
+  if (VIEW === 'soloCompany') {
+    const start = allRows.length ? 1 : 0;
+    const end = allRows.length;
+    renderResultCount(allRows.length, start, end);
+    renderActiveFilterChips();
+    if (grid) grid.style.display = 'none';
+    if (docs) docs.style.display = '';
+    renderSoloCompanyDocs(allRows);
+    return;
+  }
+  if (docs) docs.style.display = 'none';
+  if (grid) grid.style.display = '';
   const totalPages = Math.max(1, Math.ceil(estimatedCurrentViewTotal(allRows.length) / PAGE_SIZE));
   // Clamp the requested page when filters shrank the result set, otherwise
   // we'd render an empty grid even though the user was on page 5 last click.
@@ -4235,12 +5663,131 @@ function renderWatermarkFooter(wm) {
   modalPrompt.parentNode.insertBefore(footer, modalPrompt.nextSibling);
 }
 
+function openSkillModal(item) {
+  const modal = document.getElementById('modal');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalPrompt = document.getElementById('modalPrompt');
+  const modalMeta = document.getElementById('modalMeta');
+  const modalPreview = document.getElementById('modalPreview');
+  const copyBtn = document.getElementById('copyBtn');
+  const useBtn = document.getElementById('useBtn');
+  const favoriteBtn = document.getElementById('favoriteModalBtn');
+
+  modalTitle.textContent = item.name || item.id;
+  const hue = item.isChina ? 4 : (item.id.charCodeAt(0) * 37 + item.id.charCodeAt(item.id.length - 1) * 13) % 360;
+  
+  modalMeta.innerHTML = `
+    <span class="pill">分类: <b>${escapeHtml(item.category || '未分类')}</b></span>
+    ${item.isChina ? '<span class="pill china-flag">CN 原创</span>' : '<span class="pill" style="background:rgba(99,102,241,.2);border-color:rgba(99,102,241,.4);color:#a5b4fc;">精选技能</span>'}
+  `;
+  
+  modalPreview.innerHTML = `
+    <div class="preview-big skill-modal-cover" style="--skill-hue:${hue}deg;">
+      <div class="skill-modal-icon">${skillIconSvg(item)}</div>
+      <div class="skill-modal-copy">
+        <b>${escapeHtml(item.name || '')}</b>
+        <p style="color:#94a3b8;font-size:14px;line-height:1.65;margin:0;">${escapeHtml(item.tagline || '')}</p>
+      </div>
+    </div>
+  `;
+  
+  // 显示加载中
+  modalPrompt.innerHTML = '<div style="padding:20px;color:#94a3b8;">正在加载 SKILL 内容...</div>';
+  
+  // 获取完整的 SKILL 内容
+  fetch(`/api/skill/${item.id}/content`)
+    .then(r => r.json())
+    .then(data => {
+      modalPrompt.textContent = data.content;
+      // 设置可见的提示词文本，以便复制功能使用
+      if (currentItem) {
+        currentItem._visible_prompt_text = data.content;
+      }
+    })
+    .catch(() => {
+      // 使用生成的内容作为后备
+      const fallback = generateSkillPrompt(item);
+      modalPrompt.textContent = fallback;
+      if (currentItem) {
+        currentItem._visible_prompt_text = fallback;
+      }
+    });
+  
+  copyBtn.style.display = 'inline-block';
+  copyBtn.textContent = '复制 SKILL';
+  useBtn.style.display = 'none';
+  favoriteBtn.style.display = 'inline-block';
+  
+  // 存储当前 item 以便复制时使用
+  currentItem = item;
+  
+  modal.classList.add('open');
+}
+
+function generateSkillPrompt(item) {
+  const name = item.name || '';
+  const tagline = item.tagline || '';
+  const description = item.description || '';
+  const category = item.category || '通用';
+  const id = item.id || '';
+  
+  return `# ${name}
+
+## 核心理念
+${tagline}
+
+## 详细说明
+${description}
+
+## 使用场景
+当遇到以下情况时，使用此技能：
+- 需要系统化思考和分析问题
+- 面对模糊或不明确的需求
+- 需要找到最佳解决方案
+- 需要深入分析和评估选项
+
+## 调用方式
+在 Cursor、Claude Code 等 AI 编程工具中输入：
+\`/${id}\`
+
+${item.isChina ? '## CN Enhanced\nThis skill is optimized for Chinese users.' : ''}
+
+---
+Skill ID: ${id}
+分类: ${category}
+${item.isChina ? 'CN 原创增强' : '翻译自 superpowers'}`
+}
+
+function openSoloCompanyArticle(id) {
+  const target = SOLO_COMPANY.find(item => item.id === id);
+  if (!target) return;
+  closeModal();
+  VIEW = 'soloCompany';
+  FILTERS.q = '';
+  FILTERS.cat = '';
+  FILTERS.text = '';
+  FILTERS.sort = '';
+  currentPage = 1;
+  SOLO_COMPANY_SELECTED_ID = id;
+  applyViewAndFiltersToUI();
+  syncQueryString();
+  render();
+}
+
 async function openModal(id) {
-  const item = DATA.concat(SHORT_PROMPTS, IMAGE_IDEAS, VIDEO_IDEAS, SOLO_COMPANY).find(x => x.id === id);
+  const item = DATA.concat(AI_SKILLS, SHORT_PROMPTS, IMAGE_IDEAS, VIDEO_IDEAS, SOLO_COMPANY).find(x => x.id === id);
   if (!item) return;
+  if (item.source === 'skill') {
+    openSkillModal(item);
+    return;
+  }
+  if (item.source === 'one_company') {
+    openSoloCompanyArticle(id);
+    return;
+  }
   currentItem = item;
   syncModalFavoriteButton();
-  modalTitle.textContent = item.title;
+  modalTitle.textContent = displayTextForItem(item, item.title);
   modalMeta.innerHTML = '';
   if (item.source === 'shorts') {
     const pills = [['分类', item.category], ['类型', item.type], ['主题', item.page_type], ['热度', String(item.heat || 0)], ['ID', item.id]];
@@ -4306,17 +5853,18 @@ async function openModal(id) {
   }
   if ((item.source === 'image_ideas' || item.source === 'video_ideas' || item.source === 'one_company') && item.placeholder) {
     const isVideo = item.source === 'video_ideas';
+    const html = value => escapeItemHtml(item, value);
     const pills = [['分类', item.category], ['类型', item.type], ['主题', item.page_type], ['状态', '待导入'], ['ID', item.id]];
     for (const [k, v] of pills) {
       if (!v && v !== 0) continue;
       const p = document.createElement('span'); p.className = 'pill';
-      p.innerHTML = `${escapeHtml(k)}: <b>${escapeHtml(String(v))}</b>`;
+      p.innerHTML = `${escapeHtml(k)}: <b>${html(String(v))}</b>`;
       modalMeta.appendChild(p);
     }
     modalPreview.innerHTML = `
       <div class="preview-big" style="height:clamp(150px,24dvh,240px);padding:24px;display:flex;flex-direction:column;justify-content:center;gap:12px;background:linear-gradient(135deg,${isVideo ? '#171023,#101018 70%' : '#0e1720,#0b1018 70%'});">
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">${(item.tags || []).map(tag => `<span class="short-tag">${escapeHtml(tag)}</span>`).join('')}</div>
-        <div style="font-size:15px;line-height:1.6;color:#d1d5db;max-width:760px;">${escapeHtml(item.summary || '')}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">${(item.tags || []).map(tag => `<span class="short-tag">${html(tag)}</span>`).join('')}</div>
+        <div style="font-size:15px;line-height:1.6;color:#d1d5db;max-width:760px;">${html(item.summary || '')}</div>
       </div>`;
     modal.classList.add('open');
     syncBodyScrollLock();
@@ -4339,6 +5887,7 @@ async function openModal(id) {
   if (item.source === 'image_ideas' || item.source === 'video_ideas' || item.source === 'one_company') {
     const isVideo = item.source === 'video_ideas';
     const isLesson = item.source === 'one_company';
+    const html = value => escapeItemHtml(item, value);
     const pills = [
       ['分类', item.category],
       ['类型', item.type],
@@ -4350,7 +5899,7 @@ async function openModal(id) {
     for (const [k, v] of pills) {
       if (!v && v !== 0) continue;
       const p = document.createElement('span'); p.className = 'pill';
-      p.innerHTML = `${escapeHtml(k)}: <b>${escapeHtml(String(v))}</b>`;
+      p.innerHTML = `${escapeHtml(k)}: <b>${html(String(v))}</b>`;
       modalMeta.appendChild(p);
     }
     const playUrl = item.preview_video_url || item.playable_video_url;
@@ -4358,12 +5907,12 @@ async function openModal(id) {
       modalPreview.innerHTML = `<div class="preview-big"><video src="${escapeHtml(playUrl)}" controls muted playsinline></video></div>`;
     } else if (item.preview_image_url || item.cover_url) {
       const detailUrl = cachedCoverUrl(item.preview_image_url || item.cover_url, 'detail');
-      modalPreview.innerHTML = `<div class="preview-big"><img src="${escapeHtml(detailUrl)}" alt="${escapeHtml(item.title)}" width="1280" height="800" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>`;
+      modalPreview.innerHTML = `<div class="preview-big"><img src="${escapeHtml(detailUrl)}" alt="${html(item.title)}" width="1280" height="800" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>`;
     } else {
       modalPreview.innerHTML = `
         <div class="preview-big" style="height:clamp(150px,24dvh,240px);padding:24px;display:flex;flex-direction:column;justify-content:center;gap:12px;background:linear-gradient(135deg,${isVideo ? '#171023,#101018 70%' : (isLesson ? '#13101d,#0f1827 70%' : '#0e1720,#0b1018 70%')});">
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">${(item.tags || []).map(tag => `<span class="short-tag">${escapeHtml(tag)}</span>`).join('')}</div>
-          <div style="font-size:15px;line-height:1.6;color:#d1d5db;max-width:760px;">${escapeHtml(item.summary || '')}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">${(item.tags || []).map(tag => `<span class="short-tag">${html(tag)}</span>`).join('')}</div>
+          <div style="font-size:15px;line-height:1.6;color:#d1d5db;max-width:760px;">${html(item.summary || '')}</div>
         </div>`;
     }
     modal.classList.add('open');
@@ -4584,8 +6133,7 @@ document.getElementById('useBtn').addEventListener('click', async () => {
 });
 
 function pickAIUrl(prompt) {
-  // Try ChatGPT first; users can change. Falls back to a Google search for popular AIs.
-  return 'https://chatgpt.com/';
+  return 'https://www.google.com/search?q=AI%20assistant';
 }
 
 async function copyText(text, msg) {
@@ -4706,12 +6254,13 @@ window.addEventListener('pagehide', () => { if (_watermark) _watermark.stop(); }
 loadFavorites();
 loadMe();
 loadAnnouncements();
-readViewAndFiltersFromQuery();
-applyViewAndFiltersToUI();
 loadShortPrompts();
+loadAISkills();
 loadImageIdeas();
 loadVideoIdeas();
 loadSoloCompany();
+readViewAndFiltersFromQuery();
+applyViewAndFiltersToUI();
 bootCatalog().catch((e) => {
   console.warn('[Prompt Vault] bootCatalog failed:', e && e.message ? e.message : e);
   fatalErrorCleanup();

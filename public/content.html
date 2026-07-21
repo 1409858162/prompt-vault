@@ -1,0 +1,898 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0a0a0d" />
+  <title>内容管理 · Prompt Vault</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0d;
+      --panel: #131318;
+      --panel-2: #1a1a22;
+      --border: #2a2a35;
+      --text: #f3f3f7;
+      --text-dim: #9a9aa8;
+      --accent: #6366f1;
+      --accent2: #8b5cf6;
+      --pink: #f472b6;
+      --green: #34d399;
+      --red: #f87171;
+      --amber: #fbbf24;
+      --cyan: #22d3ee;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--bg); color: var(--text); }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+    a { color: inherit; text-decoration: none; }
+    header.topbar {
+      position: sticky; top: 0; z-index: 30;
+      background: rgba(10,10,13,.85);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 28px;
+    }
+    .topbar-inner {
+      display: flex; align-items: center; gap: 16px;
+      max-width: 1600px; margin: 0 auto;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+    .brand .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+    }
+    .topbar-nav { display: flex; gap: 4px; margin-left: 24px; }
+    .nav-btn {
+      padding: 6px 14px; border-radius: 8px; color: var(--text-dim);
+      font-size: 13px; font-weight: 500; cursor: pointer; border: none; background: transparent;
+      transition: all .15s;
+    }
+    .nav-btn:hover { color: var(--text); background: rgba(255,255,255,.05); }
+    .nav-btn.active { color: var(--text); background: var(--panel-2); }
+    .topbar-right { margin-left: auto; display: flex; gap: 8px; }
+    .link {
+      padding: 7px 12px; border-radius: 8px; color: var(--text-dim);
+      border: 1px solid var(--border); text-decoration: none; font-size: 13px;
+    }
+    .link:hover { color: var(--text); background: rgba(255,255,255,.05); }
+    main { max-width: 1600px; margin: 0 auto; padding: 28px; }
+    .page { display: none; }
+    .page.active { display: block; }
+    .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; }
+    .page-title { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+    .page-sub { color: var(--text-dim); font-size: 13px; }
+    .toolbar {
+      display: flex; gap: 8px; margin-bottom: 14px; align-items: center;
+      flex-wrap: wrap;
+    }
+    .toolbar input, .toolbar select {
+      padding: 7px 11px; background: var(--panel); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-size: 13px;
+    }
+    .toolbar input { min-width: 180px; }
+    .toolbar select { cursor: pointer; }
+    .btn {
+      padding: 7px 14px; font-size: 13px; font-weight: 500;
+      background: transparent; border: 1px solid var(--border);
+      color: var(--text-dim); border-radius: 8px; cursor: pointer;
+      transition: all .15s;
+    }
+    .btn:hover { color: var(--text); border-color: #3a3a44; background: rgba(255,255,255,.04); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.primary:hover { background: #5558e8; border-color: #5558e8; }
+    .btn.green { color: var(--green); border-color: rgba(52,211,153,.35); }
+    .btn.green:hover { background: rgba(52,211,153,.08); }
+    .btn.red { color: var(--red); border-color: rgba(248,113,113,.35); }
+    .btn.red:hover { background: rgba(248,113,113,.08); }
+    .btn.amber { color: var(--amber); border-color: rgba(251,191,36,.35); }
+    .btn.amber:hover { background: rgba(251,191,36,.08); }
+    table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    th, td { padding: 10px 14px; text-align: left; font-size: 13px; vertical-align: middle; }
+    th { background: var(--panel-2); color: var(--text-dim); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; white-space: nowrap; }
+    tr + tr td { border-top: 1px solid var(--border); }
+    tr:hover td { background: rgba(255,255,255,.02); }
+    .tbl-scroll { overflow-x: auto; border-radius: 12px; }
+    .tbl-scroll table { border-radius: 0; }
+    .tbl-scroll { position: relative; }
+    .tbl-scroll { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; }
+    .tbl-scroll table { border: none; }
+    .pill {
+      display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px;
+      background: var(--panel-2); border: 1px solid var(--border); color: var(--text-dim);
+    }
+    .pill.green { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.35); color: #6ee7b7; }
+    .pill.red { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.35); color: #fca5a5; }
+    .pill.amber { background: rgba(251,191,36,.12); border-color: rgba(251,191,36,.35); color: #fde68a; }
+    .pill.cyan { background: rgba(34,211,238,.12); border-color: rgba(34,211,238,.35); color: #a5f3fc; }
+    .pill.purple { background: rgba(139,92,246,.12); border-color: rgba(139,92,246,.35); color: #c4b5fd; }
+    .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+    .badge.free { background: rgba(52,211,153,.15); color: #34d399; }
+    .badge.paid { background: rgba(99,102,241,.15); color: #818cf8; }
+    .badge.blindbox { background: rgba(251,191,36,.15); color: #fbbf24; }
+    .badge.member { background: rgba(139,92,246,.15); color: #a78bfa; }
+    .badge.enabled { background: rgba(52,211,153,.15); color: #34d399; }
+    .badge.disabled { background: rgba(248,113,113,.15); color: #f87171; }
+    .tbl-actions { display: flex; gap: 4px; white-space: nowrap; }
+    .tbl-actions button { padding: 4px 8px; font-size: 12px; }
+    .pagination { display: flex; gap: 6px; align-items: center; margin-top: 14px; justify-content: flex-end; }
+    .pagination button { padding: 5px 10px; font-size: 12px; }
+    .pagination .info { font-size: 12px; color: var(--text-dim); margin: 0 6px; }
+    .empty { text-align: center; padding: 60px 20px; color: var(--text-dim); font-size: 14px; }
+    .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: .4; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,.65); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.hidden { display: none; }
+    .modal {
+      background: var(--panel); border: 1px solid var(--border);
+      border-radius: 16px; width: 100%; max-width: 680px; max-height: 88vh;
+      overflow-y: auto; box-shadow: 0 25px 60px rgba(0,0,0,.5);
+    }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 22px; border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; background: var(--panel); z-index: 1;
+    }
+    .modal-title { font-size: 16px; font-weight: 700; }
+    .modal-close {
+      width: 28px; height: 28px; border-radius: 8px; border: none;
+      background: var(--panel-2); color: var(--text-dim); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+    }
+    .modal-close:hover { color: var(--text); background: rgba(255,255,255,.08); }
+    .modal-body { padding: 20px 22px; }
+    .modal-footer {
+      padding: 14px 22px; border-top: 1px solid var(--border);
+      display: flex; gap: 8px; justify-content: flex-end;
+      position: sticky; bottom: 0; background: var(--panel);
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+    .form-row.single { grid-template-columns: 1fr; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-label { font-size: 12px; color: var(--text-dim); font-weight: 500; }
+    .form-input {
+      padding: 8px 11px; background: var(--panel-2); border: 1px solid var(--border);
+      border-radius: 8px; color: var(--text); font-size: 13px;
+      transition: border-color .15s;
+    }
+    .form-input:focus { outline: none; border-color: var(--accent); }
+    textarea.form-input { resize: vertical; min-height: 80px; font-family: inherit; }
+    .form-check { display: flex; align-items: center; gap: 8px; padding: 8px 0; }
+    .form-check input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
+    .form-check label { font-size: 13px; cursor: pointer; }
+    .form-hint { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+    .form-error { font-size: 12px; color: var(--red); margin-top: 4px; }
+    .toast {
+      position: fixed; bottom: 24px; right: 24px; z-index: 200;
+      padding: 10px 18px; border-radius: 10px; font-size: 13px;
+      background: var(--panel-2); border: 1px solid var(--border);
+      box-shadow: 0 8px 30px rgba(0,0,0,.4);
+      animation: toastIn .2s ease;
+    }
+    .toast.ok { border-color: rgba(52,211,153,.4); color: var(--green); }
+    .toast.err { border-color: rgba(248,113,113,.4); color: var(--red); }
+    @keyframes toastIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .loading { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .truncate { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .preview-img { width: 60px; height: 40px; object-fit: cover; border-radius: 6px; background: var(--panel-2); }
+    .tag-list { display: flex; flex-wrap: wrap; gap: 4px; }
+    .tag-item { padding: 1px 6px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 4px; font-size: 11px; color: var(--text-dim); }
+  </style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a href="/" class="brand">
+      <div class="dot"></div>
+      <span>Prompt Vault</span>
+    </a>
+    <nav class="topbar-nav">
+      <button class="nav-btn" onclick="showPage('cards')" id="nav-cards">主站卡片</button>
+      <button class="nav-btn" onclick="showPage('ideas')" id="nav-ideas">AI 灵感库</button>
+      <button class="nav-btn" onclick="showPage('tutorials')" id="nav-tutorials">教程管理</button>
+    </nav>
+    <div class="topbar-right">
+      <a href="/admin/security" class="link">安全后台</a>
+      <button class="link" onclick="location.reload()">刷新</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- 主站卡片管理 -->
+  <div class="page active" id="page-cards">
+    <div class="page-header">
+      <div>
+        <div class="page-title">主站卡片管理</div>
+        <div class="page-sub">管理主站提示词卡片，支持查询、新增、编辑、下架、恢复</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" onclick="openImportModal()">批量导入</button>
+        <button class="btn primary" onclick="openCardModal()">+ 新增卡片</button>
+      </div>
+    </div>
+    <div class="toolbar">
+      <input type="text" id="cards-q" placeholder="搜索标题、简介…" onkeydown="if(event.key==='Enter')loadCards()" />
+      <select id="cards-category"><option value="">全部分类</option></select>
+      <select id="cards-active">
+        <option value="all">全部状态</option><option value="1">已启用</option><option value="0">已下架</option>
+      </select>
+      <select id="cards-free">
+        <option value="all">全部收费</option><option value="1">免费</option><option value="0">付费</option>
+      </select>
+      <select id="cards-blindbox">
+        <option value="all">全部盲盒</option><option value="1">盲盒</option><option value="0">非盲盒</option>
+      </select>
+      <select id="cards-sort">
+        <option value="created_desc">最新创建</option>
+        <option value="created_asc">最早创建</option>
+        <option value="updated_desc">最近更新</option>
+        <option value="sort_order">按排序</option>
+        <option value="title">按标题</option>
+      </select>
+      <button class="btn primary" onclick="loadCards()">搜索</button>
+    </div>
+    <div id="cards-table"></div>
+    <div class="pagination" id="cards-pagination"></div>
+  </div>
+
+  <!-- AI 灵感库管理 -->
+  <div class="page" id="page-ideas">
+    <div class="page-header">
+      <div>
+        <div class="page-title">AI 灵感库管理</div>
+        <div class="page-sub">管理 AI 灵感库、图片灵感、视频灵感</div>
+      </div>
+      <button class="btn primary" onclick="openIdeaModal()">+ 新增灵感</button>
+    </div>
+    <div class="toolbar">
+      <input type="text" id="ideas-q" placeholder="搜索标题…" onkeydown="if(event.key==='Enter')loadIdeas()" />
+      <select id="ideas-kind">
+        <option value="">全部类型</option>
+        <option value="shorts">AI 灵感库</option>
+        <option value="imageIdeas">图片灵感</option>
+        <option value="videoIdeas">视频灵感</option>
+      </select>
+      <select id="ideas-active">
+        <option value="all">全部状态</option><option value="1">已启用</option><option value="0">已下架</option>
+      </select>
+      <select id="ideas-sort">
+        <option value="created_desc">最新创建</option>
+        <option value="created_asc">最早创建</option>
+        <option value="sort_order">按排序</option>
+        <option value="title">按标题</option>
+      </select>
+      <button class="btn primary" onclick="loadIdeas()">搜索</button>
+    </div>
+    <div id="ideas-table"></div>
+    <div class="pagination" id="ideas-pagination"></div>
+  </div>
+
+  <!-- 教程管理 -->
+  <div class="page" id="page-tutorials">
+    <div class="page-header">
+      <div>
+        <div class="page-title">教程管理</div>
+        <div class="page-sub">管理登录页「使用教程」按钮的链接和视频</div>
+      </div>
+      <button class="btn primary" onclick="openTutorialModal()">+ 新增教程</button>
+    </div>
+    <div id="tutorials-table"></div>
+  </div>
+</main>
+
+<!-- 卡片弹窗 -->
+<div class="modal-overlay hidden" id="card-modal-overlay" onclick="if(event.target===this)closeCardModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title" id="card-modal-title">新增卡片</div>
+      <button class="modal-close" onclick="closeCardModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">ID *</label><input class="form-input" id="card-id" placeholder="唯一ID，如 card-001" /></div>
+        <div class="form-group"><label class="form-label">标题 *</label><input class="form-input" id="card-title" placeholder="卡片标题" /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">分类</label><input class="form-input" id="card-category" placeholder="如 Hero、Landing Page" /></div>
+        <div class="form-group"><label class="form-label">页面类型</label><input class="form-input" id="card-page_type" placeholder="如 hero、landing" /></div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group"><label class="form-label">简介</label><textarea class="form-input" id="card-summary" rows="2" placeholder="简短描述，不超过 150 字"></textarea></div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group"><label class="form-label">封面图 URL</label><input class="form-input" id="card-preview_image_url" placeholder="https://..." /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">演示链接</label><input class="form-input" id="card-demo_url" placeholder="https://motionsites.ai/..." /></div>
+        <div class="form-group"><label class="form-label">来源链接</label><input class="form-input" id="card-source_url" placeholder="https://..." /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">排序值</label><input class="form-input" type="number" id="card-sort_order" value="0" placeholder="数字越小越靠前" /></div>
+        <div class="form-group"><label class="form-label">标签 (逗号分隔)</label><input class="form-input" id="card-tags" placeholder="3d, landing, hero" /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">正文 Prompt</label><textarea class="form-input" id="card-prompt_text" rows="5" placeholder="完整的 prompt 文本…" style="font-family:'JetBrains Mono',monospace;font-size:12px;"></textarea></div>
+      </div>
+      <div class="form-row">
+        <div class="form-check"><input type="checkbox" id="card-is_free" /><label for="card-is_free">免费（无需会员）</label></div>
+        <div class="form-check"><input type="checkbox" id="card-is_blindbox" /><label for="card-is_blindbox">盲盒卡片</label></div>
+        <div class="form-check"><input type="checkbox" id="card-member_only" checked /><label for="card-member_only">会员专属</label></div>
+        <div class="form-check"><input type="checkbox" id="card-active" checked /><label for="card-active">启用</label></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeCardModal()">取消</button>
+      <button class="btn primary" id="card-save-btn" onclick="saveCard()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 批量导入弹窗 -->
+<div class="modal-overlay hidden" id="import-modal-overlay" onclick="if(event.target===this)closeImportModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title">批量导入卡片</div>
+      <button class="modal-close" onclick="closeImportModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group" style="margin-bottom:12px;">
+        <label class="form-label">粘贴 JSON 数组</label>
+        <textarea class="form-input" id="import-json" rows="10" placeholder='[{"id":"card-001","title":"卡片标题","category":"Hero","prompt_text":"..."}]' style="font-family:'JetBrains Mono',monospace;font-size:12px;"></textarea>
+        <div class="form-hint">支持粘贴完整的卡片 JSON 数组，系统会自动识别并导入</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeImportModal()">取消</button>
+      <button class="btn primary" onclick="doImport()">导入</button>
+    </div>
+  </div>
+</div>
+
+<!-- 灵感弹窗 -->
+<div class="modal-overlay hidden" id="idea-modal-overlay" onclick="if(event.target===this)closeIdeaModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title" id="idea-modal-title">新增灵感</div>
+      <button class="modal-close" onclick="closeIdeaModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">ID *</label><input class="form-input" id="idea-id" placeholder="唯一ID" /></div>
+        <div class="form-group"><label class="form-label">类型 *</label>
+          <select class="form-input" id="idea-kind">
+            <option value="shorts">AI 灵感库</option><option value="imageIdeas">图片灵感</option><option value="videoIdeas">视频灵感</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">标题 *</label><input class="form-input" id="idea-title" placeholder="标题" /></div>
+        <div class="form-group"><label class="form-label">分类</label><input class="form-input" id="idea-category" placeholder="分类" /></div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group"><label class="form-label">简介</label><textarea class="form-input" id="idea-summary" rows="2" placeholder="简短描述"></textarea></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">封面图 URL</label><input class="form-input" id="idea-preview_image_url" placeholder="https://..." /></div>
+        <div class="form-group"><label class="form-label">视频 URL</label><input class="form-input" id="idea-preview_video_url" placeholder="https://..." /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">排序值</label><input class="form-input" type="number" id="idea-sort_order" value="0" /></div>
+        <div class="form-group"><label class="form-label">标签 (逗号分隔)</label><input class="form-input" id="idea-tags" placeholder="标签" /></div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group"><label class="form-label">正文 Prompt</label><textarea class="form-input" id="idea-prompt_text" rows="5" placeholder="prompt 内容…" style="font-family:'JetBrains Mono',monospace;font-size:12px;"></textarea></div>
+      </div>
+      <div class="form-check"><input type="checkbox" id="idea-active" checked /><label for="idea-active">启用</label></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeIdeaModal()">取消</button>
+      <button class="btn primary" onclick="saveIdea()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 教程弹窗 -->
+<div class="modal-overlay hidden" id="tutorial-modal-overlay" onclick="if(event.target===this)closeTutorialModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-title" id="tutorial-modal-title">新增教程</div>
+      <button class="modal-close" onclick="closeTutorialModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">ID *</label><input class="form-input" id="tutorial-id" placeholder="唯一ID" /></div>
+        <div class="form-group"><label class="form-label">排序值</label><input class="form-input" type="number" id="tutorial-sort_order" value="1" /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">标题 *</label><input class="form-input" id="tutorial-title" placeholder="教程标题" /></div>
+        <div class="form-group"><label class="form-label">按钮文案</label><input class="form-input" id="tutorial-button_label" placeholder="使用教程" /></div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group"><label class="form-label">描述</label><textarea class="form-input" id="tutorial-description" rows="2" placeholder="简短描述"></textarea></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">外部链接 (新窗口打开)</label><input class="form-input" id="tutorial-external_url" placeholder="https://v.douyin.com/..." /></div>
+        <div class="form-group"><label class="form-label">平台</label>
+          <select class="form-input" id="tutorial-platform">
+            <option value="douyin">抖音</option><option value="bilibili">哔哩哔哩</option>
+            <option value="youtube">YouTube</option><option value="local">本地视频</option>
+            <option value="other">其他</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group"><label class="form-label">本地视频路径 /public 下的路径</label><input class="form-input" id="tutorial-video_url" placeholder="如 teach.mp4" /></div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group"><label class="form-label">封面图 URL</label><input class="form-input" id="tutorial-cover_url" placeholder="https://..." /></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">打开方式</label>
+          <select class="form-input" id="tutorial-open_mode">
+            <option value="external">新窗口打开外部链接</option><option value="embed">内嵌 iframe 播放</option>
+            <option value="local">播放本地视频</option>
+          </select>
+        </div>
+        <div class="form-group" style="justify-content:flex-end;padding-bottom:4px;">
+          <div class="form-check"><input type="checkbox" id="tutorial-enabled" checked /><label for="tutorial-enabled">启用</label></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeTutorialModal()">取消</button>
+      <button class="btn primary" onclick="saveTutorial()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let cardsPage = 1, ideasPage = 1;
+let editingCardId = null, editingIdeaId = null, editingTutorialId = null;
+let categoriesCache = [];
+
+// ---- API helpers ----
+async function api(method, url, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin' };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  const j = await r.json();
+  if (!j.ok && r.status === 403) { showToast('权限不足，需要管理员身份', 'err'); return null; }
+  if (!j.ok) { showToast(j.error || '操作失败', 'err'); return null; }
+  return j;
+}
+
+// ---- Toast ----
+function showToast(msg, type='ok') {
+  const old = document.querySelector('.toast');
+  if (old) old.remove();
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ---- Page navigation ----
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  $('page-' + name).classList.add('active');
+  $('nav-' + name).classList.add('active');
+  if (name === 'cards') loadCards();
+  else if (name === 'ideas') loadIdeas();
+  else if (name === 'tutorials') loadTutorials();
+}
+
+// ---- Cards ----
+async function loadCards(page = 1) {
+  cardsPage = page;
+  const q = $('cards-q').value;
+  const category = $('cards-category').value;
+  const active = $('cards-active').value;
+  const free = $('cards-free').value;
+  const blindbox = $('cards-blindbox').value;
+  const sort = $('cards-sort').value;
+  const params = new URLSearchParams({ page, limit: 30, sort });
+  if (q) params.set('q', q);
+  if (category) params.set('category', category);
+  if (active !== 'all') params.set('active', active);
+  if (free !== 'all') params.set('free', free);
+  if (blindbox !== 'all') params.set('blindbox', blindbox);
+  const res = await api('GET', `/api/admin/content/cards?${params}`);
+  if (!res) return;
+  renderCards(res);
+}
+
+function renderCards(res) {
+  // Populate categories dropdown
+  const cats = [...new Set(res.items.map(i => i.category).filter(Boolean))];
+  if (cats.length && cats.join() !== categoriesCache.join()) {
+    categoriesCache = cats;
+    $('cards-category').innerHTML = '<option value="">全部分类</option>' + cats.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    if ($('cards-category').dataset.val) {
+      $('cards-category').value = $('cards-category').dataset.val;
+      $('cards-category').dataset.val = '';
+    }
+  }
+  if (!res.items.length) {
+    $('cards-table').innerHTML = '<div class="empty"><div class="empty-icon">📭</div>暂无卡片</div>';
+    $('cards-pagination').innerHTML = '';
+    return;
+  }
+  $('cards-table').innerHTML = `<div class="tbl-scroll">
+    <table><thead><tr>
+      <th>封面</th><th>标题</th><th>分类</th><th>收费</th><th>盲盒</th><th>排序</th><th>字符</th><th>状态</th><th>更新</th><th>操作</th>
+    </tr></thead><tbody>
+      ${res.items.map(item => `
+      <tr>
+        <td>${item.preview_image_url ? `<img class="preview-img" src="${esc(item.preview_image_url)}" onerror="this.style.display='none'" />` : '—'}</td>
+        <td class="truncate" style="max-width:160px" title="${esc(item.title)}">${esc(item.title)}</td>
+        <td>${item.category ? `<span class="pill">${esc(item.category)}</span>` : '—'}</td>
+        <td>${item.is_free ? '<span class="badge free">免费</span>' : '<span class="badge paid">付费</span>'}</td>
+        <td>${item.is_blindbox ? '<span class="badge blindbox">盲盒</span>' : '—'}</td>
+        <td style="text-align:center">${item.sort_order}</td>
+        <td style="text-align:right;color:var(--text-dim)">—</td>
+        <td>${item.active ? '<span class="badge enabled">启用</span>' : '<span class="badge disabled">下架</span>'}</td>
+        <td style="color:var(--text-dim);font-size:12px">${fmtDate(item.updated_at || item.created_at)}</td>
+        <td class="tbl-actions">
+          <button class="btn" onclick="viewCard('${esc(item.id)}')">查看</button>
+          <button class="btn" onclick="editCard('${esc(item.id)}')">编辑</button>
+          ${item.active
+            ? `<button class="btn amber" onclick="toggleCardStatus('${esc(item.id)}',0)">下架</button>`
+            : `<button class="btn green" onclick="toggleCardStatus('${esc(item.id)}',1)">恢复</button>`}
+        </td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+  const total = res.total;
+  const pages = Math.ceil(total / res.limit);
+  $('cards-pagination').innerHTML = pages > 1 ? `
+    <button class="btn" ${cardsPage <= 1 ? 'disabled' : ''} onclick="loadCards(${cardsPage-1})">上一页</button>
+    <span class="info">${cardsPage}/${pages} (${total}条)</span>
+    <button class="btn" ${cardsPage >= pages ? 'disabled' : ''} onclick="loadCards(${cardsPage+1})">下一页</button>` : `<span class="info">${total} 条记录</span>`;
+}
+
+async function viewCard(id) {
+  const res = await api('GET', `/api/admin/content/cards/${encodeURIComponent(id)}`);
+  if (!res) return;
+  openCardModal(res.item, true);
+}
+
+async function editCard(id) {
+  const res = await api('GET', `/api/admin/content/cards/${encodeURIComponent(id)}`);
+  if (!res) return;
+  openCardModal(res.item, false);
+}
+
+function openCardModal(item = null, viewOnly = false) {
+  editingCardId = item?.id || null;
+  $('card-modal-title').textContent = viewOnly ? '查看卡片' : (item ? '编辑卡片' : '新增卡片');
+  $('card-id').value = item?.id || '';
+  $('card-id').disabled = !!item;
+  $('card-title').value = item?.title || '';
+  $('card-category').value = item?.category || '';
+  $('card-page_type').value = item?.page_type || '';
+  $('card-summary').value = item?.summary || '';
+  $('card-preview_image_url').value = item?.preview_image_url || '';
+  $('card-demo_url').value = item?.demo_url || '';
+  $('card-source_url').value = item?.source_url || '';
+  $('card-sort_order').value = item?.sort_order ?? 0;
+  $('card-tags').value = Array.isArray(item?.tags) ? item.tags.join(', ') : '';
+  $('card-prompt_text').value = item?.prompt_text || '';
+  $('card-is_free').checked = item?.is_free;
+  $('card-is_blindbox').checked = item?.is_blindbox;
+  $('card-member_only').checked = item?.member_only !== false;
+  $('card-active').checked = item?.active !== false;
+  $('card-save-btn').style.display = viewOnly ? 'none' : '';
+  // Make fields readonly if viewOnly
+  document.querySelectorAll('#card-modal-overlay input,#card-modal-overlay textarea').forEach(el => {
+    el.readOnly = viewOnly;
+  });
+  $('card-modal-overlay').classList.remove('hidden');
+}
+
+function closeCardModal() {
+  $('card-modal-overlay').classList.add('hidden');
+  document.querySelectorAll('#card-modal-overlay input,#card-modal-overlay textarea').forEach(el => el.readOnly = false);
+}
+
+async function saveCard() {
+  const body = {
+    id: $('card-id').value.trim(),
+    title: $('card-title').value.trim(),
+    category: $('card-category').value.trim() || null,
+    page_type: $('card-page_type').value.trim() || null,
+    summary: $('card-summary').value.trim() || null,
+    preview_image_url: $('card-preview_image_url').value.trim() || null,
+    demo_url: $('card-demo_url').value.trim() || null,
+    source_url: $('card-source_url').value.trim() || null,
+    sort_order: parseInt($('card-sort_order').value) || 0,
+    tags: $('card-tags').value.split(/[,，、]/).map(s => s.trim()).filter(Boolean),
+    prompt_text: $('card-prompt_text').value,
+    is_free: $('card-is_free').checked,
+    is_blindbox: $('card-is_blindbox').checked,
+    member_only: $('card-member_only').checked,
+    active: $('card-active').checked,
+  };
+  if (!body.id || !body.title) { showToast('ID 和标题不能为空', 'err'); return; }
+  const btn = $('card-save-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="loading"></span>';
+  let ok;
+  if (editingCardId) {
+    ok = await api('PUT', `/api/admin/content/cards/${encodeURIComponent(editingCardId)}`, body);
+  } else {
+    ok = await api('POST', '/api/admin/content/cards', body);
+  }
+  btn.disabled = false; btn.textContent = '保存';
+  if (ok) {
+    closeCardModal();
+    showToast('保存成功');
+    loadCards(cardsPage);
+  }
+}
+
+async function toggleCardStatus(id, active) {
+  const reason = active ? '' : prompt('请输入下架原因（可选）：') || '';
+  const res = await api('PATCH', `/api/admin/content/cards/${encodeURIComponent(id)}/status`, { active, reason });
+  if (res) { showToast(active ? '已恢复' : '已下架'); loadCards(cardsPage); }
+}
+
+function openImportModal() { $('import-modal-overlay').classList.remove('hidden'); }
+function closeImportModal() { $('import-modal-overlay').classList.add('hidden'); $('import-json').value = ''; }
+
+async function doImport() {
+  let data;
+  try { data = JSON.parse($('import-json').value); } catch { showToast('JSON 格式错误', 'err'); return; }
+  if (!Array.isArray(data)) { showToast('需要 JSON 数组', 'err'); return; }
+  const res = await api('POST', '/api/admin/content/cards/import-json', { items: data });
+  if (res) {
+    closeImportModal();
+    showToast(`导入完成：新增 ${res.inserted}，更新 ${res.updated}`);
+    loadCards();
+  }
+}
+
+// ---- Ideas ----
+async function loadIdeas(page = 1) {
+  ideasPage = page;
+  const q = $('ideas-q').value;
+  const kind = $('ideas-kind').value;
+  const active = $('ideas-active').value;
+  const sort = $('ideas-sort').value;
+  const params = new URLSearchParams({ page, limit: 30, sort });
+  if (q) params.set('q', q);
+  if (kind) params.set('kind', kind);
+  if (active !== 'all') params.set('active', active);
+  const res = await api('GET', `/api/admin/content/ideas?${params}`);
+  if (!res) return;
+  renderIdeas(res);
+}
+
+function renderIdeas(res) {
+  if (!res.items.length) {
+    $('ideas-table').innerHTML = '<div class="empty"><div class="empty-icon">💡</div>暂无灵感记录</div>';
+    $('ideas-pagination').innerHTML = '';
+    return;
+  }
+  const kindLabel = { shorts: 'AI灵感库', imageIdeas: '图片灵感', videoIdeas: '视频灵感' };
+  $('ideas-table').innerHTML = `<div class="tbl-scroll">
+    <table><thead><tr>
+      <th>标题</th><th>类型</th><th>分类</th><th>字符</th><th>状态</th><th>创建</th><th>操作</th>
+    </tr></thead><tbody>
+      ${res.items.map(item => `
+      <tr>
+        <td class="truncate" style="max-width:200px" title="${esc(item.title)}">${esc(item.title)}</td>
+        <td><span class="pill ${item.kind === 'shorts' ? 'cyan' : item.kind === 'imageIdeas' ? 'purple' : 'amber'}">${kindLabel[item.kind] || item.kind}</span></td>
+        <td>${item.category ? `<span class="pill">${esc(item.category)}</span>` : '—'}</td>
+        <td style="color:var(--text-dim)">${item.prompt_text_length || 0}</td>
+        <td>${item.active ? '<span class="badge enabled">启用</span>' : '<span class="badge disabled">下架</span>'}</td>
+        <td style="color:var(--text-dim);font-size:12px">${fmtDate(item.created_at)}</td>
+        <td class="tbl-actions">
+          <button class="btn" onclick="editIdea('${esc(item.id)}')">编辑</button>
+          ${item.active
+            ? `<button class="btn amber" onclick="toggleIdeaStatus('${esc(item.id)}',0)">下架</button>`
+            : `<button class="btn green" onclick="toggleIdeaStatus('${esc(item.id)}',1)">恢复</button>`}
+        </td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+  const total = res.total;
+  const pages = Math.ceil(total / res.limit);
+  $('ideas-pagination').innerHTML = pages > 1 ? `
+    <button class="btn" ${ideasPage <= 1 ? 'disabled' : ''} onclick="loadIdeas(${ideasPage-1})">上一页</button>
+    <span class="info">${ideasPage}/${pages} (${total}条)</span>
+    <button class="btn" ${ideasPage >= pages ? 'disabled' : ''} onclick="loadIdeas(${ideasPage+1})">下一页</button>` : `<span class="info">${total} 条记录</span>`;
+}
+
+async function editIdea(id) {
+  const res = await api('GET', `/api/admin/content/ideas/${encodeURIComponent(id)}`);
+  if (!res) return;
+  openIdeaModal(res.item);
+}
+
+function openIdeaModal(item = null) {
+  editingIdeaId = item?.id || null;
+  $('idea-modal-title').textContent = item ? '编辑灵感' : '新增灵感';
+  $('idea-id').value = item?.id || '';
+  $('idea-id').disabled = !!item;
+  $('idea-kind').value = item?.kind || 'shorts';
+  $('idea-title').value = item?.title || '';
+  $('idea-category').value = item?.category || '';
+  $('idea-summary').value = item?.summary || '';
+  $('idea-preview_image_url').value = item?.preview_image_url || '';
+  $('idea-preview_video_url').value = item?.preview_video_url || '';
+  $('idea-sort_order').value = item?.sort_order ?? 0;
+  $('idea-tags').value = Array.isArray(item?.tags) ? item.tags.join(', ') : '';
+  $('idea-prompt_text').value = item?.prompt_text || '';
+  $('idea-active').checked = item?.active !== false;
+  $('idea-modal-overlay').classList.remove('hidden');
+}
+
+function closeIdeaModal() { $('idea-modal-overlay').classList.add('hidden'); }
+
+async function saveIdea() {
+  const body = {
+    id: $('idea-id').value.trim(),
+    kind: $('idea-kind').value,
+    title: $('idea-title').value.trim(),
+    category: $('idea-category').value.trim() || null,
+    summary: $('idea-summary').value.trim() || null,
+    preview_image_url: $('idea-preview_image_url').value.trim() || null,
+    preview_video_url: $('idea-preview_video_url').value.trim() || null,
+    sort_order: parseInt($('idea-sort_order').value) || 0,
+    tags: $('idea-tags').value.split(/[,，、]/).map(s => s.trim()).filter(Boolean),
+    prompt_text: $('idea-prompt_text').value,
+    active: $('idea-active').checked,
+  };
+  if (!body.id || !body.kind || !body.title) { showToast('ID、类型和标题不能为空', 'err'); return; }
+  const btn = $('idea-modal-overlay').querySelector('.btn.primary');
+  btn.disabled = true; btn.innerHTML = '<span class="loading"></span>';
+  let ok;
+  if (editingIdeaId) {
+    ok = await api('PUT', `/api/admin/content/ideas/${encodeURIComponent(editingIdeaId)}`, body);
+  } else {
+    ok = await api('POST', '/api/admin/content/ideas', body);
+  }
+  btn.disabled = false; btn.textContent = '保存';
+  if (ok) { closeIdeaModal(); showToast('保存成功'); loadIdeas(ideasPage); }
+}
+
+async function toggleIdeaStatus(id, active) {
+  const res = await api('PATCH', `/api/admin/content/ideas/${encodeURIComponent(id)}/status`, { active });
+  if (res) { showToast(active ? '已恢复' : '已下架'); loadIdeas(ideasPage); }
+}
+
+// ---- Tutorials ----
+async function loadTutorials() {
+  const res = await api('GET', '/api/admin/content/tutorials');
+  if (!res) return;
+  renderTutorials(res.items);
+}
+
+function renderTutorials(items) {
+  if (!items.length) {
+    $('tutorials-table').innerHTML = '<div class="empty"><div class="empty-icon">🎬</div>暂无教程</div>';
+    return;
+  }
+  const platformLabel = { douyin: '抖音', bilibili: '哔哩', youtube: 'YouTube', local: '本地', other: '其他' };
+  const openModeLabel = { external: '新窗口', embed: '内嵌iframe', local: '本地播放' };
+  $('tutorials-table').innerHTML = `<div class="tbl-scroll">
+    <table><thead><tr>
+      <th>排序</th><th>标题</th><th>描述</th><th>平台</th><th>打开方式</th><th>链接</th><th>状态</th><th>操作</th>
+    </tr></thead><tbody>
+      ${items.map(item => `
+      <tr>
+        <td style="text-align:center;color:var(--text-dim)">${item.sort_order}</td>
+        <td>${esc(item.title)}</td>
+        <td class="truncate" style="max-width:180px;color:var(--text-dim)" title="${esc(item.description)}">${esc(item.description) || '—'}</td>
+        <td><span class="pill">${platformLabel[item.platform] || item.platform || '—'}</span></td>
+        <td><span class="pill">${openModeLabel[item.open_mode] || item.open_mode}</span></td>
+        <td class="truncate" style="max-width:200px;color:var(--cyan);font-size:12px" title="${esc(item.external_url || item.video_url)}">${esc(item.external_url || item.video_url) || '—'}</td>
+        <td>${item.enabled ? '<span class="badge enabled">启用</span>' : '<span class="badge disabled">禁用</span>'}</td>
+        <td class="tbl-actions">
+          <button class="btn" onclick="editTutorial('${esc(item.id)}')">编辑</button>
+          ${item.enabled
+            ? `<button class="btn amber" onclick="toggleTutorialStatus('${esc(item.id)}',0)">禁用</button>`
+            : `<button class="btn green" onclick="toggleTutorialStatus('${esc(item.id)}',1)">启用</button>`}
+          <button class="btn red" onclick="deleteTutorial('${esc(item.id)}')">删除</button>
+        </td>
+      </tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+async function editTutorial(id) {
+  const res = await api('GET', `/api/admin/content/tutorials/${encodeURIComponent(id)}`);
+  if (!res) return;
+  openTutorialModal(res.item);
+}
+
+function openTutorialModal(item = null) {
+  editingTutorialId = item?.id || null;
+  $('tutorial-modal-title').textContent = item ? '编辑教程' : '新增教程';
+  $('tutorial-id').value = item?.id || '';
+  $('tutorial-id').disabled = !!item;
+  $('tutorial-sort_order').value = item?.sort_order ?? 1;
+  $('tutorial-title').value = item?.title || '';
+  $('tutorial-button_label').value = item?.button_label || '';
+  $('tutorial-description').value = item?.description || '';
+  $('tutorial-external_url').value = item?.external_url || '';
+  $('tutorial-platform').value = item?.platform || 'douyin';
+  $('tutorial-video_url').value = item?.video_url || '';
+  $('tutorial-cover_url').value = item?.cover_url || '';
+  $('tutorial-open_mode').value = item?.open_mode || 'external';
+  $('tutorial-enabled').checked = item?.enabled !== false;
+  $('tutorial-modal-overlay').classList.remove('hidden');
+}
+
+function closeTutorialModal() { $('tutorial-modal-overlay').classList.add('hidden'); }
+
+async function saveTutorial() {
+  const body = {
+    id: $('tutorial-id').value.trim(),
+    title: $('tutorial-title').value.trim(),
+    button_label: $('tutorial-button_label').value.trim() || null,
+    description: $('tutorial-description').value.trim() || null,
+    external_url: $('tutorial-external_url').value.trim() || null,
+    platform: $('tutorial-platform').value,
+    video_url: $('tutorial-video_url').value.trim() || null,
+    cover_url: $('tutorial-cover_url').value.trim() || null,
+    open_mode: $('tutorial-open_mode').value,
+    sort_order: parseInt($('tutorial-sort_order').value) || 1,
+    enabled: $('tutorial-enabled').checked,
+  };
+  if (!body.id || !body.title) { showToast('ID 和标题不能为空', 'err'); return; }
+  const btn = $('tutorial-modal-overlay').querySelector('.btn.primary');
+  btn.disabled = true; btn.innerHTML = '<span class="loading"></span>';
+  let ok;
+  if (editingTutorialId) {
+    ok = await api('PUT', `/api/admin/content/tutorials/${encodeURIComponent(editingTutorialId)}`, body);
+  } else {
+    ok = await api('POST', '/api/admin/content/tutorials', body);
+  }
+  btn.disabled = false; btn.textContent = '保存';
+  if (ok) { closeTutorialModal(); showToast('保存成功'); loadTutorials(); }
+}
+
+async function toggleTutorialStatus(id, enabled) {
+  const res = await api('PATCH', `/api/admin/content/tutorials/${encodeURIComponent(id)}/status`, { enabled });
+  if (res) { showToast(enabled ? '已启用' : '已禁用'); loadTutorials(); }
+}
+
+async function deleteTutorial(id) {
+  if (!confirm('确定要删除这个教程吗？')) return;
+  const res = await api('DELETE', `/api/admin/content/tutorials/${encodeURIComponent(id)}`);
+  if (res) { showToast('已删除'); loadTutorials(); }
+}
+
+// ---- Utils ----
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmtDate(s) {
+  if (!s) return '—';
+  const d = new Date(s);
+  if (isNaN(d)) return s;
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// ---- Init ----
+loadCards();
+</script>
+</body>
+</html>

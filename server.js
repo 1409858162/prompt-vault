@@ -98,7 +98,12 @@ app.use(cookieParser());
 
 function asyncHandler(fn) {
   return (req, res, next) => {
-    Promise.resolve(fn(req, res, next)).catch(next);
+    Promise.resolve(fn(req, res, next)).catch(err => {
+      if (err) {
+        console.error('[asyncHandler] Error:', err.message);
+      }
+      next(err);
+    });
   };
 }
 
@@ -195,15 +200,9 @@ const IDEA_LIBRARY_SOURCES = {
     defaultCategory: '一人公司',
   },
 };
-const REMOVED_IDEA_TITLES = new Set([
-  '无限制的 ChatGPT（降权）',
-]);
 function isRemovedIdeaRecord(raw) {
-  const title = String(raw?.title || raw?.name || '').trim();
-  if (REMOVED_IDEA_TITLES.has(title)) return true;
   const summary = String(raw?.summary || raw?.description || '').trim();
-  return title.includes('无限制的 ChatGPT')
-    && summary.includes('2023.06.10')
+  return summary.includes('2023.06.10')
     && summary.includes('被降权');
 }
 let COVER_THUMBS = Object.create(null);
@@ -232,12 +231,80 @@ loadCoverThumbsManifest();
 // restart needed. Each response still gets a fresh ETag based on the cache
 // version, so clients can do If-None-Match → 304 with zero body.
 //
-// Cache shape:
-//   sanitized[]       — list view (no prompt_text)
-//   byId: Map         — id -> raw record (used by /:id/access and /:id)
+// Priority: MySQL prompt_cards (if table exists and has rows) > merged-prompts.json
 let PROMPTS_CACHE = null;
 let KNOWN_COVER_URLS = null;
+
+// Check if prompt_cards table has data
+async function loadPromptsFromMySQL() {
+  try {
+    const rows = await mysqlQuery(
+      `SELECT c.id, c.title, c.category, c.original_category, c.page_type,
+              c.summary, c.description, c.tags, c.preview_image_url, c.preview_thumb_url,
+              c.image_preview_url, c.source_url, c.demo_url, c.sort_order, c.source,
+              c.is_free, c.is_blindbox, c.member_only, c.active, c.heat, c.created_at,
+              b.prompt_text, b.prompt_text_length
+         FROM prompt_cards c
+         LEFT JOIN prompt_card_bodies b ON b.card_id = c.id
+         WHERE c.active = 1
+         ORDER BY c.sort_order ASC, c.created_at DESC`,
+      []
+    );
+    return rows;
+  } catch (err) {
+    console.warn('[prompts] MySQL load failed, falling back to JSON:', err.message);
+    return null;
+  }
+}
+
+function promptListItemFromMySQL(row) {
+  const explicitImage = row.preview_image_url || row.image_preview_url || null;
+  const demoKind = row.demo_url ? classifyPreviewUrl(row.demo_url) : null;
+  const explicitVideo = demoKind === 'video' ? row.demo_url : null;
+  const explicitPlayable = explicitVideo;
+  const derived = (!explicitImage && !explicitVideo && !explicitPlayable)
+    ? extractPreviewFromPromptText(row)
+    : null;
+  const previewImageUrl = explicitImage || (demoKind === 'image' ? row.demo_url : null) || (derived?.kind === 'image' ? derived.url : null);
+  const previewVideoUrl = explicitVideo || null;
+  const playableVideoUrl = explicitPlayable || (derived?.kind === 'video' ? derived.url : null);
+  const previewThumbUrl = row.preview_thumb_url || (previewImageUrl ? (COVER_THUMBS[previewImageUrl] || null) : null);
+  const hasPreview = !!(previewImageUrl || previewVideoUrl || playableVideoUrl);
+  const isBlindBox = !!row.is_blindbox || /盲盒/.test(String(row.category || ''));
+  const forceBlindBox = isBlindBox && !hasPreview;
+  return {
+    id: row.id,
+    title: row.title,
+    category: !forceBlindBox && isBlindBox && row.original_category ? row.original_category : row.category,
+    original_category: row.original_category,
+    special_collection: forceBlindBox ? 'blind_box' : null,
+    page_type: row.page_type,
+    summary: row.summary,
+    description: row.description,
+    tags: row.tags,
+    preview_image_url: previewImageUrl,
+    preview_thumb_url: previewThumbUrl,
+    image_preview_url: row.image_preview_url,
+    source_url: row.source_url,
+    demo_url: row.demo_url,
+    preview_video_url: previewVideoUrl,
+    playable_video_url: playableVideoUrl,
+    sort_order: row.sort_order,
+    source: row.source,
+    is_free: !!row.is_free,
+    is_blindbox: !!row.is_blindbox,
+    member_only: !!row.member_only,
+    active: !!row.active,
+    heat: row.heat,
+    prompt_text_length: row.prompt_text_length || 0,
+    created_at: row.created_at,
+  };
+}
+
 function loadPromptsCache() {
+  // Try MySQL first — if it has data, use it
+  // This is called synchronously at startup; we load MySQL data
+  // into a separate cache and merge at runtime
   const raw = fs.readFileSync(PROMPTS_PATH, 'utf8');
   const data = JSON.parse(raw);
   const sanitized = data.map(promptListItem);
@@ -260,9 +327,67 @@ function loadPromptsCache() {
   KNOWN_COVER_URLS = null;
   console.log(`  -> prompts cache loaded: ${sanitized.length} items (${(raw.length / 1024).toFixed(0)}KB source)`);
 }
+
+// Async version that tries MySQL first
+let MYSQL_PROMPTS_CACHE = null;
+let MYSQL_PROMPTS_LOADED = false;
+let MYSQL_PROMPTS_LOAD_PROMISE = null;
+
+async function loadMySQLPromptsCache() {
+  if (MYSQL_PROMPTS_LOADED) return;
+  if (MYSQL_PROMPTS_LOAD_PROMISE) return MYSQL_PROMPTS_LOAD_PROMISE;
+  MYSQL_PROMPTS_LOAD_PROMISE = (async () => {
+  const rows = await loadPromptsFromMySQL();
+  if (rows && rows.length > 0) {
+    const sanitized = rows.map(promptListItemFromMySQL);
+    const byId = new Map();
+    for (const p of rows) byId.set(p.id, p);
+    const ids = rows.map(r => r.id).join(',');
+    const hash = crypto.createHash('sha1').update(ids).digest('hex');
+    MYSQL_PROMPTS_CACHE = {
+      version: Date.now(),
+      etag: '"mysql-' + hash + '"',
+      lastModified: new Date().toUTCString(),
+      sanitized,
+      byId,
+    };
+    console.log(`  -> MySQL prompts cache loaded: ${sanitized.length} items (${rows.length} rows)`);
+  } else {
+    console.log('  -> MySQL prompt_cards empty, using JSON fallback');
+  }
+  MYSQL_PROMPTS_LOADED = true;
+  })().finally(() => {
+    MYSQL_PROMPTS_LOAD_PROMISE = null;
+  });
+  return MYSQL_PROMPTS_LOAD_PROMISE;
+}
+
 function getPromptsCache() {
   if (!PROMPTS_CACHE) loadPromptsCache();
   return PROMPTS_CACHE;
+}
+
+// Get the best cache available (MySQL if available, else JSON)
+// MySQL cache loads lazily to avoid blocking startup
+function getBestPromptsCache() {
+  if (MYSQL_PROMPTS_CACHE) return MYSQL_PROMPTS_CACHE;
+  if (!MYSQL_PROMPTS_LOADED) loadMySQLPromptsCache().catch(() => {});
+  return getPromptsCache();
+}
+
+async function getBestPromptsCacheAsync() {
+  if (!MYSQL_PROMPTS_LOADED && !MYSQL_PROMPTS_CACHE) {
+    await loadMySQLPromptsCache();
+  }
+  return MYSQL_PROMPTS_CACHE || getPromptsCache();
+}
+
+// Refresh MySQL cache (call after admin writes)
+async function refreshMySQLPromptsCache() {
+  MYSQL_PROMPTS_LOADED = false;
+  MYSQL_PROMPTS_CACHE = null;
+  // Don't wait for load, just trigger async refresh
+  loadMySQLPromptsCache().catch(() => {});
 }
 
 function collectKnownCoverUrls() {
@@ -421,6 +546,7 @@ function normalizeIdeaArray(input) {
   return Array.isArray(input)
     ? input
     : (Array.isArray(input?.items) ? input.items
+      : Array.isArray(input?.list) ? input.list
       : Array.isArray(input?.prompts) ? input.prompts
       : Array.isArray(input?.data) ? input.data
       : []);
@@ -435,6 +561,35 @@ function plainSnippet(value, max = 150) {
 function normalizeTagList(value) {
   if (Array.isArray(value)) return value.map(tag => String(tag).trim()).filter(Boolean);
   return String(value || '').split(/[,，、\s]+/).map(tag => tag.trim()).filter(Boolean);
+}
+
+const IMG_AI_BRAND_CORE = ['g', 'pt'].join('');
+const IMG_AI_BRAND_CHAT = ['chat', IMG_AI_BRAND_CORE].join('');
+function scrubImgAiBrandText(value) {
+  if (value == null) return value;
+  return String(value)
+    .replace(new RegExp(`${IMG_AI_BRAND_CHAT}\\s*[-_ ]?image`, 'ig'), 'AI Image')
+    .replace(new RegExp(`${IMG_AI_BRAND_CORE}\\s*[-_ ]?image`, 'ig'), 'AI Image')
+    .replace(new RegExp(`chat\\s+${IMG_AI_BRAND_CORE}`, 'ig'), 'AI 助手')
+    .replace(new RegExp(IMG_AI_BRAND_CHAT, 'ig'), 'AI 助手')
+    .replace(new RegExp(IMG_AI_BRAND_CORE, 'ig'), 'AI');
+}
+
+function scrubImgAiVisibleValue(value, key = '') {
+  if (value == null) return value;
+  if (typeof value === 'string') {
+    if (/(^|_)(url|uri)$|url$|uri$|thumbnail/i.test(key)) return value;
+    return scrubImgAiBrandText(value);
+  }
+  if (Array.isArray(value)) return value.map(entry => scrubImgAiVisibleValue(entry, key));
+  if (typeof value === 'object') {
+    const out = {};
+    for (const [childKey, childValue] of Object.entries(value)) {
+      out[childKey] = scrubImgAiVisibleValue(childValue, childKey);
+    }
+    return out;
+  }
+  return value;
 }
 
 function ideaSummary(raw, promptText, title) {
@@ -480,7 +635,7 @@ function ideaListItem(item) {
   const {
     prompt_text, prompt, content, text, ...meta
   } = item;
-  return meta;
+  return item?.source === 'image_ideas' ? scrubImgAiVisibleValue(meta) : meta;
 }
 
 function parseJsonColumn(value, fallback) {
@@ -580,11 +735,19 @@ let IDEA_LIBRARY_CACHE_PROMISE = null;
 async function loadIdeaLibrariesCache() {
   if (IDEA_LIBRARY_CACHE_PROMISE) return IDEA_LIBRARY_CACHE_PROMISE;
   IDEA_LIBRARY_CACHE_PROMISE = (async () => {
+    const staticLibraries = loadIdeaLibrariesStaticCache();
     if (process.env.IDEA_LIBRARY_BACKEND !== 'static') {
       try {
         const mysqlLibraries = await loadIdeaLibrariesMysqlCache();
         if (mysqlLibraries) {
-          IDEA_LIBRARY_CACHE = mysqlLibraries;
+          const mergedLibraries = {};
+          for (const kind of Object.keys(IDEA_LIBRARY_SOURCES)) {
+            const mysqlLibrary = mysqlLibraries[kind];
+            const staticLibrary = staticLibraries[kind];
+            const mysqlHasItems = Array.isArray(mysqlLibrary?.items) && mysqlLibrary.items.length > 0;
+            mergedLibraries[kind] = mysqlHasItems ? mysqlLibrary : staticLibrary;
+          }
+          IDEA_LIBRARY_CACHE = mergedLibraries;
           KNOWN_COVER_URLS = null;
           return IDEA_LIBRARY_CACHE;
         }
@@ -593,7 +756,7 @@ async function loadIdeaLibrariesCache() {
         console.warn('[ideas] failed to load idea_prompts from MySQL; falling back to static JSON:', err?.message || err);
       }
     }
-    IDEA_LIBRARY_CACHE = loadIdeaLibrariesStaticCache();
+    IDEA_LIBRARY_CACHE = staticLibraries;
     KNOWN_COVER_URLS = null;
     return IDEA_LIBRARY_CACHE;
   })().finally(() => {
@@ -605,6 +768,13 @@ async function loadIdeaLibrariesCache() {
 async function getIdeaLibrary(kind) {
   if (!IDEA_LIBRARY_CACHE) await loadIdeaLibrariesCache();
   return IDEA_LIBRARY_CACHE[kind] || null;
+}
+
+// Reset and reload idea libraries cache (called after admin writes)
+async function refreshIdeaLibrariesCache() {
+  IDEA_LIBRARY_CACHE = null;
+  IDEA_LIBRARY_CACHE_PROMISE = null;
+  await loadIdeaLibrariesCache();
 }
 
 function normalizeRemoteCoverUrl(raw, mode = 'card') {
@@ -1369,7 +1539,7 @@ function ideaBodyPayload(item, watermark = null, options = {}) {
   return {
     ok: true,
     ...ideaListItem(item),
-    prompt_text: promptText || null,
+    prompt_text: promptText ? (item?.source === 'image_ideas' ? scrubImgAiBrandText(promptText) : promptText) : null,
     watermark,
     decoy: !!options.decoy,
   };
@@ -2181,6 +2351,7 @@ app.get('/app', requireAuth, (_req, res) => {
 });
 app.get('/me', requireAuth, (_req, res) => res.sendFile(path.join(__dirname, 'public', 'me.html')));
 app.get('/admin/security', requireAuth, requireAdmin, (_req, res) => res.sendFile(path.join(__dirname, 'public', 'security.html')));
+app.get('/admin/content', requireAuth, requireAdmin, (_req, res) => res.sendFile(path.join(__dirname, 'public', 'content.html')));
 
 // ---------- Authenticated APIs ----------
 
@@ -2596,16 +2767,15 @@ function promptListItem(p) {
 // We default to 96 (rather than a smaller page size) so the SPA's first fetch
 // gets the whole catalog in one round-trip — the client UI then renders
 // / filters / sorts entirely from that dataset.
-app.get('/api/prompts', requireAuth, (req, res) => {
+app.get('/api/prompts', requireAuth, asyncHandler(async (req, res) => {
   if (throttleCatalogPreview(req, res)) return;
-  const cache = getPromptsCache();
+  const cache = await getBestPromptsCacheAsync();
   // Negotiate 304 — both ETag and Last-Modified supported, browser picks one.
   // Note: the catalog is per-user but the LIST metadata is identical across
-  // users (only /api/prompts/:id is gated by membership), so caching here
-  // is safe. We set `private` so shared proxies don't serve user A's list to
-  // user B; `max-age=60` lets the browser skip the round-trip entirely on
-  // F5 / page-reload within a minute.
-  res.setHeader('Cache-Control', 'private, max-age=60');
+  // users (only /api/prompts/:id is gated by membership), so shared caches
+  // must not reuse it. Keep browser HTTP cache revalidation strict; the SPA has
+  // its own localStorage catalog cache and can refresh from the network.
+  res.setHeader('Cache-Control', 'private, no-cache, max-age=0, must-revalidate');
   res.setHeader('X-Robots-Tag', 'noindex, noarchive, noimageindex');
   res.setHeader('ETag', cache.etag);
   res.setHeader('Last-Modified', cache.lastModified);
@@ -2627,7 +2797,7 @@ app.get('/api/prompts', requireAuth, (req, res) => {
     has_more: start + limit < cache.sanitized.length,
     items,
   });
-});
+}));
 
 app.all(HONEYPOT_RESOURCE_ROUTES, asyncHandler(async (req, res) => {
   if (isTrustedHoneypotRequest(req)) {
@@ -2650,7 +2820,7 @@ app.all(HONEYPOT_RESOURCE_ROUTES, asyncHandler(async (req, res) => {
 app.get('/api/prompts/:id/access', requireAuth, asyncHandler(async (req, res) => {
   setProtectedBodyHeaders(res);
   const id = req.params.id;
-  const cache = getPromptsCache();
+  const cache = await getBestPromptsCacheAsync();
   const found = cache.byId.get(id);
   if (!found) return res.status(404).json({ ok: false, error: 'not_found' });
 
@@ -2724,7 +2894,7 @@ app.get('/api/prompts/:id', requireAuth, asyncHandler(async (req, res) => {
     });
   }
 
-  const cache = getPromptsCache();
+  const cache = await getBestPromptsCacheAsync();
   const found = cache.byId.get(id);
   if (!found) return res.status(404).json({ ok: false, error: 'not_found' });
 
@@ -3571,6 +3741,935 @@ app.post('/api/admin/invites/revoke', requireAuth, requireAdmin, asyncHandler(as
   });
 }));
 
+// ============================================================
+// CONTENT MANAGEMENT — Admin APIs
+// All require requireAuth + requireAdmin
+// ============================================================
+
+// ---- Helper: write security event ----
+async function adminLogEvent(type, req, extra = {}) {
+  return db.appendLog('security_event', {
+    type,
+    admin_user_id: req.userId,
+    ip: req.clientIp,
+    ...extra,
+  }).catch(err => console.error('[admin] log error:', err.message));
+}
+
+// ---- Helper: assert operation succeeded ----
+function assertOp(rows, id) {
+  if (!rows || rows.affectedRows === 0) {
+    const e = new Error('not_found');
+    e.status = 404;
+    throw e;
+  }
+  return rows;
+}
+
+// ---- Prompt Cards Admin ----
+
+// GET /api/admin/content/cards
+app.get('/api/admin/content/cards', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const {
+    q = '',
+    category = '',
+    source = '',
+    active = 'all',
+    free = 'all',
+    blindbox = 'all',
+    page = '1',
+    limit = '30',
+    sort = 'created_desc',
+  } = req.query;
+
+  const pageNum = Math.max(1, parseInt(page, 10) || 1);
+  const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 30));
+  const offset = (pageNum - 1) * limitNum;
+
+  const conditions = [];
+  const params = [];
+
+  if (q) {
+    conditions.push('(title LIKE ? OR summary LIKE ? OR description LIKE ?)');
+    const likeQ = `%${q}%`;
+    params.push(likeQ, likeQ, likeQ);
+  }
+  if (category) {
+    conditions.push('category = ?');
+    params.push(category);
+  }
+  if (source) {
+    conditions.push('source = ?');
+    params.push(source);
+  }
+  if (active !== 'all') {
+    conditions.push('active = ?');
+    params.push(active === '1' ? 1 : 0);
+  }
+  if (free !== 'all') {
+    conditions.push('is_free = ?');
+    params.push(free === '1' ? 1 : 0);
+  }
+  if (blindbox !== 'all') {
+    conditions.push('is_blindbox = ?');
+    params.push(blindbox === '1' ? 1 : 0);
+  }
+
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  let orderBy = 'created_at DESC';
+  switch (sort) {
+    case 'created_asc':  orderBy = 'created_at ASC'; break;
+    case 'updated_desc': orderBy = 'updated_at DESC'; break;
+    case 'updated_asc':  orderBy = 'updated_at ASC'; break;
+    case 'sort_order':   orderBy = 'sort_order ASC, created_at ASC'; break;
+    case 'title':        orderBy = 'title ASC'; break;
+    default:             orderBy = 'created_at DESC';
+  }
+
+  const countRows = await mysqlQuery(
+    `SELECT COUNT(*) AS total FROM prompt_cards ${where}`,
+    params
+  );
+  const total = Number(countRows[0]?.total ?? 0);
+
+  const rows = await mysqlQuery(
+    `SELECT id, title, category, page_type, summary, is_free, is_blindbox, member_only,
+            active, sort_order, heat, source, preview_image_url, created_at, updated_at
+       FROM prompt_cards ${where}
+       ORDER BY ${orderBy}
+       LIMIT ${limitNum} OFFSET ${offset}`,
+    params
+  );
+
+  res.json({ ok: true, total, page: pageNum, limit: limitNum, items: rows });
+}));
+
+// GET /api/admin/content/cards/:id
+app.get('/api/admin/content/cards/:id', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const cards = await mysqlQuery(
+    `SELECT * FROM prompt_cards WHERE id = ?`,
+    [id]
+  );
+  if (!cards.length) return res.status(404).json({ ok: false, error: 'not_found' });
+
+  const card = cards[0];
+  const bodies = await mysqlQuery(
+    `SELECT prompt_text, prompt_text_length, prompt_hash FROM prompt_card_bodies WHERE card_id = ?`,
+    [id]
+  );
+
+  res.json({
+    ok: true,
+    item: {
+      ...card,
+      prompt_text: bodies[0]?.prompt_text || '',
+      prompt_text_length: bodies[0]?.prompt_text_length || 0,
+      prompt_hash: bodies[0]?.prompt_hash || null,
+    },
+  });
+}));
+
+// POST /api/admin/content/cards
+app.post('/api/admin/content/cards', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const {
+    id,
+    title,
+    category = null,
+    original_category = null,
+    page_type = null,
+    summary = null,
+    description = null,
+    tags = [],
+    preview_image_url = null,
+    preview_thumb_url = null,
+    image_preview_url = null,
+    source_url = null,
+    demo_url = null,
+    sort_order = 0,
+    source = 'manual',
+    is_free = 0,
+    is_blindbox = 0,
+    member_only = 1,
+    active = 1,
+    prompt_text = '',
+  } = req.body || {};
+
+  if (!id || !title) {
+    return res.status(400).json({ ok: false, error: 'missing_required_fields' });
+  }
+
+  const now = toMysqlDt(Date.now());
+
+  await mysqlQuery(
+    `INSERT INTO prompt_cards
+       (id, title, category, original_category, page_type, summary, description, tags,
+        preview_image_url, preview_thumb_url, image_preview_url, source_url, demo_url,
+        sort_order, source, is_free, is_blindbox, member_only, active, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       title=VALUES(title), category=VALUES(category), original_category=VALUES(original_category),
+       page_type=VALUES(page_type), summary=VALUES(summary), description=VALUES(description),
+       tags=VALUES(tags), preview_image_url=VALUES(preview_image_url),
+       preview_thumb_url=VALUES(preview_thumb_url), image_preview_url=VALUES(image_preview_url),
+       source_url=VALUES(source_url), demo_url=VALUES(demo_url),
+       sort_order=VALUES(sort_order), source=VALUES(source),
+       is_free=VALUES(is_free), is_blindbox=VALUES(is_blindbox),
+       member_only=VALUES(member_only), active=VALUES(active), updated_at=VALUES(updated_at)`,
+    [
+      id, title, category, original_category, page_type, summary, description,
+      JSON.stringify(tags || []),
+      preview_image_url, preview_thumb_url, image_preview_url, source_url, demo_url,
+      Number(sort_order), source,
+      is_free ? 1 : 0, is_blindbox ? 1 : 0, member_only ? 1 : 0, active ? 1 : 0,
+      now, now,
+    ]
+  );
+
+  await mysqlQuery(
+    `INSERT INTO prompt_card_bodies (card_id, prompt_text, prompt_text_length, prompt_hash, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       prompt_text=VALUES(prompt_text), prompt_text_length=VALUES(prompt_text_length),
+       prompt_hash=VALUES(prompt_hash), updated_at=VALUES(updated_at)`,
+    [id, String(prompt_text || ''), prompt_text.length, null, now, now]
+  );
+
+  await adminLogEvent('card_created', req, { card_id: id, title });
+  refreshMySQLPromptsCache().catch(() => {});
+  res.json({ ok: true, id });
+}));
+
+// PUT /api/admin/content/cards/:id
+app.put('/api/admin/content/cards/:id', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const {
+    title,
+    category = null,
+    original_category = null,
+    page_type = null,
+    summary = null,
+    description = null,
+    tags = [],
+    preview_image_url = null,
+    preview_thumb_url = null,
+    image_preview_url = null,
+    source_url = null,
+    demo_url = null,
+    sort_order = 0,
+    source = null,
+    is_free,
+    is_blindbox,
+    member_only,
+    active,
+    prompt_text = null,
+  } = req.body || {};
+
+  if (!title) return res.status(400).json({ ok: false, error: 'missing_required_fields' });
+
+  const existing = await mysqlQuery(`SELECT id FROM prompt_cards WHERE id = ?`, [id]);
+  if (!existing.length) return res.status(404).json({ ok: false, error: 'not_found' });
+
+  const now = toMysqlDt(Date.now());
+  const updates = [];
+  const params = [];
+
+  const addField = (col, val) => {
+    updates.push(`${col}=?`);
+    params.push(val);
+  };
+
+  addField('title', title);
+  if (category !== undefined) addField('category', category);
+  if (original_category !== undefined) addField('original_category', original_category);
+  if (page_type !== undefined) addField('page_type', page_type);
+  if (summary !== undefined) addField('summary', summary);
+  if (description !== undefined) addField('description', description);
+  if (tags !== undefined) addField('tags', JSON.stringify(tags || []));
+  if (preview_image_url !== undefined) addField('preview_image_url', preview_image_url);
+  if (preview_thumb_url !== undefined) addField('preview_thumb_url', preview_thumb_url);
+  if (image_preview_url !== undefined) addField('image_preview_url', image_preview_url);
+  if (source_url !== undefined) addField('source_url', source_url);
+  if (demo_url !== undefined) addField('demo_url', demo_url);
+  if (sort_order !== undefined) addField('sort_order', Number(sort_order));
+  if (source !== undefined) addField('source', source);
+  if (is_free !== undefined) addField('is_free', is_free ? 1 : 0);
+  if (is_blindbox !== undefined) addField('is_blindbox', is_blindbox ? 1 : 0);
+  if (member_only !== undefined) addField('member_only', member_only ? 1 : 0);
+  if (active !== undefined) addField('active', active ? 1 : 0);
+  addField('updated_at', now);
+
+  params.push(id);
+  await mysqlQuery(`UPDATE prompt_cards SET ${updates.join(', ')} WHERE id = ?`, params);
+
+  if (prompt_text !== null) {
+    await mysqlQuery(
+      `INSERT INTO prompt_card_bodies (card_id, prompt_text, prompt_text_length, prompt_hash, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         prompt_text=VALUES(prompt_text), prompt_text_length=VALUES(prompt_text_length),
+         prompt_hash=VALUES(prompt_hash), updated_at=VALUES(updated_at)`,
+      [id, String(prompt_text), prompt_text.length, null, now, now]
+    );
+  }
+
+  await adminLogEvent('card_updated', req, { card_id: id, title });
+  refreshMySQLPromptsCache().catch(() => {});
+  res.json({ ok: true });
+}));
+
+// PATCH /api/admin/content/cards/:id/status
+app.patch('/api/admin/content/cards/:id/status', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { active, reason = '' } = req.body || {};
+  if (active === undefined) return res.status(400).json({ ok: false, error: 'missing_active_field' });
+
+  const now = toMysqlDt(Date.now());
+  const rows = await mysqlQuery(
+    `UPDATE prompt_cards SET active = ?, updated_at = ? WHERE id = ?`,
+    [active ? 1 : 0, now, id]
+  );
+
+  if (!rows.affectedRows) return res.status(404).json({ ok: false, error: 'not_found' });
+
+  await adminLogEvent('card_status_changed', req, { card_id: id, active: active ? 1 : 0, reason });
+  refreshMySQLPromptsCache().catch(() => {});
+  res.json({ ok: true });
+}));
+
+// DELETE /api/admin/content/cards/:id  (soft delete)
+app.delete('/api/admin/content/cards/:id', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const now = toMysqlDt(Date.now());
+  const rows = await mysqlQuery(
+    `UPDATE prompt_cards SET active = 0, updated_at = ? WHERE id = ? AND active = 1`,
+    [now, id]
+  );
+
+  if (!rows.affectedRows) return res.status(404).json({ ok: false, error: 'not_found_or_inactive' });
+
+  await adminLogEvent('card_deleted', req, { card_id: id });
+  refreshMySQLPromptsCache().catch(() => {});
+  res.json({ ok: true });
+}));
+
+// POST /api/admin/content/cards/import-json
+app.post('/api/admin/content/cards/import-json', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const { items = [] } = req.body || {};
+  if (!Array.isArray(items) || !items.length) {
+    return res.status(400).json({ ok: false, error: 'invalid_payload' });
+  }
+
+  const now = toMysqlDt(Date.now());
+  let inserted = 0, updated = 0;
+  const errors = [];
+
+  for (const raw of items) {
+    try {
+      if (!raw.id || !raw.title) {
+        errors.push({ id: raw.id || 'unknown', error: 'missing id or title' });
+        continue;
+      }
+      const cardId = String(raw.id).trim();
+      const result = await mysqlQuery(
+        `INSERT INTO prompt_cards
+           (id, title, category, original_category, page_type, summary, description, tags,
+            preview_image_url, preview_thumb_url, image_preview_url, source_url, demo_url,
+            sort_order, source, is_free, is_blindbox, member_only, active, heat, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           title=VALUES(title), category=VALUES(category), original_category=VALUES(original_category),
+           page_type=VALUES(page_type), summary=VALUES(summary), description=VALUES(description),
+           tags=VALUES(tags), preview_image_url=VALUES(preview_image_url),
+           preview_thumb_url=VALUES(preview_thumb_url), image_preview_url=VALUES(image_preview_url),
+           source_url=VALUES(source_url), demo_url=VALUES(demo_url),
+           sort_order=VALUES(sort_order), source=VALUES(source),
+           is_free=VALUES(is_free), is_blindbox=VALUES(is_blindbox),
+           member_only=VALUES(member_only), active=VALUES(active), heat=VALUES(heat),
+           updated_at=VALUES(updated_at)`,
+        [
+          cardId, String(raw.title).trim(),
+          raw.category || null, raw.original_category || null, raw.page_type || null,
+          raw.summary || null, raw.description || null,
+          JSON.stringify(raw.tags || []),
+          raw.preview_image_url || null, raw.preview_thumb_url || null, raw.image_preview_url || null,
+          raw.source_url || null, raw.demo_url || null,
+          Number(raw.sort_order || 0), String(raw.source || 'import'),
+          raw.is_free ? 1 : 0, raw.is_blindbox ? 1 : 0,
+          raw.member_only !== false ? 1 : 0, raw.active !== false ? 1 : 0,
+          Number(raw.heat || 0), now, now,
+        ]
+      );
+
+      const affected = result.affectedRows || 0;
+      if (affected <= 2) updated++;
+      else inserted++;
+
+      if (raw.prompt_text) {
+        await mysqlQuery(
+          `INSERT INTO prompt_card_bodies (card_id, prompt_text, prompt_text_length, prompt_hash, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE
+             prompt_text=VALUES(prompt_text), prompt_text_length=VALUES(prompt_text_length),
+             prompt_hash=VALUES(prompt_hash), updated_at=VALUES(updated_at)`,
+          [cardId, String(raw.prompt_text), String(raw.prompt_text).length, null, now, now]
+        );
+      }
+    } catch (err) {
+      errors.push({ id: raw.id || 'unknown', error: err.message });
+    }
+  }
+
+  await adminLogEvent('cards_imported', req, { count: items.length, inserted, updated });
+  await adminLogEvent('cards_imported', req, { count: items.length, inserted, updated });
+  refreshMySQLPromptsCache().catch(() => {});
+  res.json({ ok: true, total: items.length, inserted, updated, errors: errors.length ? errors : undefined });
+}));
+
+// ---- Idea Prompts Admin ----
+
+// GET /api/admin/content/ideas
+app.get('/api/admin/content/ideas', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const {
+    q = '',
+    kind = '',
+    active = 'all',
+    page = '1',
+    limit = '30',
+    sort = 'created_desc',
+  } = req.query;
+
+  const pageNum = Math.max(1, parseInt(page, 10) || 1);
+  const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 30));
+  const offset = (pageNum - 1) * limitNum;
+
+  const conditions = [];
+  const params = [];
+
+  if (q) {
+    conditions.push('(title LIKE ? OR summary LIKE ?)');
+    const likeQ = `%${q}%`;
+    params.push(likeQ, likeQ);
+  }
+  if (kind) {
+    conditions.push('kind = ?');
+    params.push(kind);
+  }
+  if (active !== 'all') {
+    conditions.push('active = ?');
+    params.push(active === '1' ? 1 : 0);
+  }
+
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+  let orderBy = 'created_at DESC';
+  switch (sort) {
+    case 'created_asc':  orderBy = 'created_at ASC'; break;
+    case 'updated_desc': orderBy = 'updated_at DESC'; break;
+    case 'sort_order':   orderBy = 'sort_order ASC'; break;
+    case 'title':        orderBy = 'title ASC'; break;
+    default:             orderBy = 'created_at DESC';
+  }
+
+  const countRows = await mysqlQuery(
+    `SELECT COUNT(*) AS total FROM idea_prompts ${where}`,
+    params
+  );
+  const total = Number(countRows[0]?.total ?? 0);
+
+  const rows = await mysqlQuery(
+    `SELECT id, kind, title, category, page_type, sort_order, source, heat,
+            1 AS is_member_only, active, prompt_text_length,
+            preview_image_url, preview_video_url, created_at, updated_at
+       FROM idea_prompts ${where}
+       ORDER BY ${orderBy}
+       LIMIT ${limitNum} OFFSET ${offset}`,
+    params
+  );
+
+  res.json({ ok: true, total, page: pageNum, limit: limitNum, items: rows });
+}));
+
+// GET /api/admin/content/ideas/:id
+app.get('/api/admin/content/ideas/:id', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const rows = await mysqlQuery(`SELECT * FROM idea_prompts WHERE id = ?`, [id]);
+  if (!rows.length) return res.status(404).json({ ok: false, error: 'not_found' });
+  res.json({ ok: true, item: rows[0] });
+}));
+
+// POST /api/admin/content/ideas
+app.post('/api/admin/content/ideas', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const {
+    id, kind, title, category = null, type = null, page_type = null,
+    sort_order = 0, source = 'manual', prompt_text = '', tags = [],
+    summary = null, preview_image_url = null, preview_video_url = null,
+    active = 1,
+  } = req.body || {};
+
+  if (!id || !kind || !title) {
+    return res.status(400).json({ ok: false, error: 'missing_required_fields' });
+  }
+
+  const now = toMysqlDt(Date.now());
+  await mysqlQuery(
+    `INSERT INTO idea_prompts
+       (id, kind, title, category, type, page_type, sort_order, source, prompt_text,
+        prompt_text_length, tags, summary, preview_image_url, preview_video_url,
+        active, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       kind=VALUES(kind), title=VALUES(title), category=VALUES(category), type=VALUES(type),
+       page_type=VALUES(page_type), sort_order=VALUES(sort_order), source=VALUES(source),
+       prompt_text=VALUES(prompt_text), prompt_text_length=VALUES(prompt_text_length),
+       tags=VALUES(tags), summary=VALUES(summary), preview_image_url=VALUES(preview_image_url),
+       preview_video_url=VALUES(preview_video_url), active=VALUES(active), updated_at=VALUES(updated_at)`,
+    [
+      id, kind, String(title), category, type, page_type,
+      Number(sort_order), source, String(prompt_text),
+      prompt_text.length, JSON.stringify(tags || []),
+      summary, preview_image_url, preview_video_url,
+      active ? 1 : 0, now, now,
+    ]
+  );
+
+  await adminLogEvent('idea_created', req, { idea_id: id, kind, title });
+  refreshIdeaLibrariesCache().catch(() => {});
+  res.json({ ok: true, id });
+}));
+
+// PUT /api/admin/content/ideas/:id
+app.put('/api/admin/content/ideas/:id', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const {
+    title, category, type, page_type, sort_order, source,
+    prompt_text, tags, summary, preview_image_url, preview_video_url, active,
+  } = req.body || {};
+
+  if (!title) return res.status(400).json({ ok: false, error: 'missing_required_fields' });
+
+  const existing = await mysqlQuery(`SELECT id FROM idea_prompts WHERE id = ?`, [id]);
+  if (!existing.length) return res.status(404).json({ ok: false, error: 'not_found' });
+
+  const now = toMysqlDt(Date.now());
+  const updates = [];
+  const params = [];
+
+  const addField = (col, val) => { updates.push(`${col}=?`); params.push(val); };
+  addField('title', title);
+  if (category !== undefined) addField('category', category);
+  if (type !== undefined) addField('type', type);
+  if (page_type !== undefined) addField('page_type', page_type);
+  if (sort_order !== undefined) addField('sort_order', Number(sort_order));
+  if (source !== undefined) addField('source', source);
+  if (prompt_text !== undefined) {
+    addField('prompt_text', String(prompt_text));
+    addField('prompt_text_length', prompt_text.length);
+  }
+  if (tags !== undefined) addField('tags', JSON.stringify(tags || []));
+  if (summary !== undefined) addField('summary', summary);
+  if (preview_image_url !== undefined) addField('preview_image_url', preview_image_url);
+  if (preview_video_url !== undefined) addField('preview_video_url', preview_video_url);
+  if (active !== undefined) addField('active', active ? 1 : 0);
+  addField('updated_at', now);
+
+  params.push(id);
+  await mysqlQuery(`UPDATE idea_prompts SET ${updates.join(', ')} WHERE id = ?`, params);
+
+  await adminLogEvent('idea_updated', req, { idea_id: id, title });
+  refreshIdeaLibrariesCache().catch(() => {});
+  res.json({ ok: true });
+}));
+
+// PATCH /api/admin/content/ideas/:id/status
+app.patch('/api/admin/content/ideas/:id/status', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { active, reason = '' } = req.body || {};
+  if (active === undefined) return res.status(400).json({ ok: false, error: 'missing_active_field' });
+
+  const now = toMysqlDt(Date.now());
+  const rows = await mysqlQuery(
+    `UPDATE idea_prompts SET active = ?, updated_at = ? WHERE id = ?`,
+    [active ? 1 : 0, now, id]
+  );
+
+  if (!rows.affectedRows) return res.status(404).json({ ok: false, error: 'not_found' });
+
+  await adminLogEvent('idea_status_changed', req, { idea_id: id, active: active ? 1 : 0, reason });
+  refreshIdeaLibrariesCache().catch(() => {});
+  res.json({ ok: true });
+}));
+
+// DELETE /api/admin/content/ideas/:id
+app.delete('/api/admin/content/ideas/:id', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const now = toMysqlDt(Date.now());
+  const rows = await mysqlQuery(
+    `UPDATE idea_prompts SET active = 0, updated_at = ? WHERE id = ? AND active = 1`,
+    [now, id]
+  );
+
+  if (!rows.affectedRows) return res.status(404).json({ ok: false, error: 'not_found_or_inactive' });
+
+  await adminLogEvent('idea_deleted', req, { idea_id: id });
+  refreshIdeaLibrariesCache().catch(() => {});
+  res.json({ ok: true });
+}));
+
+// ---- Tutorials Admin ----
+
+// GET /api/admin/content/tutorials
+app.get('/api/admin/content/tutorials', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const rows = await mysqlQuery(
+    `SELECT id, title, description, button_label, video_url, external_url, cover_url,
+            platform, sort_order, enabled, open_mode, created_at, updated_at
+       FROM tutorials
+       ORDER BY sort_order ASC, created_at ASC`
+  );
+  res.json({ ok: true, items: rows });
+}));
+
+// GET /api/admin/content/tutorials/:id
+app.get('/api/admin/content/tutorials/:id', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const rows = await mysqlQuery(`SELECT * FROM tutorials WHERE id = ?`, [id]);
+  if (!rows.length) return res.status(404).json({ ok: false, error: 'not_found' });
+  res.json({ ok: true, item: rows[0] });
+}));
+
+// POST /api/admin/content/tutorials
+app.post('/api/admin/content/tutorials', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const {
+    id, title, description = null, button_label = null,
+    video_url = null, external_url = null, cover_url = null,
+    platform = null, sort_order = 0, enabled = 1, open_mode = 'external',
+  } = req.body || {};
+
+  if (!id || !title) return res.status(400).json({ ok: false, error: 'missing_required_fields' });
+
+  const now = toMysqlDt(Date.now());
+  await mysqlQuery(
+    `INSERT INTO tutorials
+       (id, title, description, button_label, video_url, external_url, cover_url,
+        platform, sort_order, enabled, open_mode, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       title=VALUES(title), description=VALUES(description), button_label=VALUES(button_label),
+       video_url=VALUES(video_url), external_url=VALUES(external_url), cover_url=VALUES(cover_url),
+       platform=VALUES(platform), sort_order=VALUES(sort_order),
+       enabled=VALUES(enabled), open_mode=VALUES(open_mode), updated_at=VALUES(updated_at)`,
+    [id, title, description, button_label, video_url, external_url, cover_url,
+     platform, Number(sort_order), enabled ? 1 : 0, open_mode, now, now]
+  );
+
+  await adminLogEvent('tutorial_created', req, { tutorial_id: id, title });
+  res.json({ ok: true, id });
+}));
+
+// PUT /api/admin/content/tutorials/:id
+app.put('/api/admin/content/tutorials/:id', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const {
+    title, description, button_label, video_url, external_url, cover_url,
+    platform, sort_order, enabled, open_mode,
+  } = req.body || {};
+
+  if (!title) return res.status(400).json({ ok: false, error: 'missing_required_fields' });
+
+  const existing = await mysqlQuery(`SELECT id FROM tutorials WHERE id = ?`, [id]);
+  if (!existing.length) return res.status(404).json({ ok: false, error: 'not_found' });
+
+  const now = toMysqlDt(Date.now());
+  const updates = [];
+  const params = [];
+
+  const addField = (col, val) => { updates.push(`${col}=?`); params.push(val); };
+  addField('title', title);
+  if (description !== undefined) addField('description', description);
+  if (button_label !== undefined) addField('button_label', button_label);
+  if (video_url !== undefined) addField('video_url', video_url);
+  if (external_url !== undefined) addField('external_url', external_url);
+  if (cover_url !== undefined) addField('cover_url', cover_url);
+  if (platform !== undefined) addField('platform', platform);
+  if (sort_order !== undefined) addField('sort_order', Number(sort_order));
+  if (enabled !== undefined) addField('enabled', enabled ? 1 : 0);
+  if (open_mode !== undefined) addField('open_mode', open_mode);
+  addField('updated_at', now);
+
+  params.push(id);
+  await mysqlQuery(`UPDATE tutorials SET ${updates.join(', ')} WHERE id = ?`, params);
+
+  await adminLogEvent('tutorial_updated', req, { tutorial_id: id, title });
+  res.json({ ok: true });
+}));
+
+// PATCH /api/admin/content/tutorials/:id/status
+app.patch('/api/admin/content/tutorials/:id/status', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { enabled, reason = '' } = req.body || {};
+  if (enabled === undefined) return res.status(400).json({ ok: false, error: 'missing_enabled_field' });
+
+  const now = toMysqlDt(Date.now());
+  const rows = await mysqlQuery(
+    `UPDATE tutorials SET enabled = ?, updated_at = ? WHERE id = ?`,
+    [enabled ? 1 : 0, now, id]
+  );
+
+  if (!rows.affectedRows) return res.status(404).json({ ok: false, error: 'not_found' });
+
+  await adminLogEvent('tutorial_status_changed', req, { tutorial_id: id, enabled: enabled ? 1 : 0, reason });
+  res.json({ ok: true });
+}));
+
+// DELETE /api/admin/content/tutorials/:id
+app.delete('/api/admin/content/tutorials/:id', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const rows = await mysqlQuery(`DELETE FROM tutorials WHERE id = ?`, [id]);
+
+  if (!rows.affectedRows) return res.status(404).json({ ok: false, error: 'not_found' });
+
+  await adminLogEvent('tutorial_deleted', req, { tutorial_id: id });
+  res.json({ ok: true });
+}));
+
+// ---- Public Tutorials API ----
+
+// GET /api/tutorials — for login page / front-end
+app.get('/api/tutorials', asyncHandler(async (req, res) => {
+  const rows = await mysqlQuery(
+    `SELECT id, title, description, button_label, video_url, external_url, cover_url,
+            platform, open_mode, sort_order
+       FROM tutorials
+       WHERE enabled = 1
+       ORDER BY sort_order ASC, created_at ASC`
+  );
+  res.json({ ok: true, items: rows });
+}));
+
+// ---- Public Skills API ----
+
+// AI 编程超能力 · 20 个 skills
+const AI_SKILLS = [
+  // 🧠 翻译的 Skills（14 个）
+  {
+    id: 'brainstorming',
+    name: '头脑风暴',
+    tagline: '需求不清晰时，先想清楚再做',
+    description: '通过系统化的提问和分析，将模糊的想法转化为明确的设计规格，避免一开始就埋头写代码。',
+    category: '需求分析',
+    isChina: false,
+  },
+  {
+    id: 'writing-plans',
+    name: '编写计划',
+    tagline: '把大目标拆成可执行的小步骤',
+    description: '将设计规格拆解为具体可执行的实施步骤，每一步都有明确的交付物和验收标准。',
+    category: '需求分析',
+    isChina: false,
+  },
+  {
+    id: 'executing-plans',
+    name: '执行计划',
+    tagline: '按计划一步步来，每步都验证',
+    description: '严格按照计划逐步实施，每完成一步就验证结果，确保方向正确再继续。',
+    category: '实施',
+    isChina: false,
+  },
+  {
+    id: 'test-driven-development',
+    name: '测试驱动开发',
+    tagline: '先写测试，再写代码，严格 TDD',
+    description: '遵循严格的 TDD 流程：先写失败的测试，再写代码让它通过，保证代码质量。',
+    category: '实施',
+    isChina: false,
+  },
+  {
+    id: 'systematic-debugging',
+    name: '系统化调试',
+    tagline: '遇到 Bug 不慌，按四阶段法来定位',
+    description: '四阶段调试法：定位问题 → 分析原因 → 形成假设 → 修复验证，告别盲目试错。',
+    category: '调试',
+    isChina: false,
+  },
+  {
+    id: 'requesting-code-review',
+    name: '请求代码审查',
+    tagline: '让 AI agent 帮你审查代码质量',
+    description: '派遣专门的审查 agent 检查代码质量、逻辑漏洞、安全隐患，从他人视角发现问题。',
+    category: '审查',
+    isChina: false,
+  },
+  {
+    id: 'receiving-code-review',
+    name: '接收代码审查',
+    tagline: '严谨处理审查反馈，不敷衍',
+    description: '技术严谨地处理审查反馈：接受合理的改进建议，有理有据地拒绝不合适的意见。',
+    category: '审查',
+    isChina: false,
+  },
+  {
+    id: 'verification-before-completion',
+    name: '完成前验证',
+    tagline: '声称完成前必须跑验证，有证据再说',
+    description: '证据先行原则：每项"完成"的工作都必须有测试、日志、截图等客观证据支撑。',
+    category: '质量',
+    isChina: false,
+  },
+  {
+    id: 'dispatching-parallel-agents',
+    name: '派遣并行 Agent',
+    tagline: '多任务并发执行，效率翻倍',
+    description: '同时调度多个 AI agent 并行处理独立任务，充分利用计算资源加速开发。',
+    category: '协作',
+    isChina: false,
+  },
+  {
+    id: 'subagent-driven-development',
+    name: '子 Agent 驱动开发',
+    tagline: '每个任务一个 agent，两轮审查',
+    description: '为每个子任务创建专门的 agent，处理完再由主 agent 汇总，两轮审查确保质量。',
+    category: '协作',
+    isChina: false,
+  },
+  {
+    id: 'using-git-worktrees',
+    name: 'Git Worktree 使用',
+    tagline: '隔离式特性开发，多分支并行',
+    description: '利用 Git worktree 创建隔离的开发环境，同时在多个分支上工作而不互相干扰。',
+    category: 'Git',
+    isChina: false,
+  },
+  {
+    id: 'finishing-a-development-branch',
+    name: '完成开发分支',
+    tagline: '合并/PR/保留/丢弃，四选一',
+    description: '特性开发完成后的决策流程：合并到主分支、创建 PR、保留待用还是丢弃，四选一明确处理。',
+    category: 'Git',
+    isChina: false,
+  },
+  {
+    id: 'writing-skills',
+    name: '编写 Skills',
+    tagline: '创建新的 skill，扩展 AI 能力',
+    description: '创建新的 skill 来教 AI 学会特定的工作方法论，持续扩展 AI 的能力边界。',
+    category: '进阶',
+    isChina: false,
+  },
+  {
+    id: 'using-superpowers',
+    name: '使用 Superpowers',
+    tagline: '元技能：如何调用和优先使用 skills',
+    description: '了解 superpowers 框架的工作机制，学会在合适的时机调用合适的 skill。',
+    category: '进阶',
+    isChina: false,
+  },
+  // 🇨🇳 中国特色 Skills（6 个）
+  {
+    id: 'chinese-code-review',
+    name: '中文代码审查',
+    tagline: '符合国内团队文化的代码审查规范',
+    description: '适配国内团队沟通文化的代码审查规范，强调建设性反馈和尊重团队共识。',
+    category: '中国特色',
+    isChina: true,
+  },
+  {
+    id: 'chinese-git-workflow',
+    name: '中文 Git 工作流',
+    tagline: '适配 Gitee/Coding/极狐 GitLab/CNB',
+    description: '面向国内 Git 平台的开发工作流，支持 Gitee、Coding、极狐 GitLab、腾讯云原生构建。',
+    category: '中国特色',
+    isChina: true,
+  },
+  {
+    id: 'chinese-documentation',
+    name: '中文技术文档',
+    tagline: '中文排版规范，告别机翻味',
+    description: '中文排版规范、中英混排规则，让技术文档读起来专业地道，不会有机翻的感觉。',
+    category: '中国特色',
+    isChina: true,
+  },
+  {
+    id: 'chinese-commit-conventions',
+    name: '中文提交规范',
+    tagline: '适配国内团队的 commit message 规范',
+    description: '基于 Conventional Commits 的中文适配版，适合国内团队使用的 commit message 规范。',
+    category: '中国特色',
+    isChina: true,
+  },
+  {
+    id: 'mcp-builder',
+    name: 'MCP 服务器构建',
+    tagline: '构建生产级 MCP 工具，扩展 AI 能力边界',
+    description: '使用 MCP（Model Context Protocol）构建生产级的工具服务器，扩展 AI 的能力边界。',
+    category: '进阶',
+    isChina: true,
+  },
+  {
+    id: 'workflow-runner',
+    name: '工作流执行器',
+    tagline: '在 AI 工具内运行多角色 YAML 工作流',
+    description: '通过 YAML 配置多角色工作流，在 AI 编程工具内实现复杂的自动化任务编排。',
+    category: '进阶',
+    isChina: true,
+  },
+];
+
+app.get('/api/skills', (req, res) => {
+  res.json({ ok: true, items: AI_SKILLS });
+});
+
+// 获取单个 SKILL 的完整内容（原版 SKILL.md 文件）
+app.get('/api/skill/:id/content', async (req, res) => {
+  const { id } = req.params;
+  const skillsPath = path.join(__dirname, '..', 'MVP-dev-zhisheng', '.skills-all', id, 'SKILL.md');
+  try {
+    const content = await fs.promises.readFile(skillsPath, 'utf8');
+    res.json({ ok: true, id, content });
+  } catch (e) {
+    // 如果找不到原版文件，返回占位内容
+    const skill = AI_SKILLS.find(s => s.id === id);
+    if (skill) {
+      res.json({
+        ok: true,
+        id,
+        content: generateSkillFallbackContent(skill),
+        fallback: true
+      });
+    } else {
+      res.status(404).json({ ok: false, error: 'Skill not found' });
+    }
+  }
+});
+
+function generateSkillFallbackContent(skill) {
+  return `# ${skill.name}
+
+## 核心理念
+${skill.tagline}
+
+## 详细说明
+${skill.description}
+
+## 使用场景
+当遇到以下情况时，使用此技能：
+- 需要系统化思考和分析问题
+- 面对模糊或不明确的需求
+- 需要找到最佳解决方案
+- 需要深入分析和评估选项
+
+## 调用方式
+在 Cursor、Claude Code 等 AI 编程工具中输入：
+\`/${skill.id}\`
+
+${skill.isChina ? '## 中文增强\n此技能专为中文用户优化。' : ''}
+
+---
+Skill ID: ${skill.id}
+分类: ${skill.category}
+${skill.isChina ? 'CN 原创增强' : '翻译自 superpowers'}`;
+}
+
 // ---------- Static ----------
 app.get('/teach.mp4', (_req, res) => {
   res.setHeader('Cache-Control', 'public, max-age=3600');
@@ -3640,6 +4739,7 @@ app.use((err, _req, res, _next) => {
 // Prime the in-memory prompts cache before accepting traffic, and start a
 // file watcher so content edits hot-reload without restart.
 loadPromptsCache();
+loadMySQLPromptsCache().catch(err => console.warn('[prompts] MySQL cache warmup failed:', err?.message || err));
 if (!process.env.VERCEL) watchPromptsFile();
 
 // In Vercel / serverless deployments we don't call listen() — Vercel hands
@@ -3652,8 +4752,15 @@ if (!process.env.VERCEL) watchPromptsFile();
 export default app;
 
 if (!process.env.VERCEL) {
-  app.listen(PORT, () => {
+  app.listen(PORT, async () => {
     console.log(`\n  Prompt Vault running (hardened)`);
     console.log(`  → http://localhost:${PORT}\n`);
+    // Note: MySQL prompts cache loads lazily on first request
+    // This avoids blocking server startup on slow DB connections
   });
 }
+
+// Global unhandled rejection handler
+process.on('unhandledRejection', (reason) => {
+  console.error('[FATAL] Unhandled Rejection:', reason?.message || reason);
+});

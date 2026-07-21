@@ -288,6 +288,69 @@ const DDL = [
     KEY idx_idea_prompts_original (original_id),
     KEY idx_idea_prompts_title (title)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // prompt_cards: 管理主站卡片元数据（正文单独存 prompt_card_bodies）
+  `CREATE TABLE IF NOT EXISTS prompt_cards (
+    id                 VARCHAR(191) NOT NULL,
+    title              VARCHAR(255) NOT NULL,
+    category           VARCHAR(191) NULL,
+    original_category  VARCHAR(191) NULL,
+    page_type          VARCHAR(191) NULL,
+    summary            TEXT NULL,
+    description        TEXT NULL,
+    tags               JSON NULL,
+    preview_image_url  TEXT NULL,
+    preview_thumb_url  TEXT NULL,
+    image_preview_url  TEXT NULL,
+    source_url         TEXT NULL,
+    demo_url           TEXT NULL,
+    sort_order         INT NOT NULL DEFAULT 0,
+    source             VARCHAR(64) NULL,
+    is_free            TINYINT(1) NOT NULL DEFAULT 0,
+    is_blindbox        TINYINT(1) NOT NULL DEFAULT 0,
+    member_only        TINYINT(1) NOT NULL DEFAULT 1,
+    active             TINYINT(1) NOT NULL DEFAULT 1,
+    heat               INT NOT NULL DEFAULT 0,
+    raw                JSON NULL,
+    created_at         DATETIME NOT NULL,
+    updated_at         DATETIME NULL,
+    PRIMARY KEY (id),
+    KEY idx_prompt_cards_active_sort (active, sort_order),
+    KEY idx_prompt_cards_category (category),
+    KEY idx_prompt_cards_title (title),
+    KEY idx_prompt_cards_free_blindbox (is_free, is_blindbox)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // prompt_card_bodies: 正文单独存，提升列表查询性能
+  `CREATE TABLE IF NOT EXISTS prompt_card_bodies (
+    card_id            VARCHAR(191) NOT NULL,
+    prompt_text        LONGTEXT NOT NULL,
+    prompt_text_length INT NOT NULL DEFAULT 0,
+    prompt_hash        VARCHAR(64) NULL,
+    created_at         DATETIME NOT NULL,
+    updated_at         DATETIME NULL,
+    PRIMARY KEY (card_id),
+    KEY idx_prompt_card_bodies_length (prompt_text_length)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // tutorials: 登录页教程管理
+  `CREATE TABLE IF NOT EXISTS tutorials (
+    id              VARCHAR(64)  NOT NULL,
+    title           VARCHAR(255) NOT NULL,
+    description     TEXT NULL,
+    button_label    VARCHAR(64)  NULL,
+    video_url       TEXT NULL,
+    external_url    TEXT NULL,
+    cover_url       TEXT NULL,
+    platform        VARCHAR(64)  NULL,
+    sort_order      INT NOT NULL DEFAULT 0,
+    enabled         TINYINT(1) NOT NULL DEFAULT 1,
+    open_mode       VARCHAR(32) NOT NULL DEFAULT 'external',
+    created_at      DATETIME NOT NULL,
+    updated_at      DATETIME NULL,
+    PRIMARY KEY (id),
+    KEY idx_tutorials_enabled_sort (enabled, sort_order)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
 
 async function ensureColumn(conn, table, column, definition) {
