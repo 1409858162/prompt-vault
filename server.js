@@ -35,6 +35,7 @@ import {
   issueVideoKey, issueVideoKeyToken, verifyVideoKeyToken,
 } from './lib/contentToken.js';
 import { describeConnection, query as mysqlQuery, toMysqlDt, transaction } from './lib/mysql.js';
+import { listLinkHealth, scanLinkHealth } from './lib/linkHealth.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -137,6 +138,34 @@ app.use((req, res, next) => {
   );
   next();
 });
+
+// Locally mirrored imported-library covers/videos.
+//
+// Keep this route before the auth / IP-block middleware below: these files are
+// public card covers only (no prompt bodies), and making every image request
+// hit TiDB for cookie/IP checks can make the grid feel stuck when dozens of
+// cards load at once. The more generic `/assets` route near the bottom is only
+// for the login portal bundle, so imported assets need their own mount.
+app.use('/assets/imported-libraries', express.static(path.join(__dirname, 'public', 'assets', 'imported-libraries'), {
+  maxAge: '30d',
+  immutable: true,
+  index: false,
+  fallthrough: true,
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+  },
+}));
+app.use('/assets/imported-safe', express.static(path.join(__dirname, 'public', 'assets', 'imported-safe'), {
+  maxAge: '30d',
+  immutable: true,
+  index: false,
+  fallthrough: true,
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+  },
+}));
 
 // ---------- Health probe ----------
 // Keep this before auth / risk middleware so it proves the serverless function
@@ -342,8 +371,27 @@ async function loadMySQLPromptsCache() {
     const sanitized = rows.map(promptListItemFromMySQL);
     const byId = new Map();
     for (const p of rows) byId.set(p.id, p);
-    const ids = rows.map(r => r.id).join(',');
-    const hash = crypto.createHash('sha1').update(ids).digest('hex');
+    // The list endpoint is metadata-only, but cover/demo URLs, membership
+    // flags, text lengths and titles can change without IDs changing. Hash the
+    // visible metadata rather than IDs only; otherwise browsers can keep a 304
+    // response and the SPA's local catalog cache may keep stale/broken covers.
+    const visibleMetadata = rows.map(r => [
+      r.id,
+      r.title,
+      r.category,
+      r.original_category,
+      r.preview_image_url,
+      r.preview_thumb_url,
+      r.image_preview_url,
+      r.demo_url,
+      r.sort_order,
+      r.is_free,
+      r.is_blindbox,
+      r.member_only,
+      r.prompt_text_length,
+      r.updated_at,
+    ].map(v => v == null ? '' : String(v)).join('\u001f')).join('\u001e');
+    const hash = crypto.createHash('sha1').update(visibleMetadata).digest('hex');
     MYSQL_PROMPTS_CACHE = {
       version: Date.now(),
       etag: '"mysql-' + hash + '"',
@@ -3765,6 +3813,42 @@ function assertOp(rows, id) {
   }
   return rows;
 }
+
+// ---- Link Health Admin ----
+
+// GET /api/admin/content/link-health
+app.get('/api/admin/content/link-health', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const data = await listLinkHealth({
+    status: req.query.status || 'all',
+    contentType: req.query.content_type || 'all',
+    q: req.query.q || '',
+    page: req.query.page || 1,
+    limit: req.query.limit || 50,
+    sort: req.query.sort || 'checked_desc',
+  });
+  res.json({ ok: true, ...data });
+}));
+
+// POST /api/admin/content/link-health/scan
+app.post('/api/admin/content/link-health/scan', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const {
+    scope = 'all',
+    q = '',
+    limit = 100,
+    timeout_ms = 7000,
+    concurrency = 6,
+  } = req.body || {};
+
+  const data = await scanLinkHealth({
+    scope,
+    q,
+    limit: Math.min(500, Math.max(1, Number(limit) || 100)),
+    timeoutMs: Math.min(20000, Math.max(1000, Number(timeout_ms) || 7000)),
+    concurrency: Math.min(12, Math.max(1, Number(concurrency) || 6)),
+  });
+  await adminLogEvent('link_health_scan', req, { scope, q, limit: Number(limit) || 100, ...data });
+  res.json({ ok: true, ...data });
+}));
 
 // ---- Prompt Cards Admin ----
 

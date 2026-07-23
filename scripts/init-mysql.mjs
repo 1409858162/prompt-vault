@@ -351,6 +351,28 @@ const DDL = [
     PRIMARY KEY (id),
     KEY idx_tutorials_enabled_sort (enabled, sort_order)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
+
+  // link_health_checks: 素材/外链健康检测最新结果（每个内容+URL保留一条最新状态）
+  `CREATE TABLE IF NOT EXISTS link_health_checks (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    content_type VARCHAR(32) NOT NULL,
+    content_id VARCHAR(191) NOT NULL,
+    title VARCHAR(255) NULL,
+    field_name VARCHAR(64) NOT NULL,
+    url TEXT NOT NULL,
+    url_hash CHAR(64) NOT NULL,
+    status VARCHAR(32) NOT NULL,
+    http_status INT NULL,
+    content_type_header VARCHAR(191) NULL,
+    error_message TEXT NULL,
+    duration_ms INT NULL,
+    checked_at DATETIME NOT NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uniq_link_health_latest (content_type, content_id, url_hash),
+    KEY idx_link_health_status_checked (status, checked_at),
+    KEY idx_link_health_content (content_type, content_id),
+    KEY idx_link_health_checked (checked_at)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`,
 ];
 
 async function ensureColumn(conn, table, column, definition) {
@@ -393,6 +415,9 @@ async function main() {
   await ensureIndex(conn, 'idea_prompts', 'idx_idea_prompts_kind_active_sort', 'INDEX `idx_idea_prompts_kind_active_sort` (`kind`, `active`, `sort_order`)');
   await ensureIndex(conn, 'idea_prompts', 'idx_idea_prompts_original', 'INDEX `idx_idea_prompts_original` (`original_id`)');
   await ensureIndex(conn, 'idea_prompts', 'idx_idea_prompts_title', 'INDEX `idx_idea_prompts_title` (`title`)');
+  await ensureIndex(conn, 'link_health_checks', 'idx_link_health_status_checked', 'INDEX `idx_link_health_status_checked` (`status`, `checked_at`)');
+  await ensureIndex(conn, 'link_health_checks', 'idx_link_health_content', 'INDEX `idx_link_health_content` (`content_type`, `content_id`)');
+  await ensureIndex(conn, 'link_health_checks', 'idx_link_health_checked', 'INDEX `idx_link_health_checked` (`checked_at`)');
   await conn.end();
   console.log(`[init] ${DDL.length} tables ensured (indexes included)`);
 }

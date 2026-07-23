@@ -2466,10 +2466,17 @@ const visitedPages = new Set([1]);
 const PROMO_CARDS_PER_PAGE = 1;
 const PAGE_SIZE = 20 - PROMO_CARDS_PER_PAGE;
 const SERVER_PAGE_SIZE = 96;
-// v7: invalidate old fallback/partial caches that wrongly classified demo_url cards as 盲盒.
-const CATALOG_CACHE_SCHEMA = 7;
-const CATALOG_CACHE_KEY = 'prompt-vault:catalog:v7';
-const STALE_CATALOG_CACHE_KEYS = ['prompt-vault:catalog:v4', 'prompt-vault:catalog:v5', 'prompt-vault:catalog:v6'];
+// v8: invalidate old catalog caches after imported-library cover/demo URLs were
+// mirrored locally. Without this, the browser can keep remote CDN URLs even
+// though MySQL already points at /assets/imported-libraries/*.
+const CATALOG_CACHE_SCHEMA = 8;
+const CATALOG_CACHE_KEY = 'prompt-vault:catalog:v8';
+const STALE_CATALOG_CACHE_KEYS = [
+  'prompt-vault:catalog:v4',
+  'prompt-vault:catalog:v5',
+  'prompt-vault:catalog:v6',
+  'prompt-vault:catalog:v7',
+];
 const CATALOG_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const FAVORITES_KEY = 'prompt-vault:favorites:v1';
 const IDEA_LIBRARY_ENDPOINTS = {

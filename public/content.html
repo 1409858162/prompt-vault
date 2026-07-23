@@ -191,6 +191,12 @@
     .preview-img { width: 60px; height: 40px; object-fit: cover; border-radius: 6px; background: var(--panel-2); }
     .tag-list { display: flex; flex-wrap: wrap; gap: 4px; }
     .tag-item { padding: 1px 6px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 4px; font-size: 11px; color: var(--text-dim); }
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 14px; }
+    .stat-card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+    .stat-card .num { font-size: 22px; font-weight: 800; margin-bottom: 2px; }
+    .stat-card .label { font-size: 12px; color: var(--text-dim); }
+    .url-cell { max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--cyan); font-size: 12px; font-family: 'JetBrains Mono', monospace; }
+    .health-help { color: var(--text-dim); font-size: 12px; line-height: 1.7; margin: -6px 0 14px; }
   </style>
 </head>
 <body>
@@ -204,6 +210,7 @@
       <button class="nav-btn" onclick="showPage('cards')" id="nav-cards">主站卡片</button>
       <button class="nav-btn" onclick="showPage('ideas')" id="nav-ideas">AI 灵感库</button>
       <button class="nav-btn" onclick="showPage('tutorials')" id="nav-tutorials">教程管理</button>
+      <button class="nav-btn" onclick="showPage('health')" id="nav-health">素材监测</button>
     </nav>
     <div class="topbar-right">
       <a href="/admin/security" class="link">安全后台</a>
@@ -292,6 +299,55 @@
       <button class="btn primary" onclick="openTutorialModal()">+ 新增教程</button>
     </div>
     <div id="tutorials-table"></div>
+  </div>
+
+  <!-- 素材外链监测 -->
+  <div class="page" id="page-health">
+    <div class="page-header">
+      <div>
+        <div class="page-title">素材外链健康监测</div>
+        <div class="page-sub">批量检查卡片正文、封面、视频、教程链接是否 401/403/404/超时，方便提前修复失效素材</div>
+      </div>
+      <button class="btn primary" id="health-scan-btn" onclick="runHealthScan()">开始扫描</button>
+    </div>
+    <div class="health-help">
+      建议先用「异常链接」看历史结果；点击扫描会实时请求第三方素材源，数量越大越慢。Vercel 上建议每次 50-100 条，本地可加大。
+    </div>
+    <div class="toolbar">
+      <input type="text" id="health-q" placeholder="搜索标题、ID、URL…" onkeydown="if(event.key==='Enter')loadHealth()" />
+      <select id="health-status">
+        <option value="bad">异常链接</option>
+        <option value="all">全部状态</option>
+        <option value="ok">正常</option>
+        <option value="blocked">401/403 权限受限</option>
+        <option value="missing">404/410 不存在</option>
+        <option value="broken">其他错误状态</option>
+        <option value="timeout">超时</option>
+        <option value="error">请求错误</option>
+      </select>
+      <select id="health-type">
+        <option value="all">全部内容</option>
+        <option value="card">主站卡片</option>
+        <option value="idea">灵感库</option>
+        <option value="tutorial">教程</option>
+      </select>
+      <select id="health-scope">
+        <option value="all">扫描全部</option>
+        <option value="cards">只扫主站卡片</option>
+        <option value="ideas">只扫灵感库</option>
+        <option value="tutorials">只扫教程</option>
+      </select>
+      <select id="health-limit">
+        <option value="50">扫描 50 条内容</option>
+        <option value="100" selected>扫描 100 条内容</option>
+        <option value="200">扫描 200 条内容</option>
+        <option value="500">扫描 500 条内容</option>
+      </select>
+      <button class="btn primary" onclick="loadHealth()">查询</button>
+    </div>
+    <div id="health-stats"></div>
+    <div id="health-table"></div>
+    <div class="pagination" id="health-pagination"></div>
   </div>
 </main>
 
@@ -462,7 +518,7 @@
 
 <script>
 const $ = id => document.getElementById(id);
-let cardsPage = 1, ideasPage = 1;
+let cardsPage = 1, ideasPage = 1, healthPage = 1;
 let editingCardId = null, editingIdeaId = null, editingTutorialId = null;
 let categoriesCache = [];
 
@@ -497,6 +553,7 @@ function showPage(name) {
   if (name === 'cards') loadCards();
   else if (name === 'ideas') loadIdeas();
   else if (name === 'tutorials') loadTutorials();
+  else if (name === 'health') loadHealth();
 }
 
 // ---- Cards ----
@@ -878,6 +935,101 @@ async function deleteTutorial(id) {
   if (res) { showToast('已删除'); loadTutorials(); }
 }
 
+// ---- Link Health ----
+async function loadHealth(page = 1) {
+  healthPage = page;
+  const params = new URLSearchParams({
+    page,
+    limit: 50,
+    status: $('health-status').value,
+    content_type: $('health-type').value,
+  });
+  const q = $('health-q').value.trim();
+  if (q) params.set('q', q);
+  const res = await api('GET', `/api/admin/content/link-health?${params}`);
+  if (!res) return;
+  renderHealth(res);
+}
+
+async function runHealthScan() {
+  const btn = $('health-scan-btn');
+  const oldText = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading"></span> 扫描中…';
+  const body = {
+    scope: $('health-scope').value,
+    q: $('health-q').value.trim(),
+    limit: Number($('health-limit').value || 100),
+    timeout_ms: 7000,
+    concurrency: 6,
+  };
+  const res = await api('POST', '/api/admin/content/link-health/scan', body);
+  btn.disabled = false;
+  btn.textContent = oldText;
+  if (!res) return;
+  const bad = (res.stats.blocked || 0) + (res.stats.missing || 0) + (res.stats.broken || 0) + (res.stats.timeout || 0) + (res.stats.error || 0) + (res.stats.unknown || 0);
+  showToast(`扫描完成：检查 ${res.checked} 个链接，异常 ${bad} 个`);
+  $('health-status').value = bad ? 'bad' : 'all';
+  loadHealth(1);
+}
+
+function renderHealth(res) {
+  const s = res.summary || {};
+  const bad = (s.blocked || 0) + (s.missing || 0) + (s.broken || 0) + (s.timeout || 0) + (s.error || 0) + (s.unknown || 0);
+  $('health-stats').innerHTML = `<div class="stats-row">
+    <div class="stat-card"><div class="num" style="color:var(--green)">${s.ok || 0}</div><div class="label">正常链接</div></div>
+    <div class="stat-card"><div class="num" style="color:var(--amber)">${s.blocked || 0}</div><div class="label">401/403 权限受限</div></div>
+    <div class="stat-card"><div class="num" style="color:var(--red)">${(s.missing || 0) + (s.broken || 0)}</div><div class="label">失效/错误状态</div></div>
+    <div class="stat-card"><div class="num" style="color:var(--pink)">${(s.timeout || 0) + (s.error || 0)}</div><div class="label">超时/请求错误</div></div>
+    <div class="stat-card"><div class="num">${bad}</div><div class="label">总异常</div></div>
+  </div>`;
+  if (!res.items.length) {
+    $('health-table').innerHTML = '<div class="empty"><div class="empty-icon">🔗</div>暂无检测结果，点击「开始扫描」生成</div>';
+    $('health-pagination').innerHTML = '';
+    return;
+  }
+  const statusLabel = {
+    ok: ['正常', 'green'],
+    blocked: ['权限受限', 'amber'],
+    missing: ['不存在', 'red'],
+    broken: ['状态异常', 'red'],
+    timeout: ['超时', 'amber'],
+    error: ['请求错误', 'red'],
+    unknown: ['未知', 'purple'],
+  };
+  const typeLabel = { card: '主站卡片', idea: '灵感库', tutorial: '教程' };
+  $('health-table').innerHTML = `<div class="tbl-scroll">
+    <table><thead><tr>
+      <th>状态</th><th>HTTP</th><th>内容</th><th>字段</th><th>URL</th><th>耗时</th><th>检测时间</th><th>错误</th>
+    </tr></thead><tbody>
+      ${res.items.map(item => {
+        const meta = statusLabel[item.status] || [item.status || '未知', 'purple'];
+        const contentUrl = item.content_type === 'card'
+          ? `/admin/content#card-${encodeURIComponent(item.content_id)}`
+          : '#';
+        return `<tr>
+          <td><span class="pill ${meta[1]}">${meta[0]}</span></td>
+          <td style="color:var(--text-dim)">${item.http_status || '—'}</td>
+          <td>
+            <div style="font-weight:600;max-width:180px" class="truncate" title="${esc(item.title || item.content_id)}">${esc(item.title || item.content_id)}</div>
+            <div style="font-size:11px;color:var(--text-dim)">${typeLabel[item.content_type] || item.content_type} · ${esc(item.content_id)}</div>
+          </td>
+          <td><span class="pill">${esc(item.field_name)}</span></td>
+          <td><div class="url-cell" title="${esc(item.url)}">${esc(item.url)}</div></td>
+          <td style="color:var(--text-dim)">${item.duration_ms == null ? '—' : `${item.duration_ms}ms`}</td>
+          <td style="color:var(--text-dim);font-size:12px">${fmtDateTime(item.checked_at)}</td>
+          <td class="truncate" style="max-width:220px;color:var(--text-dim)" title="${esc(item.error_message || item.content_type_header || '')}">${esc(item.error_message || item.content_type_header || '—')}</td>
+        </tr>`;
+      }).join('')}
+    </tbody></table></div>`;
+  const total = res.total;
+  const pages = Math.ceil(total / res.limit);
+  $('health-pagination').innerHTML = pages > 1 ? `
+    <button class="btn" ${healthPage <= 1 ? 'disabled' : ''} onclick="loadHealth(${healthPage-1})">上一页</button>
+    <span class="info">${healthPage}/${pages} (${total}条)</span>
+    <button class="btn" ${healthPage >= pages ? 'disabled' : ''} onclick="loadHealth(${healthPage+1})">下一页</button>` : `<span class="info">${total} 条记录</span>`;
+}
+
 // ---- Utils ----
 function esc(s) {
   if (s == null) return '';
@@ -889,6 +1041,13 @@ function fmtDate(s) {
   const d = new Date(s);
   if (isNaN(d)) return s;
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function fmtDateTime(s) {
+  if (!s) return '—';
+  const d = new Date(s);
+  if (isNaN(d)) return s;
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
 // ---- Init ----
