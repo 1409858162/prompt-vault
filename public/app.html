@@ -466,6 +466,96 @@
     justify-content: start;
     grid-auto-flow: dense;
   }
+
+  .boot-loader {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 18px;
+    padding: 16px 18px;
+    border-radius: 18px;
+    border: 1px solid rgba(129,140,248,.22);
+    background:
+      radial-gradient(circle at 12% 20%, rgba(99,102,241,.22), transparent 32%),
+      linear-gradient(135deg, rgba(19,19,24,.98), rgba(10,10,13,.98));
+    box-shadow: 0 18px 50px -36px rgba(99,102,241,.7);
+  }
+  .boot-loader.show { display: flex; }
+  .boot-loader .loader-copy { display: flex; flex-direction: column; gap: 4px; min-width: 220px; }
+  .boot-loader strong { font-size: 15px; letter-spacing: -.01em; }
+  .boot-loader span { color: var(--text-dim); font-size: 12.5px; line-height: 1.5; }
+  .boot-spinner {
+    width: 34px; height: 34px; border-radius: 999px;
+    border: 3px solid rgba(255,255,255,.1);
+    border-top-color: #a5b4fc;
+    box-shadow: 0 0 28px rgba(99,102,241,.45);
+    animation: pv-spin .8s linear infinite;
+    flex: 0 0 auto;
+  }
+  .skeleton-strip { display: grid; grid-template-columns: repeat(4, minmax(72px, 1fr)); gap: 10px; flex: 1 1 auto; max-width: 560px; }
+  .skeleton-mini {
+    height: 76px; border-radius: 14px; overflow: hidden; position: relative;
+    background: linear-gradient(135deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+    border: 1px solid rgba(255,255,255,.06);
+  }
+  .skeleton-mini::after,
+  .card .preview.media-loading::before,
+  .modal .preview-big.media-loading::before,
+  .modal.prompt-is-loading .prompt::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent);
+    animation: pv-shimmer 1.15s ease-in-out infinite;
+    pointer-events: none;
+  }
+  .card .preview.media-loading::before,
+  .modal .preview-big.media-loading::before {
+    z-index: 0;
+    background: linear-gradient(90deg, transparent, rgba(129,140,248,.14), transparent);
+  }
+  .card .preview.media-loading img,
+  .card .preview.media-loading video,
+  .modal .preview-big.media-loading img,
+  .modal .preview-big.media-loading video { opacity: .35; }
+  .card .preview.media-loaded img,
+  .card .preview.media-loaded video,
+  .modal .preview-big.media-loaded img,
+  .modal .preview-big.media-loaded video { opacity: 1; }
+  .media-failed-note {
+    position: absolute; left: 12px; bottom: 12px; z-index: 3;
+    padding: 5px 9px; border-radius: 999px;
+    font-size: 11px; font-weight: 700;
+    color: #fecaca; background: rgba(69,10,10,.76);
+    border: 1px solid rgba(248,113,113,.42);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  }
+  .modal.prompt-is-loading .prompt {
+    position: relative;
+    color: #cbd5e1;
+    background:
+      radial-gradient(circle at 24px 24px, rgba(99,102,241,.16), transparent 120px),
+      linear-gradient(180deg, rgba(15,23,42,.98), rgba(8,10,16,.98));
+  }
+  .modal.prompt-is-loading .prompt::before {
+    content: "";
+    display: inline-block;
+    width: 14px; height: 14px;
+    margin-right: 8px;
+    vertical-align: -2px;
+    border-radius: 999px;
+    border: 2px solid rgba(255,255,255,.18);
+    border-top-color: #c4b5fd;
+    animation: pv-spin .75s linear infinite;
+  }
+  @keyframes pv-spin { to { transform: rotate(360deg); } }
+  @keyframes pv-shimmer { 100% { transform: translateX(100%); } }
+  @media (max-width: 760px) {
+    .boot-loader { align-items: flex-start; }
+    .skeleton-strip { display: none; }
+  }
   .card {
     display: flex;
     flex-direction: column;
@@ -2344,6 +2434,16 @@
 <div class="active-filters" id="activeFilters"></div>
 
 <main>
+  <div id="bootLoader" class="boot-loader" role="status" aria-live="polite">
+    <div class="boot-spinner" aria-hidden="true"></div>
+    <div class="loader-copy">
+      <strong>正在加载提示词卡片</strong>
+      <span id="bootLoaderText">正在加载内容与封面，请稍候。</span>
+    </div>
+    <div class="skeleton-strip" aria-hidden="true">
+      <i class="skeleton-mini"></i><i class="skeleton-mini"></i><i class="skeleton-mini"></i><i class="skeleton-mini"></i>
+    </div>
+  </div>
   <div id="grid" class="grid"></div>
   <div id="soloCompanyDocs" class="solo-docs" style="display:none"></div>
   <div id="empty" class="empty" style="display:none">
@@ -2451,6 +2551,10 @@ let catalogFullyLoaded = false;
 let loadingMore = false;
 let isFatalError = false;
 let backgroundCatalogLoading = false;
+let bootLoading = false;
+const prewarmedCoverUrls = new Set();
+const MEDIA_PREFETCH_MAX_URLS = 180;
+const MEDIA_PREFETCH_CONCURRENCY = 3;
 // In-memory cache of raw server page responses. Key = server page number (1-based).
 // Never holds prompt_text bodies — server already strips them before caching.
 // Used to avoid re-fetching when switching tabs (all ↔ blindbox) or reloading.
@@ -2469,13 +2573,14 @@ const SERVER_PAGE_SIZE = 96;
 // v8: invalidate old catalog caches after imported-library cover/demo URLs were
 // mirrored locally. Without this, the browser can keep remote CDN URLs even
 // though MySQL already points at /assets/imported-libraries/*.
-const CATALOG_CACHE_SCHEMA = 8;
-const CATALOG_CACHE_KEY = 'prompt-vault:catalog:v8';
+const CATALOG_CACHE_SCHEMA = 9;
+const CATALOG_CACHE_KEY = 'prompt-vault:catalog:v9';
 const STALE_CATALOG_CACHE_KEYS = [
   'prompt-vault:catalog:v4',
   'prompt-vault:catalog:v5',
   'prompt-vault:catalog:v6',
   'prompt-vault:catalog:v7',
+  'prompt-vault:catalog:v8',
 ];
 const CATALOG_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const FAVORITES_KEY = 'prompt-vault:favorites:v1';
@@ -3387,6 +3492,145 @@ function closeSystemMessageModal() {
   syncBodyScrollLock();
 }
 
+
+function setBootLoading(show, message) {
+  bootLoading = !!show;
+  const host = document.getElementById('bootLoader');
+  const text = document.getElementById('bootLoaderText');
+  const grid = document.getElementById('grid');
+  if (text && message) text.textContent = message;
+  if (host) host.classList.toggle('show', bootLoading);
+  if (grid) grid.setAttribute('aria-busy', bootLoading ? 'true' : 'false');
+}
+
+function setModalPromptLoading(message) {
+  if (modal) modal.classList.add('prompt-is-loading');
+  if (modalPrompt) {
+    modalPrompt.classList.add('pv-locked');
+    modalPrompt.textContent = String(message || '正在加载提示词…') + '\n\n如果你的网络较慢，请等待 1-3 秒；如果仍然加载不出来，请检查加速器节点是否异常，换个节点再试。';
+  }
+}
+
+function clearModalPromptLoading() {
+  if (modal) modal.classList.remove('prompt-is-loading');
+}
+
+function coverPreloadUrl(item) {
+  if (!item || !item.preview_image_url) return '';
+  return cachedCoverUrl(item.preview_thumb_url || item.preview_image_url, 'card');
+}
+
+function runWhenIdle(fn, timeout = 900) {
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(fn, { timeout });
+  } else {
+    setTimeout(fn, Math.min(timeout, 250));
+  }
+}
+
+function trimPrewarmedCoverCache() {
+  if (prewarmedCoverUrls.size <= MEDIA_PREFETCH_MAX_URLS) return;
+  const overflow = prewarmedCoverUrls.size - MEDIA_PREFETCH_MAX_URLS;
+  let i = 0;
+  for (const key of prewarmedCoverUrls.keys()) {
+    prewarmedCoverUrls.delete(key);
+    if (++i >= overflow) break;
+  }
+}
+
+function scheduleSafeMediaPrewarm(rows, options = {}) {
+  if (!Array.isArray(rows) || !rows.length) return;
+  const conn = navigator.connection || navigator.webkitConnection || navigator.mozConnection;
+  if (conn && (conn.saveData || /(^|-)2g$/.test(String(conn.effectiveType || '')))) return;
+  const max = Math.max(0, Number(options.max || 18));
+  const delay = Math.max(0, Number(options.delay || 0));
+  const urls = [];
+  for (const item of rows) {
+    const url = coverPreloadUrl(item);
+    if (!url || prewarmedCoverUrls.has(url)) continue;
+    prewarmedCoverUrls.add(url);
+    urls.push(url);
+    if (urls.length >= max) break;
+  }
+  trimPrewarmedCoverCache();
+  if (!urls.length) return;
+  const start = () => runWhenIdle(() => {
+    let cursor = 0;
+    const pump = () => {
+      let n = 0;
+      while (cursor < urls.length && n < MEDIA_PREFETCH_CONCURRENCY) {
+        const img = new Image();
+        img.decoding = 'async';
+        img.referrerPolicy = 'no-referrer';
+        img.src = urls[cursor++];
+        n++;
+      }
+      if (cursor < urls.length) setTimeout(pump, 180);
+    };
+    pump();
+  });
+  if (delay) setTimeout(start, delay);
+  else start();
+}
+
+function markPendingMedia(root) {
+  const host = root || document;
+  host.querySelectorAll('img.cover-img, video.cover-video, img.ph-img').forEach(el => {
+    const box = el.closest('.preview, .preview-big');
+    if (!box) return;
+    if (el.tagName === 'IMG' && el.complete && el.naturalWidth > 0) {
+      box.classList.remove('media-loading');
+      box.classList.add('media-loaded');
+    } else if (el.tagName === 'VIDEO' && el.readyState >= 2) {
+      box.classList.remove('media-loading');
+      box.classList.add('media-loaded');
+    } else {
+      box.classList.add('media-loading');
+      box.classList.remove('media-loaded', 'media-failed');
+    }
+  });
+}
+
+function handleMediaFinished(el, ok) {
+  const box = el && el.closest ? el.closest('.preview, .preview-big') : null;
+  if (!box) return;
+  box.classList.remove('media-loading');
+  box.classList.toggle('media-loaded', !!ok);
+  box.classList.toggle('media-failed', !ok);
+  if (ok) return;
+  if (el.tagName === 'IMG' && !el.dataset.fallbackApplied && !/\/static\/manghe\.png(?:$|[?#])/.test(el.getAttribute('src') || '')) {
+    el.dataset.fallbackApplied = '1';
+    el.src = '/static/manghe.png';
+  }
+  if (!box.querySelector('.media-failed-note')) {
+    const note = document.createElement('span');
+    note.className = 'media-failed-note';
+    note.textContent = '封面加载失败';
+    box.appendChild(note);
+  }
+}
+
+function attachMediaLoadHandlers() {
+  const bind = (root) => {
+    if (!root) return;
+    root.addEventListener('load', (e) => {
+      if (e.target && (e.target.matches?.('img.cover-img, img.ph-img') || e.target.matches?.('video.cover-video'))) {
+        handleMediaFinished(e.target, true);
+      }
+    }, true);
+    root.addEventListener('loadeddata', (e) => {
+      if (e.target && e.target.matches?.('video.cover-video')) handleMediaFinished(e.target, true);
+    }, true);
+    root.addEventListener('error', (e) => {
+      if (e.target && (e.target.matches?.('img.cover-img, img.ph-img') || e.target.matches?.('video.cover-video'))) {
+        handleMediaFinished(e.target, false);
+      }
+    }, true);
+  };
+  bind(document.getElementById('grid'));
+  bind(document.getElementById('modalPreview'));
+}
+
 function saveCatalogCache() {
   if (!catalogFullyLoaded || !DATA.length) return;
   try {
@@ -3855,11 +4099,17 @@ async function refreshCatalogFromNetwork() {
 
 async function bootCatalog() {
   if (hydrateCatalogFromCache()) {
+    setBootLoading(false);
     refreshCatalogFromNetwork();
     return;
   }
-  await loadPrompts({ reset: true });
-  loadCatalogInBackground();
+  setBootLoading(true, '正在加载卡片目录与首屏封面，请稍候。');
+  try {
+    await loadPrompts({ reset: true });
+    loadCatalogInBackground();
+  } finally {
+    if (DATA.length || isFatalError) setBootLoading(false);
+  }
 }
 
 async function fetchServerPageOnce(serverPage) {
@@ -4082,6 +4332,7 @@ function renderRateLimited(r, onRetry) {
 // leave the grid silently empty.
 function renderFatalError(message, retryable) {
   isFatalError = true;
+  setBootLoading(false);
   const grid = document.getElementById('grid');
   const empty = document.getElementById('empty');
   grid.innerHTML = '';
@@ -4262,7 +4513,7 @@ function isBlindboxEligible(p) {
 function previewHtml(item) {
   if (item.preview_image_url) {
     const thumbUrl = cachedCoverUrl(item.preview_thumb_url || item.preview_image_url, 'card');
-    return `<img src="${escapeHtml(thumbUrl)}" alt="${escapeItemHtml(item, item.title)}" width="640" height="400" loading="eager" decoding="async" fetchpriority="auto" />`;
+    return `<img class="cover-img" src="${escapeHtml(thumbUrl)}" alt="${escapeItemHtml(item, item.title)}" width="640" height="400" loading="eager" decoding="async" fetchpriority="auto" />`;
   }
   // playable_video_url is the canonical field; preview_video_url is a legacy alias.
   const videoUrl = item.preview_video_url || item.playable_video_url;
@@ -4272,7 +4523,7 @@ function previewHtml(item) {
     // grid and attaches `src` only when each <video> enters the viewport.
     // Hover-to-play is wired through event delegation on #grid (one handler
     // for the whole page) so we don't pay for 80+ inline event listeners.
-    return `<video data-src="${escapeHtml(videoUrl)}" muted loop playsinline preload="none"></video>`;
+    return `<video class="cover-video" data-src="${escapeHtml(videoUrl)}" muted loop playsinline preload="none"></video>`;
   }
   // No preview → placeholder. Reuse the shared predicate so the cover decision
   // never drifts from the view / count / filter logic.
@@ -4820,7 +5071,8 @@ function renderGrid(rows) {
   const cacheKey = currentGridRenderCacheKey();
   if (!rows.length) {
     grid.innerHTML = '';
-    emptyEl.style.display = 'block';
+    emptyEl.style.display = bootLoading ? 'none' : 'block';
+    if (bootLoading) return;
     const emptyH = emptyEl.querySelector('h2');
     const emptyP = emptyEl.querySelector('p');
     if (VIEW === 'favorites') {
@@ -4865,12 +5117,15 @@ function renderGrid(rows) {
     }
     return;
   }
+  setBootLoading(false);
   emptyEl.style.display = 'none';
   const cachedPage = renderedGridPageCache.get(cacheKey);
   if (cachedPage?.nodes?.length) {
     touchRenderedGridPageCache(cacheKey, cachedPage);
     grid.replaceChildren(...cachedPage.nodes);
+    markPendingMedia(grid);
     lazyHydrateVideos(grid);
+    scheduleSafeMediaPrewarm(rows, { max: 12, delay: 120 });
     return;
   }
   grid.innerHTML = withPromoCard(rows).join('');
@@ -4903,7 +5158,9 @@ function renderGrid(rows) {
       }
     });
   });
+  markPendingMedia(grid);
   lazyHydrateVideos(grid);
+  scheduleSafeMediaPrewarm(rows, { max: 18, delay: 80 });
   touchRenderedGridPageCache(cacheKey, { nodes: Array.from(grid.children) });
 }
 
@@ -5410,6 +5667,8 @@ function render() {
   renderActiveFilterChips();
   renderGrid(pageRows);
   renderPager(allRows.length);
+  const nextRows = allRows.slice(end, Math.min(end + PAGE_SIZE, allRows.length));
+  scheduleSafeMediaPrewarm(nextRows, { max: 8, delay: 900 });
 }
 
 // ---- Pager UI ----
@@ -5602,6 +5861,11 @@ const modalPreview = document.getElementById('modalPreview');
 const modalPrompt = document.getElementById('modalPrompt');
 const favoriteModalBtn = document.getElementById('favoriteModalBtn');
 let currentItem = null;
+if (modalPrompt && 'MutationObserver' in window) {
+  new MutationObserver(() => {
+    if (!modalPrompt.classList.contains('pv-locked')) clearModalPromptLoading();
+  }).observe(modalPrompt, { attributes: true, attributeFilter: ['class'] });
+}
 
 function showBanNotice(notice = {}) {
   const host = document.getElementById('banNotice');
@@ -5810,6 +6074,7 @@ async function openModal(id) {
         <div style="font-size:15px;line-height:1.6;color:#d1d5db;max-width:760px;">${escapeHtml(item.summary || '')}</div>
       </div>`;
     modal.classList.add('open');
+    markPendingMedia(modalPreview);
     syncBodyScrollLock();
     const copyBtn = document.getElementById('copyBtn');
     const useBtn = document.getElementById('useBtn');
@@ -5833,10 +6098,9 @@ async function openModal(id) {
       showToast(VIEWER.authenticated ? (isLesson ? '这篇教学需要会员权限' : '这个提示词需要会员权限') : '请先登录后继续使用');
       return;
     }
-    modalPrompt.classList.add('pv-locked');
-    modalPrompt.textContent = item.has_prompt_text
+    setModalPromptLoading(item.has_prompt_text
       ? `正在安全加载 ${item.prompt_text_length || ''} 字符的${isLesson ? '正文' : '提示词'}…`
-      : '';
+      : '正在安全加载正文…');
     try {
       const body = await fetchIdeaBody(item);
       item.prompt_text = body.prompt_text || '';
@@ -5874,6 +6138,7 @@ async function openModal(id) {
         <div style="font-size:15px;line-height:1.6;color:#d1d5db;max-width:760px;">${html(item.summary || '')}</div>
       </div>`;
     modal.classList.add('open');
+    markPendingMedia(modalPreview);
     syncBodyScrollLock();
     const copyBtn = document.getElementById('copyBtn');
     const useBtn = document.getElementById('useBtn');
@@ -5911,10 +6176,10 @@ async function openModal(id) {
     }
     const playUrl = item.preview_video_url || item.playable_video_url;
     if (playUrl) {
-      modalPreview.innerHTML = `<div class="preview-big"><video src="${escapeHtml(playUrl)}" controls muted playsinline></video></div>`;
+      modalPreview.innerHTML = `<div class="preview-big"><video class="cover-video" src="${escapeHtml(playUrl)}" controls muted playsinline></video></div>`;
     } else if (item.preview_image_url || item.cover_url) {
       const detailUrl = cachedCoverUrl(item.preview_image_url || item.cover_url, 'detail');
-      modalPreview.innerHTML = `<div class="preview-big"><img src="${escapeHtml(detailUrl)}" alt="${html(item.title)}" width="1280" height="800" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>`;
+      modalPreview.innerHTML = `<div class="preview-big"><img class="cover-img" src="${escapeHtml(detailUrl)}" alt="${html(item.title)}" width="1280" height="800" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>`;
     } else {
       modalPreview.innerHTML = `
         <div class="preview-big" style="height:clamp(150px,24dvh,240px);padding:24px;display:flex;flex-direction:column;justify-content:center;gap:12px;background:linear-gradient(135deg,${isVideo ? '#171023,#101018 70%' : (isLesson ? '#13101d,#0f1827 70%' : '#0e1720,#0b1018 70%')});">
@@ -5923,6 +6188,7 @@ async function openModal(id) {
         </div>`;
     }
     modal.classList.add('open');
+    markPendingMedia(modalPreview);
     syncBodyScrollLock();
     const copyBtn = document.getElementById('copyBtn');
     const useBtn = document.getElementById('useBtn');
@@ -5946,10 +6212,9 @@ async function openModal(id) {
       showToast(VIEWER.authenticated ? '这个提示词需要会员权限' : '请先登录后继续使用');
       return;
     }
-    modalPrompt.classList.add('pv-locked');
-    modalPrompt.textContent = item.has_prompt_text
+    setModalPromptLoading(item.has_prompt_text
       ? `正在安全加载 ${item.prompt_text_length || ''} 字符的提示词…`
-      : '';
+      : '正在安全加载提示词…');
     try {
       const body = await fetchIdeaBody(item);
       item.prompt_text = body.prompt_text || '';
@@ -5994,13 +6259,14 @@ async function openModal(id) {
   const playUrl = item.playable_video_url || item.preview_video_url;
   if (item.preview_image_url) {
     const detailUrl = cachedCoverUrl(item.preview_image_url, 'detail');
-    modalPreview.innerHTML = `<div class="preview-big"><img src="${escapeHtml(detailUrl)}" alt="${escapeHtml(item.title)}" width="1280" height="800" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>`;
+    modalPreview.innerHTML = `<div class="preview-big"><img class="cover-img" src="${escapeHtml(detailUrl)}" alt="${escapeHtml(item.title)}" width="1280" height="800" decoding="async" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>`;
   } else if (playUrl) {
-    modalPreview.innerHTML = `<div class="preview-big"><video src="${escapeHtml(playUrl)}" controls muted playsinline></video></div>`;
+    modalPreview.innerHTML = `<div class="preview-big"><video class="cover-video" src="${escapeHtml(playUrl)}" controls muted playsinline></video></div>`;
   } else {
     modalPreview.innerHTML = `<div class="preview-big"><img class="ph-img" src="/static/manghe.png" alt="盲盒占位图" style="width:100%;height:100%;object-fit:cover;display:block;"/></div>`;
   }
   modal.classList.add('open');
+  markPendingMedia(modalPreview);
   syncBodyScrollLock();
 
   const copyBtn = document.getElementById('copyBtn');
@@ -6032,10 +6298,9 @@ async function openModal(id) {
 
   // Lazily fetch prompt body via single-use content token. Until it arrives,
   // we show a locked/loading state so the body is never bulk-cached in memory.
-  modalPrompt.classList.add('pv-locked');
-  modalPrompt.textContent = item.has_prompt_text
+  setModalPromptLoading(item.has_prompt_text
     ? `正在安全加载 ${item.prompt_text_length || ''} 字符的提示词…`
-    : (item.prompt_text || '');
+    : '正在安全加载提示词…');
   try {
     const body = await fetchPromptBody(id);
     // Watermark-injected by server (ts/ip/jti). Render on the modal.
@@ -6067,6 +6332,7 @@ async function openModal(id) {
 
 function closeModal() {
   modal.classList.remove('open');
+  clearModalPromptLoading();
   syncBodyScrollLock();
   modalPreview.querySelectorAll('video').forEach(v => v.pause());
   // Remove the per-chapter watermark footer injected on body load.
@@ -6258,6 +6524,7 @@ window.addEventListener('pagehide', () => { if (_watermark) _watermark.stop(); }
 })();
 
 // ---- Init ----
+attachMediaLoadHandlers();
 loadFavorites();
 loadMe();
 loadAnnouncements();
