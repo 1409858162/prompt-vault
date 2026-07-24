@@ -208,6 +208,60 @@
   @media (prefers-reduced-motion: reduce) {
     .nav-tab.blindbox::after { animation: none; }
   }
+
+  .subnav {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    max-width: 1600px;
+    margin: 10px auto 0;
+    padding: 0 28px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .subnav::-webkit-scrollbar { display: none; }
+  .subnav.show { display: flex; }
+  .subnav-label {
+    flex: 0 0 auto;
+    font-size: 12px;
+    color: var(--text-dim);
+    padding: 0 4px;
+  }
+  .subnav-chip {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,.035);
+    color: var(--text-dim);
+    border-radius: 999px;
+    padding: 7px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .15s, border-color .15s, background .15s, color .15s, box-shadow .15s;
+  }
+  .subnav-chip:hover {
+    transform: translateY(-1px);
+    color: var(--text);
+    border-color: rgba(255,255,255,.22);
+    background: rgba(255,255,255,.06);
+  }
+  .subnav-chip.active {
+    color: #e0e7ff;
+    border-color: rgba(129,140,248,.55);
+    background: linear-gradient(135deg, rgba(99,102,241,.18), rgba(20,184,166,.12));
+    box-shadow: 0 0 18px rgba(99,102,241,.12);
+  }
+  .subnav-chip .count {
+    font-size: 11px;
+    color: rgba(255,255,255,.66);
+    background: rgba(0,0,0,.28);
+    border-radius: 999px;
+    padding: 1px 7px;
+  }
+
   .stat-pills { display: flex; gap: 6px; flex-wrap: wrap; }
   .pill {
     font-size: 12px;
@@ -2351,28 +2405,19 @@
       <span class="dot"></span>
       <span>Prompt Vault<small>· 全部提示词</small></span>
     </div>
-    <nav class="nav-tabs" role="tablist" aria-label="视图切换">
-      <button class="nav-tab" id="tabAll" type="button" role="tab" aria-selected="true">
-        <span>motionsites</span>
+    <nav class="nav-tabs" role="tablist" aria-label="主导航">
+      <button class="nav-tab" id="tabAll" type="button" role="tab" aria-selected="true" title="网页 UI、组件灵感、动效灵感">
+        <span>网页 UI</span>
         <span class="count" id="tabAllCount">–</span>
       </button>
-      <button class="nav-tab blindbox" id="tabBlindbox" type="button" role="tab" aria-selected="false" title="免费盲盒专题 · 好奇就点一下">
+      <button class="nav-tab blindbox" id="tabBlindbox" type="button" role="tab" aria-selected="false" title="免费盲盒专题 · 登录即可复制">
         <span class="bb-emoji">📦</span>
         <span>免费盲盒</span>
         <span class="count" id="blindboxCount">0</span>
       </button>
-      <button class="nav-tab shorts" id="tabShorts" type="button" role="tab" aria-selected="false" title="AI SKILLS + 灵感库">
-        <span>AI</span>
-        <span>灵感库</span>
-        <span class="count" id="shortsCount">…</span>
-      </button>
-      <button class="nav-tab image-ideas" id="tabImageIdeas" type="button" role="tab" aria-selected="false" title="图片生成灵感库">
-        <span>IMG AI</span>
-        <span class="count" id="imageIdeasCount">…</span>
-      </button>
-      <button class="nav-tab video-ideas" id="tabVideoIdeas" type="button" role="tab" aria-selected="false" title="视频生成灵感库">
-        <span>VID AI</span>
-        <span class="count" id="videoIdeasCount">…</span>
+      <button class="nav-tab shorts" id="tabAiIdeas" type="button" role="tab" aria-selected="false" title="Skills、图片灵感、视频灵感统一入口">
+        <span>AI 灵感</span>
+        <span class="count" id="aiIdeasCount">…</span>
       </button>
       <button class="nav-tab one-company" id="tabSoloCompany" type="button" role="tab" aria-selected="false" title="一人公司创业教学">
         <span>一人公司</span>
@@ -2380,7 +2425,7 @@
       </button>
       <button class="nav-tab favorites" id="tabFavorites" type="button" role="tab" aria-selected="false" title="个人收藏 UI 库">
         <span>♡</span>
-        <span>收藏库</span>
+        <span>收藏</span>
         <span class="count" id="favoritesCount">0</span>
       </button>
     </nav>
@@ -2408,6 +2453,7 @@
 <!-- Announcements banner. Populated by loadAnnouncements(). Pinned items render
      inline; non-pinned items collapse into a "公告" pill on the right. -->
 <div id="announcementHost"></div>
+<div class="subnav" id="subNav" aria-label="内部分类"></div>
 
 <div class="toolbar">
   <div class="search" id="searchWrap">
@@ -2573,14 +2619,16 @@ const SERVER_PAGE_SIZE = 96;
 // v8: invalidate old catalog caches after imported-library cover/demo URLs were
 // mirrored locally. Without this, the browser can keep remote CDN URLs even
 // though MySQL already points at /assets/imported-libraries/*.
-const CATALOG_CACHE_SCHEMA = 9;
-const CATALOG_CACHE_KEY = 'prompt-vault:catalog:v9';
+const CATALOG_CACHE_SCHEMA = 11;
+const CATALOG_CACHE_KEY = 'prompt-vault:catalog:v11';
 const STALE_CATALOG_CACHE_KEYS = [
   'prompt-vault:catalog:v4',
   'prompt-vault:catalog:v5',
   'prompt-vault:catalog:v6',
   'prompt-vault:catalog:v7',
   'prompt-vault:catalog:v8',
+  'prompt-vault:catalog:v9',
+  'prompt-vault:catalog:v10',
 ];
 const CATALOG_CACHE_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const FAVORITES_KEY = 'prompt-vault:favorites:v1';
@@ -2620,6 +2668,7 @@ function currentGridRenderCacheKey() {
     cat: FILTERS.cat,
     text: FILTERS.text,
     sort: FILTERS.sort,
+    collection: COLLECTION,
   });
 }
 
@@ -3329,13 +3378,17 @@ function toggleFavorite(id) {
 function syncTopBarStats() {
   const blindCount = DATA.filter(isBlindboxEligible).length;
   const allVisibleCount = Math.max(0, TOTAL - DATA.filter(usesManghePlaceholder).length);
-  document.getElementById('blindboxCount').textContent = blindCount;
-  document.getElementById('tabAllCount').textContent = allVisibleCount;
-  document.getElementById('shortsCount').textContent = AI_SKILLS.length + SHORT_PROMPTS.length || '…';
-  document.getElementById('imageIdeasCount').textContent = IMAGE_IDEAS_LOADING ? '…' : IMAGE_IDEAS.length;
-  document.getElementById('videoIdeasCount').textContent = VIDEO_IDEAS_LOADING ? '…' : VIDEO_IDEAS.length;
-  document.getElementById('soloCompanyCount').textContent = SOLO_COMPANY_LOADING ? '…' : SOLO_COMPANY.length;
-  document.getElementById('favoritesCount').textContent = favoriteTotal();
+  const aiLoading = IMAGE_IDEAS_LOADING || VIDEO_IDEAS_LOADING;
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+  setText('blindboxCount', blindCount);
+  setText('tabAllCount', allVisibleCount);
+  setText('aiIdeasCount', aiLoading ? '…' : aiIdeaTotal());
+  setText('soloCompanyCount', SOLO_COMPANY_LOADING ? '…' : SOLO_COMPANY.length);
+  setText('favoritesCount', favoriteTotal());
+  renderSubNav();
 }
 
 const MSG_KIND_LABEL = { info: '通知', warn: '提醒', success: '结果' };
@@ -4794,7 +4847,93 @@ function withPromoCard(rows) {
 //   view: 'all' (default, blind-box hidden) | 'blindbox' | 'shorts' | 'aiSkills' | 'imageIdeas' | 'videoIdeas' | 'soloCompany' | 'favorites'
 //   filters: q / cat / text / sort — apply on top of the active view
 let VIEW = 'all';
+let COLLECTION = 'all';
 const FILTERS = { q: '', cat: '', text: '', sort: '' };
+
+const AI_IDEA_VIEWS = ['shorts', 'imageIdeas', 'videoIdeas'];
+const WEB_COLLECTIONS = [
+  { id: 'all', label: '全部 UI' },
+  { id: 'motionsites', label: 'MotionSites' },
+  { id: 'components', label: '组件灵感' },
+  { id: 'motion', label: '动效灵感' },
+  { id: 'design', label: '设计灵感' },
+];
+const AI_SUB_VIEWS = [
+  { id: 'shorts', label: 'Skills / 文案' },
+  { id: 'imageIdeas', label: '图片灵感' },
+  { id: 'videoIdeas', label: '视频灵感' },
+];
+
+function isAiIdeaView(view = VIEW) {
+  return AI_IDEA_VIEWS.includes(view);
+}
+function isComponentInspirationItem(p) {
+  const source = String(p?.source || '');
+  const cat = String(p?.category || '');
+  return source === 'component_inspiration_search'
+    || source === 'extractions_component_library'
+    || cat === '组件灵感'
+    || cat === '精选组件素材';
+}
+function isMotionInspirationItem(p) {
+  return String(p?.source || '') === 'extractions_horizonx' || String(p?.category || '') === 'HorizonX 动效灵感';
+}
+function isDesignInspirationItem(p) {
+  return String(p?.source || '') === 'extractions_superdesign' || String(p?.category || '') === 'Superdesign 设计灵感';
+}
+function isImportedInspirationItem(p) {
+  return isComponentInspirationItem(p) || isMotionInspirationItem(p) || isDesignInspirationItem(p);
+}
+function matchesWebCollection(p) {
+  if (COLLECTION === 'components') return isComponentInspirationItem(p);
+  if (COLLECTION === 'motion') return isMotionInspirationItem(p);
+  if (COLLECTION === 'design') return isDesignInspirationItem(p);
+  if (COLLECTION === 'motionsites') return !isImportedInspirationItem(p);
+  return true;
+}
+function webCollectionPool(pool) {
+  const visible = pool.filter(p => !usesManghePlaceholder(p));
+  return COLLECTION === 'all' ? visible : visible.filter(matchesWebCollection);
+}
+function aiIdeaTotal() {
+  return (AI_SKILLS.length + SHORT_PROMPTS.length) + IMAGE_IDEAS.length + VIDEO_IDEAS.length;
+}
+function webCollectionCount(id) {
+  return DATA.filter(p => {
+    if (usesManghePlaceholder(p)) return false;
+    const old = COLLECTION;
+    COLLECTION = id;
+    const ok = matchesWebCollection(p);
+    COLLECTION = old;
+    return ok;
+  }).length;
+}
+function aiSubViewCount(id) {
+  if (id === 'shorts') return AI_SKILLS.length + SHORT_PROMPTS.length;
+  if (id === 'imageIdeas') return IMAGE_IDEAS_LOADING ? '…' : IMAGE_IDEAS.length;
+  if (id === 'videoIdeas') return VIDEO_IDEAS_LOADING ? '…' : VIDEO_IDEAS.length;
+  return 0;
+}
+function renderSubNav() {
+  const el = document.getElementById('subNav');
+  if (!el) return;
+  if (VIEW === 'all') {
+    el.classList.add('show');
+    el.innerHTML = '<span class="subnav-label">网页 UI 分类</span>' + WEB_COLLECTIONS.map(c => (
+      `<button class="subnav-chip ${COLLECTION === c.id ? 'active' : ''}" type="button" data-collection="${escapeHtml(c.id)}">${escapeHtml(c.label)}<span class="count">${webCollectionCount(c.id)}</span></button>`
+    )).join('');
+    return;
+  }
+  if (isAiIdeaView()) {
+    el.classList.add('show');
+    el.innerHTML = '<span class="subnav-label">AI 灵感分类</span>' + AI_SUB_VIEWS.map(c => (
+      `<button class="subnav-chip ${VIEW === c.id ? 'active' : ''}" type="button" data-sub-view="${escapeHtml(c.id)}">${escapeHtml(c.label)}<span class="count">${aiSubViewCount(c.id)}</span></button>`
+    )).join('');
+    return;
+  }
+  el.classList.remove('show');
+  el.innerHTML = '';
+}
 
 function readFiltersFromUI() {
   FILTERS.q    = document.getElementById('searchInput').value.trim();
@@ -4827,28 +4966,21 @@ function applyViewAndFiltersToUI() {
   document.getElementById('sortSelect').value      = FILTERS.sort;
   document.getElementById('searchWrap').classList.toggle('has-value', !!FILTERS.q);
 
-  // Sync the top-nav tabs
-  const allBtn = document.getElementById('tabAll');
-  const bbBtn  = document.getElementById('tabBlindbox');
-  const shortsBtn = document.getElementById('tabShorts');
-  const imageIdeasBtn = document.getElementById('tabImageIdeas');
-  const videoIdeasBtn = document.getElementById('tabVideoIdeas');
-  const soloCompanyBtn = document.getElementById('tabSoloCompany');
-  const favBtn = document.getElementById('tabFavorites');
-  allBtn.classList.toggle('active', VIEW === 'all');
-  bbBtn.classList.toggle('active',  VIEW === 'blindbox');
-  shortsBtn.classList.toggle('active', VIEW === 'shorts');
-  imageIdeasBtn.classList.toggle('active', VIEW === 'imageIdeas');
-  videoIdeasBtn.classList.toggle('active', VIEW === 'videoIdeas');
-  soloCompanyBtn.classList.toggle('active', VIEW === 'soloCompany');
-  favBtn.classList.toggle('active', VIEW === 'favorites');
-  allBtn.setAttribute('aria-selected', VIEW === 'all' ? 'true' : 'false');
-  bbBtn.setAttribute('aria-selected',  VIEW === 'blindbox' ? 'true' : 'false');
-  shortsBtn.setAttribute('aria-selected', VIEW === 'shorts' ? 'true' : 'false');
-  imageIdeasBtn.setAttribute('aria-selected', VIEW === 'imageIdeas' ? 'true' : 'false');
-  videoIdeasBtn.setAttribute('aria-selected', VIEW === 'videoIdeas' ? 'true' : 'false');
-  soloCompanyBtn.setAttribute('aria-selected', VIEW === 'soloCompany' ? 'true' : 'false');
-  favBtn.setAttribute('aria-selected', VIEW === 'favorites' ? 'true' : 'false');
+  // Sync the top-nav tabs. AI 灵感是聚合入口，内部再切 Skills / 图片 / 视频。
+  const navStates = [
+    ['tabAll', VIEW === 'all'],
+    ['tabBlindbox', VIEW === 'blindbox'],
+    ['tabAiIdeas', isAiIdeaView()],
+    ['tabSoloCompany', VIEW === 'soloCompany'],
+    ['tabFavorites', VIEW === 'favorites'],
+  ];
+  navStates.forEach(([id, active]) => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.classList.toggle('active', !!active);
+    btn.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+  renderSubNav();
 
   // Blind-box is meaningless in default view — hide its category from the dropdown
   document.getElementById('categorySelect').disabled = (VIEW === 'blindbox');
@@ -4865,6 +4997,7 @@ function toQuery() {
   if (VIEW === 'videoIdeas') p.set('view', 'videoIdeas');
   if (VIEW === 'soloCompany') p.set('view', 'soloCompany');
   if (VIEW === 'favorites') p.set('view', 'favorites');
+  if (VIEW === 'all' && COLLECTION && COLLECTION !== 'all') p.set('collection', COLLECTION);
   if (FILTERS.q)        p.set('q', FILTERS.q);
   if (FILTERS.cat)      p.set('cat', FILTERS.cat);
   if (FILTERS.text)     p.set('text', FILTERS.text);
@@ -4876,6 +5009,8 @@ function readViewAndFiltersFromQuery() {
   const p = new URLSearchParams(location.search);
   const view = p.get('view');
   VIEW = ['blindbox', 'shorts', 'imageIdeas', 'videoIdeas', 'soloCompany', 'favorites'].includes(view) ? view : 'all';
+  const collection = p.get('collection') || 'all';
+  COLLECTION = WEB_COLLECTIONS.some(c => c.id === collection) ? collection : 'all';
   FILTERS.q    = p.get('q')    || '';
   FILTERS.cat  = p.get('cat')  || '';
   FILTERS.text = p.get('text') || '';
@@ -4892,7 +5027,7 @@ function syncQueryString() {
 }
 
 function isAnyFilterActive() {
-  return !!(FILTERS.q || FILTERS.cat || FILTERS.text || FILTERS.sort);
+  return !!(FILTERS.q || FILTERS.cat || FILTERS.text || FILTERS.sort || (VIEW === 'all' && COLLECTION !== 'all'));
 }
 
 function estimatedCurrentViewTotal(filteredCount) {
@@ -4912,6 +5047,7 @@ function currentViewLoadedRows() {
 
 function clearAllFilters() {
   FILTERS.q = FILTERS.cat = FILTERS.text = FILTERS.sort = '';
+  COLLECTION = 'all';
   currentPage = 1;
   applyViewAndFiltersToUI();
   syncQueryString();
@@ -4947,7 +5083,8 @@ function getRows() {
     : VIEW === 'soloCompany'
       ? SOLO_COMPANY
     : (VIEW === 'favorites' ? DATA.concat(AI_SKILLS, SHORT_PROMPTS, IMAGE_IDEAS, VIDEO_IDEAS, SOLO_COMPANY) : DATA);
-  return pool.filter(p => {
+  const scopedPool = VIEW === 'all' ? webCollectionPool(pool) : pool;
+  return scopedPool.filter(p => {
     if (VIEW === 'all' && usesManghePlaceholder(p)) return false;
     if (VIEW === 'blindbox' && !isBlindboxEligible(p)) return false;
     if (VIEW === 'favorites' && !isFavorite(p.id)) return false;
@@ -5005,6 +5142,10 @@ function renderActiveFilterChips() {
   const box = document.getElementById('activeFilters');
   const items = [];
   if (FILTERS.q)    items.push({ key: 'q',    label: '搜索 "' + FILTERS.q + '"' });
+  if (VIEW === 'all' && COLLECTION !== 'all') {
+    const col = WEB_COLLECTIONS.find(c => c.id === COLLECTION);
+    if (col) items.push({ key: 'collection', label: '专题: ' + col.label });
+  }
   if (FILTERS.cat)  items.push({ key: 'cat',  label: '分类: ' + FILTERS.cat });
   if (VIEW !== 'soloCompany' && FILTERS.text === 'yes')  items.push({ key: 'text', label: '有提示词正文' });
   if (VIEW !== 'soloCompany' && FILTERS.text === 'no')   items.push({ key: 'text', label: '仅元数据' });
@@ -5018,6 +5159,7 @@ function renderActiveFilterChips() {
     btn.addEventListener('click', () => {
       const k = btn.dataset.clear;
       if (k === 'q')    FILTERS.q = '';
+      if (k === 'collection') COLLECTION = 'all';
       if (k === 'cat')  FILTERS.cat = '';
       if (k === 'text') FILTERS.text = '';
       if (k === 'sort') FILTERS.sort = '';
@@ -5048,7 +5190,7 @@ function renderResultCount(filteredCount, pageStart, pageEnd) {
       ? SOLO_COMPANY.length
     : (VIEW === 'favorites')
       ? DATA.concat(AI_SKILLS, SHORT_PROMPTS, IMAGE_IDEAS, VIDEO_IDEAS, SOLO_COMPANY).filter(p => isFavorite(p.id)).length
-    : DATA.filter(p => !usesManghePlaceholder(p)).length;
+    : webCollectionPool(DATA).length;
   // If the user is mid-pagination and hasn't fetched every server page yet,
   // the in-views estimate undercounts. Prefer the server's TOTAL when it
   // matches the current VIEW (i.e. no view-specific manghe adjustment).
@@ -5582,7 +5724,7 @@ function populateCategorySelect() {
       ? SOLO_COMPANY
     : (VIEW === 'favorites')
       ? DATA.concat(AI_SKILLS, SHORT_PROMPTS, IMAGE_IDEAS, VIDEO_IDEAS, SOLO_COMPANY).filter(p => isFavorite(p.id))
-      : DATA.filter(p => !usesManghePlaceholder(p));
+      : webCollectionPool(DATA);
   // Cache key changes when view changes — recompute every time in blindbox mode
   // (in all mode the blind-box category is impossible anyway, so cheaper to skip)
   const cats = [...new Set(pool.map(d => d.category).filter(Boolean))].sort();
@@ -5619,7 +5761,7 @@ function render() {
         ? SOLO_COMPANY
       : (VIEW === 'favorites')
         ? DATA.concat(AI_SKILLS, SHORT_PROMPTS, IMAGE_IDEAS, VIDEO_IDEAS, SOLO_COMPANY).filter(p => isFavorite(p.id))
-        : DATA.filter(p => !usesManghePlaceholder(p));
+        : webCollectionPool(DATA);
     const validCats = new Set(
       pool.map(p => p.category).filter(Boolean)
     );
@@ -5628,14 +5770,15 @@ function render() {
   syncQueryString();
   document.getElementById('searchWrap').classList.toggle('has-value', !!FILTERS.q);
   // Brand subtitle reflects the current view
+  const currentCollection = WEB_COLLECTIONS.find(c => c.id === COLLECTION);
   document.querySelector('.brand small').textContent =
     VIEW === 'blindbox' ? '· 免费盲盒专题'
-      : VIEW === 'shorts' ? '· AI SKILLS + 灵感库'
-      : VIEW === 'aiSkills' ? '· AI 编程 SKILLS'
+      : VIEW === 'shorts' ? '· Skills / 文案灵感'
       : VIEW === 'imageIdeas' ? '· 图片生成灵感'
       : VIEW === 'videoIdeas' ? '· 视频生成灵感'
       : VIEW === 'soloCompany' ? '· 一人公司'
-      : (VIEW === 'favorites' ? '· 个人收藏 UI 库' : '· 全部提示词');
+      : VIEW === 'favorites' ? '· 个人收藏 UI 库'
+      : ('· ' + (currentCollection?.label || '网页 UI'));
   populateCategorySelect();
   document.getElementById('categorySelect').value = FILTERS.cat;
   // Filter + sort the dataset the user *currently has loaded*. Once the
@@ -5847,11 +5990,26 @@ document.getElementById('searchClear').addEventListener('click', () => {
 // Top-nav tabs
 document.getElementById('tabAll').addEventListener('click', () => switchView('all'));
 document.getElementById('tabBlindbox').addEventListener('click', () => switchView('blindbox'));
-document.getElementById('tabShorts').addEventListener('click', () => switchView('shorts'));
-document.getElementById('tabImageIdeas').addEventListener('click', () => switchView('imageIdeas'));
-document.getElementById('tabVideoIdeas').addEventListener('click', () => switchView('videoIdeas'));
+document.getElementById('tabAiIdeas').addEventListener('click', () => switchView(isAiIdeaView() ? VIEW : 'shorts'));
 document.getElementById('tabSoloCompany').addEventListener('click', () => switchView('soloCompany'));
 document.getElementById('tabFavorites').addEventListener('click', () => switchView('favorites'));
+const subNavEl = document.getElementById('subNav');
+if (subNavEl) {
+  subNavEl.addEventListener('click', (e) => {
+    const collectionBtn = e.target.closest('[data-collection]');
+    if (collectionBtn) {
+      COLLECTION = collectionBtn.dataset.collection || 'all';
+      if (!WEB_COLLECTIONS.some(c => c.id === COLLECTION)) COLLECTION = 'all';
+      currentPage = 1;
+      applyViewAndFiltersToUI();
+      syncQueryString();
+      render();
+      return;
+    }
+    const subViewBtn = e.target.closest('[data-sub-view]');
+    if (subViewBtn) switchView(subViewBtn.dataset.subView || 'shorts');
+  });
+}
 
 // ---- Modal ----
 const modal = document.getElementById('modal');

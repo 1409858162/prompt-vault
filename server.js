@@ -325,6 +325,7 @@ function promptListItemFromMySQL(row) {
     member_only: !!row.member_only,
     active: !!row.active,
     heat: row.heat,
+    has_prompt_text: Number(row.prompt_text_length || 0) > 0 || !!row.prompt_text,
     prompt_text_length: row.prompt_text_length || 0,
     created_at: row.created_at,
   };

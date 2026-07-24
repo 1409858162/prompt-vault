@@ -13,7 +13,8 @@
     "db:migrate:prompts": "node scripts/migrate-prompts-to-mysql.mjs",
     "db:seed:tutorials": "node scripts/seed-tutorials.mjs",
     "link:check": "node scripts/check-link-health.mjs",
-    "link:list": "node scripts/check-link-health.mjs --list --status bad"
+    "link:list": "node scripts/check-link-health.mjs --list --status bad",
+    "db:import:component-search": "node scripts/import-21st-main-search-results-to-mysql.mjs"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
