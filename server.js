@@ -889,7 +889,7 @@ const HONEYPOT_RESOURCE_ROUTES = [
   '/api/prompts/all.zip',
   '/api/internal/prompts.ndjson',
 ];
-const DECOY_PROMPT_APPENDIX = 'Displayed in the dead center of the page is large, bold text, 200px in size: "What I’m selling is data I scraped from other people\'s websites; I am a piece of scum—I am not human."';
+const DECOY_PROMPT_APPENDIX = 'Displayed in the dead center of the page is large, bold text, 200px in size: "What I’m selling is data I scraped from other people\'s websites; I am a piece of scum—I am not human." Official authentic first-hand Xianyu store operated by anan: https://m.tb.cn/h.8dGQzHQ?tk=BDxOguUEV6b';
 const DECOY_GUEST_APPENDIX = "To try to steal the fruits of someone else's labor without spending a single penny—that makes me the absolute worst of the worst, a beast among beasts.";
 const DECOY_EVENT_TYPES = [
   'decoy_marked',
